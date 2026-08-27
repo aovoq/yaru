@@ -17,6 +17,26 @@ afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true })
 })
 
+async function readSse(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  match: (text: string) => boolean,
+  ms = 2000,
+): Promise<string> {
+  const decoder = new TextDecoder()
+  let acc = ""
+  const deadline = Date.now() + ms
+  while (Date.now() < deadline) {
+    const part = await Promise.race([
+      reader.read(),
+      Bun.sleep(Math.max(1, deadline - Date.now())).then(() => null),
+    ])
+    if (!part || part.done) break
+    if (part.value) acc += decoder.decode(part.value, { stream: true })
+    if (match(acc)) return acc
+  }
+  throw new Error(`sse timeout: ${JSON.stringify(acc)}`)
+}
+
 describe("web", () => {
   test("GET / renders issues", async () => {
     const store = workspace()
@@ -86,6 +106,52 @@ describe("web", () => {
     expect(res.headers.get("content-type")).toContain("text/event-stream")
     ac.abort()
     await res.body?.cancel()
+  })
+
+  test("GET /events flushes a first chunk", async () => {
+    const ac = new AbortController()
+    const res = await createApp(workspace()).request("/events", { signal: ac.signal })
+    const reader = res.body!.getReader()
+    const text = await readSse(reader, (s) => s.includes("\n\n"), 500)
+    expect(text.startsWith(":")).toBe(true)
+    ac.abort()
+    await reader.cancel()
+  })
+
+  test("GET /events over HTTP flushes before any file change", async () => {
+    const app = createApp(workspace())
+    const server = Bun.serve({
+      port: 0,
+      hostname: "127.0.0.1",
+      idleTimeout: 0,
+      fetch: app.fetch,
+    })
+    const ac = new AbortController()
+    const kill = setTimeout(() => ac.abort(), 1000)
+    try {
+      const res = await fetch(`http://127.0.0.1:${server.port}/events`, { signal: ac.signal })
+      expect(res.status).toBe(200)
+      expect(res.headers.get("content-type")).toContain("text/event-stream")
+      const text = await readSse(res.body!.getReader(), (s) => s.includes("\n\n"), 500)
+      expect(text.startsWith(":")).toBe(true)
+    } finally {
+      clearTimeout(kill)
+      ac.abort()
+      server.stop()
+    }
+  })
+
+  test("GET /events emits change after save", async () => {
+    const store = workspace()
+    const ac = new AbortController()
+    const res = await createApp(store).request("/events", { signal: ac.signal })
+    const reader = res.body!.getReader()
+    await readSse(reader, (s) => s.includes("\n\n"), 500)
+    saveIssue(store, { title: "from cli" })
+    const text = await readSse(reader, (s) => s.includes("data: change"), 2000)
+    expect(text).toContain("data: change")
+    ac.abort()
+    await reader.cancel()
   })
 
   test("POST /issues creates then lists", async () => {

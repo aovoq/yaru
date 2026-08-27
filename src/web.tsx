@@ -107,28 +107,24 @@ export function createApp(store: Store) {
   app.get("/events", (c) => {
     const encoder = new TextEncoder()
     let watcher: ReturnType<typeof watch> | undefined
+    let ping: ReturnType<typeof setInterval> | undefined
     const stream = new ReadableStream({
       start(controller) {
-        const send = () => {
+        const send = (chunk: string) => {
           try {
-            controller.enqueue(encoder.encode("data: change\n\n"))
+            controller.enqueue(encoder.encode(chunk))
           } catch {}
         }
+        send(": connected\n\n")
         const target = join(store.dir, "issues")
         try {
-          watcher = watch(target, send)
+          watcher = watch(target, () => send("data: change\n\n"))
         } catch {
-          watcher = watch(store.dir, { recursive: true }, send)
+          watcher = watch(store.dir, { recursive: true }, () => send("data: change\n\n"))
         }
-        const ping = setInterval(() => {
-          try {
-            controller.enqueue(encoder.encode(": ping\n\n"))
-          } catch {
-            clearInterval(ping)
-          }
-        }, 15000)
+        ping = setInterval(() => send(": ping\n\n"), 5000)
         const close = () => {
-          clearInterval(ping)
+          if (ping) clearInterval(ping)
           watcher?.close()
           try {
             controller.close()
@@ -137,6 +133,7 @@ export function createApp(store: Store) {
         c.req.raw.signal.addEventListener("abort", close)
       },
       cancel() {
+        if (ping) clearInterval(ping)
         watcher?.close()
       },
     })
@@ -178,7 +175,11 @@ export function serve(store: Store, port = DEFAULT_PORT) {
     const server = Bun.serve({
       port,
       hostname: "127.0.0.1",
-      fetch: app.fetch,
+      idleTimeout: 0,
+      fetch(req, bun) {
+        bun.timeout(req, 0)
+        return app.fetch(req)
+      },
     })
     console.log(`yaru  http://127.0.0.1:${server.port}`)
   } catch (err) {

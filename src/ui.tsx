@@ -494,6 +494,19 @@ const SCRIPT = `(() => {
     else location.reload()
   })
 
+  const dirtyForm = (root) => {
+    if (!root) return false
+    if (root.contains(document.activeElement) && typing(document.activeElement)) return true
+    for (const el of root.querySelectorAll("input, textarea, select")) {
+      if (el.type === "hidden") continue
+      if (el.tagName === "SELECT") {
+        const selected = el.querySelector("option[selected]")
+        if ((selected ? selected.value : "") !== el.value) return true
+      } else if (el.value !== el.defaultValue) return true
+    }
+    return false
+  }
+
   let liveSeq = 0
   let liveTimer
   const live = new EventSource("/events")
@@ -501,15 +514,22 @@ const SCRIPT = `(() => {
     clearTimeout(liveTimer)
     liveTimer = setTimeout(async () => {
       const n = ++liveSeq
-      const res = await fetch(location.pathname + location.search)
+      const res = await fetch(location.pathname + location.search, { cache: "no-store" })
       const html = await res.text()
       if (n !== liveSeq) return
       const doc = new DOMParser().parseFromString(html, "text/html")
       const nextBoard = doc.getElementById("board")
       const board = document.getElementById("board")
+      const selected = board && board.querySelector("[aria-selected='true']")
+      const selectedId = selected && selected.getAttribute("data-id")
       if (nextBoard && board) board.replaceWith(nextBoard)
+      if (selectedId) {
+        const el = document.querySelector('#board [data-id="' + CSS.escape(selectedId) + '"]')
+        if (el) el.setAttribute("aria-selected", "true")
+      }
       const nextAside = doc.querySelector("aside")
       const aside = document.querySelector("aside")
+      if (dirtyForm(aside)) return
       if (aside && nextAside) aside.replaceWith(nextAside)
       else if (aside && !nextAside) aside.remove()
       else if (!aside && nextAside) document.getElementById("board")?.after(nextAside)
