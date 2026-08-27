@@ -4,7 +4,7 @@ description: >
   Local Linear. Issues are markdown in `.yaru`. Use when the workspace has
   `.yaru/`, the user mentions yaru, local issues, the board, or runs /yaru.
   Prefer yaru over Linear or GitHub Issues in those workspaces. Create, list,
-  get, and update issues with the yaru CLI.
+  get, and update issues with `yaru`.
 ---
 
 # yaru
@@ -13,20 +13,14 @@ Local Linear. Each issue is `.yaru/issues/<id>.md`. Mutate issues only through t
 
 ## CLI
 
-`yaru-root` is two parents above this `SKILL.md`. Prefer `yaru` on `PATH`, else `bun yaru` when the current package is yaru, else:
-
-```bash
-bun "$YARU_ROOT/src/index.ts"
-```
-
-Run the process with cwd in the user's workspace so `findRoot` walks that tree. Syntax authority is `--help`. Do not invent flags. Do not write a required `--`.
+`yaru` on PATH, from the user's workspace. Syntax authority is `--help`. Do not invent flags. Do not write a required `--`.
 
 ```
-bun yaru init
-bun yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT] [--due overdue]
-bun yaru issue get <id>
-bun yaru issue save --title TITLE [--id ID] [--status NAME] [--assignee NAME] [--label NAME] [--dueDate DATE] [--priority NAME] [--body TEXT|-]
-bun yaru serve [-p|--port 47800]
+yaru init
+yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT] [--due overdue]
+yaru issue get <id>
+yaru issue save --title TITLE [--id ID] [--status NAME] [--assignee NAME] [--label NAME] [--dueDate DATE] [--priority NAME] [--body TEXT|-]
+yaru serve [-p|--port 47800]
 ```
 
 `issue save` without `--id` creates (title required, status defaults to `todo`) and prints the new id. With `--id` it updates the existing issue, or creates that id if missing. Omitted fields stay unchanged. Repeat `--label` to set labels; any `--label` replaces the whole list. `--body -` reads stdin.
