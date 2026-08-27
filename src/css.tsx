@@ -20,6 +20,11 @@ const INPUT = `@import "tailwindcss";
   --color-primary-focus: #5e69d1;
   --color-on-primary: #ffffff;
   --color-semantic-success: #27a644;
+  --color-semantic-danger: #eb5757;
+  --color-priority-urgent: #eb5757;
+  --color-priority-high: #f2994a;
+  --color-priority-medium: #f2c94c;
+  --color-priority-low: #8a8f98;
   --font-sans: Inter, "SF Pro Display", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
   --radius-sm: 6px;
@@ -48,11 +53,26 @@ async function build(): Promise<string> {
 }
 
 async function sampleHtml(): Promise<string> {
-  const issue = { ...BLANK, id: "1", title: "x", labels: ["a"], assignee: "me", body: "b" }
+  const issue = {
+    ...BLANK,
+    id: "1",
+    title: "x",
+    labels: ["a"],
+    assignee: "me",
+    body: "b",
+    dueDate: "2000-01-01",
+    priority: "urgent" as const,
+  }
+  const issues = [
+    issue,
+    { ...issue, id: "2", dueDate: "2099-01-01", priority: "high" as const },
+    { ...issue, id: "3", dueDate: null, priority: "medium" as const },
+    { ...issue, id: "4", dueDate: null, priority: "low" as const },
+  ]
   const node = (
     <Document css="">
       <BoardPage
-        issues={[issue]}
+        issues={issues}
         query="q"
         current={issue}
         status="todo"
@@ -60,7 +80,7 @@ async function sampleHtml(): Promise<string> {
         label="a"
         error="title is required"
       />
-      <BoardPage issues={[issue]} query="q" current={null} view="list" />
+      <BoardPage issues={issues} query="q" current={null} view="list" />
       <ErrorView message="x" />
     </Document>
   )

@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "hono/jsx"
-import { STATUSES, type Issue } from "./store"
+import { isOverdue, PRIORITIES, STATUSES, type Issue, type Priority } from "./store"
 
 export const BLANK: Issue = {
   id: "",
@@ -7,6 +7,8 @@ export const BLANK: Issue = {
   status: "todo",
   assignee: null,
   labels: [],
+  dueDate: null,
+  priority: null,
   createdAt: "",
   updatedAt: "",
   body: "",
@@ -52,7 +54,7 @@ export function Document({ css, children }: PropsWithChildren<{ css: string }>) 
         <title>yaru</title>
         <style dangerouslySetInnerHTML={{ __html: css }} />
       </head>
-      <body class="min-h-screen bg-canvas font-sans text-sm leading-normal text-ink antialiased">
+      <body class="min-h-screen bg-canvas font-sans text-sm leading-normal text-ink antialiased scheme-dark">
         {children}
       </body>
     </html>
@@ -200,7 +202,9 @@ function IssueCard({ issue, ctx }: { issue: Issue; ctx: PageFilters }) {
       <div class="font-mono text-[13px] text-ink-tertiary">{issue.id}</div>
       <div class="mt-0.5 text-sm font-medium text-ink">{issue.title}</div>
       <div class="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-ink-subtle">
+        <PriorityStamp priority={issue.priority} />
         {issue.assignee ? <span>{issue.assignee}</span> : null}
+        <DueStamp date={issue.dueDate} />
         {issue.labels.map((label) => (
           <span class="rounded-sm bg-surface-2 px-1.5 py-px text-[11px] text-ink-subtle">
             {label}
@@ -218,7 +222,9 @@ function IssueList({ issues, ctx }: { issues: Issue[]; ctx: PageFilters }) {
         <span class="w-20 shrink-0">id</span>
         <span class="min-w-0 flex-1">title</span>
         <span class="w-32 shrink-0">status</span>
+        <span class="w-20 shrink-0">priority</span>
         <span class="w-28 shrink-0">assignee</span>
+        <span class="w-28 shrink-0">due</span>
         <span class="w-40 shrink-0">labels</span>
       </div>
       {issues.map((issue) => (
@@ -236,7 +242,13 @@ function IssueList({ issues, ctx }: { issues: Issue[]; ctx: PageFilters }) {
               {labelStatus(issue.status)}
             </span>
           </span>
+          <span class="w-20 shrink-0">
+            <PriorityStamp priority={issue.priority} />
+          </span>
           <span class="w-28 shrink-0 truncate text-xs text-ink-subtle">{issue.assignee ?? ""}</span>
+          <span class="w-28 shrink-0">
+            <DueStamp date={issue.dueDate} />
+          </span>
           <span class="w-40 shrink-0 truncate text-xs text-ink-subtle">
             {issue.labels.join(", ")}
           </span>
@@ -290,6 +302,27 @@ function Drawer({ issue, ctx, error }: { issue: Issue; ctx: PageFilters; error?:
             class="min-w-0 flex-1 rounded-md border border-hairline bg-surface-1 px-3 py-2 font-sans text-sm text-ink placeholder:text-ink-tertiary focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-primary-focus/50"
           />
         </div>
+        <div class="flex gap-2">
+          <select
+            name="priority"
+            class="min-w-0 flex-1 rounded-md border border-hairline bg-surface-1 px-3 py-2 font-sans text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-primary-focus/50"
+          >
+            <option value="" selected={!issue.priority}>
+              None
+            </option>
+            {PRIORITIES.map((priority) => (
+              <option value={priority} selected={issue.priority === priority}>
+                {priority}
+              </option>
+            ))}
+          </select>
+          <input
+            type="date"
+            name="dueDate"
+            value={issue.dueDate ?? ""}
+            class="min-w-0 flex-1 rounded-md border border-hairline bg-surface-1 px-3 py-2 font-sans text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-primary-focus/50"
+          />
+        </div>
         <input
           name="labels"
           value={issue.labels.join(", ")}
@@ -320,6 +353,38 @@ function Drawer({ issue, ctx, error }: { issue: Issue; ctx: PageFilters; error?:
         </div>
       </form>
     </aside>
+  )
+}
+
+function DueStamp({ date }: { date: string | null }) {
+  if (!date) return null
+  const overdue = isOverdue(date)
+  return (
+    <span
+      data-overdue={overdue ? "" : undefined}
+      class={
+        overdue
+          ? "font-mono text-[11px] text-semantic-danger"
+          : "font-mono text-[11px] text-ink-subtle"
+      }
+    >
+      {date}
+    </span>
+  )
+}
+
+function PriorityStamp({ priority }: { priority: Priority | null }) {
+  if (!priority) return null
+  const color = {
+    urgent: "text-priority-urgent",
+    high: "text-priority-high",
+    medium: "text-priority-medium",
+    low: "text-priority-low",
+  }[priority]
+  return (
+    <span data-priority={priority} class={`text-[11px] ${color}`}>
+      {priority}
+    </span>
   )
 }
 

@@ -15,9 +15,9 @@ import { DEFAULT_PORT, serve } from "./web"
 const HELP = `yaru — local issues, markdown in .yaru
 
   bun yaru init
-  bun yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT]
+  bun yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT] [--due overdue]
   bun yaru issue get <id>
-  bun yaru issue save --title TITLE [--id ID] [--status NAME] [--assignee NAME] [--label NAME] [--body TEXT|-]
+  bun yaru issue save --title TITLE [--id ID] [--status NAME] [--assignee NAME] [--label NAME] [--dueDate DATE] [--priority NAME] [--body TEXT|-]
   bun yaru serve [-p|--port ${DEFAULT_PORT}]
 `
 
@@ -65,6 +65,10 @@ async function issue(
     if (flag("query")) filter.query = flag("query")
     if (flag("label")) filter.label = flag("label")
     if (flag("assignee") !== undefined) filter.assignee = flag("assignee")
+    if (flag("due") !== undefined) {
+      if (flag("due") !== "overdue") throw new Error("usage: --due overdue")
+      filter.due = "overdue"
+    }
     const rows = listIssues(store, filter)
     if (rows.length === 0) {
       console.log("(none)")
@@ -73,8 +77,10 @@ async function issue(
     const width = Math.max(...rows.map((r) => r.id.length))
     for (const row of rows) {
       const who = row.assignee ?? "-"
+      const due = row.dueDate ?? "-"
+      const priority = row.priority ?? "-"
       console.log(
-        `${row.id.padEnd(width)}  ${row.status.padEnd(12)}  ${who.padEnd(12)}  ${row.title}`,
+        `${row.id.padEnd(width)}  ${row.status.padEnd(12)}  ${who.padEnd(12)}  ${due.padEnd(10)}  ${priority.padEnd(6)}  ${row.title}`,
       )
     }
     return
@@ -95,6 +101,8 @@ async function issue(
     else if (flag("body") !== undefined) input.body = flag("body")
     if (flags.label) input.labels = flags.label
     if (flag("assignee") !== undefined) input.assignee = flag("assignee")
+    if (flag("dueDate") !== undefined) input.dueDate = flag("dueDate")
+    if (flag("priority") !== undefined) input.priority = flag("priority")
     const saved = saveIssue(store, input)
     console.log(saved.id)
     await hintBoard(saved.id)
@@ -117,7 +125,7 @@ async function hintBoard(id: string) {
 
 function formatGet(issue: ReturnType<typeof getIssue>): string {
   const labels = issue.labels.join(", ") || "-"
-  return `${issue.id}  ${issue.status}  ${issue.assignee ?? "-"}  ${labels}
+  return `${issue.id}  ${issue.status}  ${issue.assignee ?? "-"}  ${labels}  ${issue.dueDate ?? "-"}  ${issue.priority ?? "-"}
 ${issue.title}
 
 ${issue.body}${issue.body ? "\n" : ""}`

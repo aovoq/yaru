@@ -8,12 +8,17 @@ import {
 } from "node:fs"
 import { dirname, join } from "node:path"
 
+export const PRIORITIES = ["urgent", "high", "medium", "low"] as const
+export type Priority = (typeof PRIORITIES)[number]
+
 export type Issue = {
   id: string
   title: string
   status: string
   assignee: string | null
   labels: string[]
+  dueDate: string | null
+  priority: Priority | null
   createdAt: string
   updatedAt: string
   body: string
@@ -24,6 +29,7 @@ export type Filter = {
   assignee?: string | null
   label?: string
   query?: string
+  due?: "overdue"
 }
 
 export type SaveInput = {
@@ -32,6 +38,8 @@ export type SaveInput = {
   status?: string
   assignee?: string | null
   labels?: string[]
+  dueDate?: string | null
+  priority?: string | null
   body?: string
 }
 
@@ -92,6 +100,8 @@ export function getIssue(store: Store, id: string): Issue {
 export function saveIssue(store: Store, input: SaveInput): Issue {
   const now = new Date().toISOString()
   const assignee = resolveAssignee(input.assignee)
+  const dueDate = resolveDueDate(input.dueDate)
+  const priority = resolvePriority(input.priority)
   if (input.id) {
     const path = issuePath(store, input.id)
     if (existsSync(path)) {
@@ -102,18 +112,20 @@ export function saveIssue(store: Store, input: SaveInput): Issue {
         status: input.status ?? current.status,
         assignee: assignee !== undefined ? assignee : current.assignee,
         labels: input.labels ?? current.labels,
+        dueDate: dueDate !== undefined ? dueDate : current.dueDate,
+        priority: priority !== undefined ? priority : current.priority,
         body: input.body ?? current.body,
         updatedAt: now,
       }
       writeReplace(path, issue)
       return issue
     }
-    const created = newIssue(input.id, input, assignee, now)
+    const created = newIssue(input.id, input, { assignee, dueDate, priority }, now)
     writeCreate(path, created)
     return created
   }
   for (;;) {
-    const created = newIssue(nextId(store), input, assignee, now)
+    const created = newIssue(nextId(store), input, { assignee, dueDate, priority }, now)
     try {
       writeCreate(issuePath(store, created.id), created)
       return created
@@ -126,7 +138,11 @@ export function saveIssue(store: Store, input: SaveInput): Issue {
 function newIssue(
   id: string,
   input: SaveInput,
-  assignee: string | null | undefined,
+  resolved: {
+    assignee: string | null | undefined
+    dueDate: string | null | undefined
+    priority: Priority | null | undefined
+  },
   now: string,
 ): Issue {
   if (!input.title?.trim()) throw new Error("title is required")
@@ -134,8 +150,10 @@ function newIssue(
     id,
     title: input.title.trim(),
     status: input.status || "todo",
-    assignee: assignee ?? null,
+    assignee: resolved.assignee ?? null,
     labels: input.labels ?? [],
+    dueDate: resolved.dueDate ?? null,
+    priority: resolved.priority ?? null,
     createdAt: now,
     updatedAt: now,
     body: input.body ?? "",
@@ -166,16 +184,58 @@ function match(issue: Issue, filter: Filter): boolean {
     const hay = `${issue.id} ${issue.title} ${issue.body}`.toLowerCase()
     if (!hay.includes(q)) return false
   }
+  if (filter.due === "overdue" && !isOverdue(issue.dueDate)) return false
   return true
 }
 
-function resolveAssignee(value: string | null | undefined): string | null | undefined {
+export function isOverdue(dueDate: string | null, now = new Date()): boolean {
+  return dueDate !== null && dueDate < calendarDate(now)
+}
+
+function calendarDate(now: Date): string {
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, "0")
+  const d = String(now.getDate()).padStart(2, "0")
+  return `${y}-${m}-${d}`
+}
+
+function blankToNull(value: string | null | undefined): string | null | undefined {
   if (value === undefined) return undefined
   if (value === null) return null
   const trimmed = value.trim()
   if (!trimmed || trimmed === "none") return null
-  if (trimmed === "me") return gitName()
   return trimmed
+}
+
+function resolveAssignee(value: string | null | undefined): string | null | undefined {
+  const resolved = blankToNull(value)
+  if (resolved === "me") return gitName()
+  return resolved
+}
+
+function resolveDueDate(value: string | null | undefined): string | null | undefined {
+  const resolved = blankToNull(value)
+  if (resolved === undefined || resolved === null) return resolved
+  if (!isCalendarDate(resolved)) throw new Error(`invalid dueDate: ${value}`)
+  return resolved
+}
+
+function resolvePriority(value: string | null | undefined): Priority | null | undefined {
+  const resolved = blankToNull(value)
+  if (resolved === undefined || resolved === null) return resolved
+  if (!(PRIORITIES as readonly string[]).includes(resolved)) {
+    throw new Error(`invalid priority: ${value}`)
+  }
+  return resolved as Priority
+}
+
+function isCalendarDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const y = Number(value.slice(0, 4))
+  const m = Number(value.slice(5, 7))
+  const d = Number(value.slice(8, 10))
+  const dt = new Date(y, m - 1, d)
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d
 }
 
 function gitName(): string {
@@ -229,6 +289,8 @@ function parseIssue(text: string): Issue {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean),
+    dueDate: resolveDueDate(meta.dueDate ?? "") ?? null,
+    priority: resolvePriority(meta.priority ?? "") ?? null,
     createdAt: meta.createdAt || "",
     updatedAt: meta.updatedAt || "",
     body,
@@ -242,6 +304,8 @@ title: ${issue.title.replace(/\n/g, " ")}
 status: ${issue.status}
 assignee: ${issue.assignee ?? ""}
 labels: ${issue.labels.join(", ")}
+dueDate: ${issue.dueDate ?? ""}
+priority: ${issue.priority ?? ""}
 createdAt: ${issue.createdAt}
 updatedAt: ${issue.updatedAt}
 ---

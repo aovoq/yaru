@@ -50,6 +50,7 @@ describe("web", () => {
     expect(html).toContain(">1<")
     expect(html).toContain("--color-canvas")
     expect(html).toContain("#5e6ad2")
+    expect(html).toContain("--color-semantic-danger")
   })
 
   test("GET /?id= opens drawer", async () => {
@@ -260,5 +261,116 @@ describe("web", () => {
     const page = await app.request("/?id=9")
     expect(page.status).toBe(404)
     expect(await page.text()).toContain("not found")
+  })
+
+  test("board shows dueDate and marks overdue", async () => {
+    const store = workspace()
+    const d = new Date()
+    d.setDate(d.getDate() - 1)
+    const yesterday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+    saveIssue(store, { title: "late card", dueDate: yesterday, priority: "high" })
+    const html = await (await createApp(store).request("/")).text()
+    expect(html).toContain(yesterday)
+    expect(html).toContain("data-overdue")
+    expect(html).toContain("text-semantic-danger")
+    expect(html).toContain('data-priority="high"')
+  })
+
+  test("list view shows dueDate and priority", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "listed", dueDate: "2026-08-20", priority: "low" })
+    const html = await (await createApp(store).request("/?view=list")).text()
+    expect(html).toContain("2026-08-20")
+    expect(html).toContain('data-priority="low"')
+    expect(html).toContain(">due<")
+    expect(html).toContain(">priority<")
+  })
+
+  test("drawer has dueDate and priority fields", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "drawer me", dueDate: "2026-08-20", priority: "medium" })
+    const html = await (await createApp(store).request("/?id=1")).text()
+    expect(html).toContain('name="dueDate"')
+    expect(html).toContain('value="2026-08-20"')
+    expect(html).toContain('name="priority"')
+    expect(html).toContain('value="medium"')
+  })
+
+  test("POST /issues saves dueDate and priority", async () => {
+    const app = createApp(workspace())
+    const res = await app.request("/issues", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        title: "from form",
+        dueDate: "2026-08-20",
+        priority: "urgent",
+      }).toString(),
+    })
+    expect(res.status).toBe(302)
+    const issue = await (await app.request("/api/issues/1")).json()
+    expect(issue.dueDate).toBe("2026-08-20")
+    expect(issue.priority).toBe("urgent")
+  })
+
+  test("POST /issues invalid dueDate stays in the drawer", async () => {
+    const app = createApp(workspace())
+    const res = await app.request("/issues", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ title: "bad date", dueDate: "2026-02-30" }).toString(),
+    })
+    expect(res.status).toBe(400)
+    const html = await res.text()
+    expect(html).toContain("invalid dueDate")
+    expect(html).toContain("Save")
+    expect(html).not.toContain(">back<")
+  })
+
+  test("due today is not overdue on the board", async () => {
+    const store = workspace()
+    const now = new Date()
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+    saveIssue(store, { title: "today card", dueDate: today })
+    const html = await (await createApp(store).request("/")).text()
+    expect(html).toContain(today)
+    expect(html).not.toContain("data-overdue")
+  })
+
+  test("POST /issues with only status keeps dueDate and priority", async () => {
+    const store = workspace()
+    saveIssue(store, {
+      title: "move me",
+      dueDate: "2026-08-20",
+      priority: "high",
+      assignee: "voq",
+      body: "keep",
+    })
+    const app = createApp(store)
+    const res = await app.request("/issues", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ id: "1", status: "done" }).toString(),
+    })
+    expect(res.status).toBe(302)
+    const issue = await (await app.request("/api/issues/1")).json()
+    expect(issue.status).toBe("done")
+    expect(issue.title).toBe("move me")
+    expect(issue.dueDate).toBe("2026-08-20")
+    expect(issue.priority).toBe("high")
+    expect(issue.body).toBe("keep")
+    expect(issue.assignee).toBe("voq")
+  })
+
+  test("GET /api/issues?due=overdue", async () => {
+    const store = workspace()
+    const d = new Date()
+    d.setDate(d.getDate() - 1)
+    const yesterday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+    saveIssue(store, { title: "late", dueDate: yesterday })
+    saveIssue(store, { title: "open" })
+    const rows = await (await createApp(store).request("/api/issues?due=overdue")).json()
+    expect(rows).toHaveLength(1)
+    expect(rows[0].title).toBe("late")
   })
 })

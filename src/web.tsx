@@ -73,15 +73,16 @@ export function createApp(store: Store) {
     try {
       saveIssue(store, {
         id: draft.id || undefined,
-        title: draft.title,
-        status: draft.status,
-        assignee: draft.assignee,
-        labels: draft.labels,
-        body: draft.body,
+        title: "title" in body ? draft.title : undefined,
+        status: "status" in body ? draft.status : undefined,
+        assignee: "assignee" in body ? draft.assignee : undefined,
+        labels: "labels" in body ? draft.labels : undefined,
+        dueDate: "dueDate" in body ? draft.dueDate : undefined,
+        priority: "priority" in body ? draft.priority : undefined,
+        body: "body" in body ? draft.body : undefined,
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      if (!message.includes("title is required")) throw err
       c.status(400)
       return c.render(
         <BoardPage
@@ -153,6 +154,7 @@ export function createApp(store: Store) {
         assignee: c.req.query("assignee") || undefined,
         label: c.req.query("label") || undefined,
         query: c.req.query("query") || undefined,
+        due: c.req.query("due") === "overdue" ? "overdue" : undefined,
       }),
     )
   })
@@ -220,6 +222,8 @@ function draftFrom(body: Record<string, unknown>): Issue {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean),
+    dueDate: str(body.dueDate) || null,
+    priority: (str(body.priority) || null) as Issue["priority"],
     body: str(body.body),
   }
 }
