@@ -48,7 +48,7 @@ async function build(): Promise<string> {
 }
 
 async function sampleHtml(): Promise<string> {
-  const issue = { ...BLANK, id: "YAR-1", title: "x", labels: ["a"], assignee: "me", body: "b" }
+  const issue = { ...BLANK, id: "1", title: "x", labels: ["a"], assignee: "me", body: "b" }
   const node = (
     <Document css="">
       <BoardPage

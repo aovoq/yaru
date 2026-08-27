@@ -14,7 +14,7 @@ import { DEFAULT_PORT, serve } from "./web"
 
 const HELP = `yaru — local issues, markdown in .yaru
 
-  bun yaru init [--prefix YAR]
+  bun yaru init
   bun yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT]
   bun yaru issue get <id>
   bun yaru issue save --title TITLE [--id ID] [--status NAME] [--assignee NAME] [--label NAME] [--body TEXT|-]
@@ -32,7 +32,7 @@ async function main() {
 
     const cmd = rest[0]
     if (cmd === "init") {
-      const store = init(process.cwd(), flag("prefix") || "YAR")
+      const store = init(process.cwd())
       console.log(`initialized ${store.dir}`)
       return
     }

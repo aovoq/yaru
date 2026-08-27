@@ -27,7 +27,7 @@ describe("web", () => {
     const html = await res.text()
     expect(html).toContain("<!DOCTYPE html>")
     expect(html).toContain("first card")
-    expect(html).toContain("YAR-1")
+    expect(html).toContain(">1<")
     expect(html).toContain("--color-canvas")
     expect(html).toContain("#5e6ad2")
   })
@@ -35,7 +35,7 @@ describe("web", () => {
   test("GET /?id= opens drawer", async () => {
     const store = workspace()
     saveIssue(store, { title: "drawer me", body: "hello body" })
-    const res = await createApp(store).request("/?id=YAR-1")
+    const res = await createApp(store).request("/?id=1")
     const html = await res.text()
     expect(html).toContain('value="drawer me"')
     expect(html).toContain("hello body")
@@ -162,7 +162,7 @@ describe("web", () => {
       body: JSON.stringify({ title: "via api" }),
     })
     expect(res.status).toBe(200)
-    expect((await res.json()).id).toBe("YAR-1")
+    expect((await res.json()).id).toBe("1")
   })
 
   test("serve on a taken port reports already running", () => {
@@ -188,10 +188,10 @@ describe("web", () => {
 
   test("missing issue is 404", async () => {
     const app = createApp(workspace())
-    const api = await app.request("/api/issues/YAR-9")
+    const api = await app.request("/api/issues/9")
     expect(api.status).toBe(404)
     expect((await api.json()).error).toContain("not found")
-    const page = await app.request("/?id=YAR-9")
+    const page = await app.request("/?id=9")
     expect(page.status).toBe(404)
     expect(await page.text()).toContain("not found")
   })

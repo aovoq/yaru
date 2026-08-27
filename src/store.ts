@@ -58,11 +58,11 @@ export function open(root: string): Store {
   return { root, dir }
 }
 
-export function init(root: string, issuePrefix = "YAR"): Store {
+export function init(root: string): Store {
   const dir = join(root, ".yaru")
   if (existsSync(join(dir, "config.yml"))) throw new Error("already a yaru workspace")
   mkdirSync(join(dir, "issues"), { recursive: true })
-  writeFileSync(join(dir, "config.yml"), `prefix: ${issuePrefix}\n`)
+  writeFileSync(join(dir, "config.yml"), "")
   return { root, dir }
 }
 
@@ -84,20 +84,18 @@ export function listIssues(store: Store, filter: Filter = {}): Issue[] {
 }
 
 export function getIssue(store: Store, id: string): Issue {
-  const resolved = resolveId(store, id)
-  const path = issuePath(store, resolved)
-  if (!existsSync(path)) throw new Error(`issue not found: ${resolved}`)
-  return readIssue(path, resolved)
+  const path = issuePath(store, id)
+  if (!existsSync(path)) throw new Error(`issue not found: ${id}`)
+  return readIssue(path, id)
 }
 
 export function saveIssue(store: Store, input: SaveInput): Issue {
   const now = new Date().toISOString()
   const assignee = resolveAssignee(input.assignee)
   if (input.id) {
-    const id = resolveId(store, input.id)
-    const path = issuePath(store, id)
+    const path = issuePath(store, input.id)
     if (existsSync(path)) {
-      const current = readIssue(path, id)
+      const current = readIssue(path, input.id)
       const issue: Issue = {
         ...current,
         title: input.title ?? current.title,
@@ -110,7 +108,7 @@ export function saveIssue(store: Store, input: SaveInput): Issue {
       writeReplace(path, issue)
       return issue
     }
-    const created = newIssue(id, input, assignee, now)
+    const created = newIssue(input.id, input, assignee, now)
     writeCreate(path, created)
     return created
   }
@@ -144,30 +142,18 @@ function newIssue(
   }
 }
 
-function prefix(store: Store): string {
-  const text = readFileSync(join(store.dir, "config.yml"), "utf8")
-  return field(text, "prefix") || "YAR"
-}
-
-function resolveId(store: Store, id: string): string {
-  if (/^\d+$/.test(id)) return `${prefix(store)}-${id}`
-  return id
-}
-
 function nextId(store: Store): string {
-  const pre = prefix(store)
   const dir = join(store.dir, "issues")
   let max = 0
   if (existsSync(dir)) {
-    const re = new RegExp(`^${escapeRe(pre)}-(\\d+)\\.md$`)
     for (const name of readdirSync(dir)) {
-      const m = name.match(re)
+      const m = name.match(/^(\d+)\.md$/)
       if (!m) continue
       const n = Number(m[1])
       if (n > max) max = n
     }
   }
-  return `${pre}-${max + 1}`
+  return String(max + 1)
 }
 
 function match(issue: Issue, filter: Filter): boolean {
@@ -262,19 +248,6 @@ updatedAt: ${issue.updatedAt}
 
 ${issue.body}
 `
-}
-
-function field(text: string, key: string): string {
-  for (const line of text.split("\n")) {
-    const i = line.indexOf(":")
-    if (i < 0) continue
-    if (line.slice(0, i).trim() === key) return line.slice(i + 1).trim()
-  }
-  return ""
-}
-
-function escapeRe(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
 function isEexist(err: unknown): boolean {
