@@ -4,12 +4,28 @@ import { BLANK, BoardPage, Document, ErrorView } from "./ui"
 
 const INPUT = `@import "tailwindcss";
 @theme {
-  --color-ink: #1c1917;
-  --color-muted: #78716c;
-  --color-line: #e7e0d6;
-  --color-paper: #f6f1e8;
-  --color-card: #fffdf8;
-  --color-accent: #b42318;
+  --color-ink: #f7f8f8;
+  --color-ink-muted: #d0d6e0;
+  --color-ink-subtle: #8a8f98;
+  --color-ink-tertiary: #62666d;
+  --color-canvas: #010102;
+  --color-surface-1: #0f1011;
+  --color-surface-2: #141516;
+  --color-surface-3: #18191a;
+  --color-surface-4: #191a1b;
+  --color-hairline: #23252a;
+  --color-hairline-strong: #34343a;
+  --color-primary: #5e6ad2;
+  --color-primary-hover: #828fff;
+  --color-primary-focus: #5e69d1;
+  --color-on-primary: #ffffff;
+  --color-semantic-success: #27a644;
+  --font-sans: Inter, "SF Pro Display", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 }
 `
 
@@ -35,7 +51,16 @@ async function sampleHtml(): Promise<string> {
   const issue = { ...BLANK, id: "YAR-1", title: "x", labels: ["a"], assignee: "me", body: "b" }
   const node = (
     <Document css="">
-      <BoardPage issues={[issue]} query="q" current={issue} />
+      <BoardPage
+        issues={[issue]}
+        query="q"
+        current={issue}
+        status="todo"
+        assignee="me"
+        label="a"
+        error="title is required"
+      />
+      <BoardPage issues={[issue]} query="q" current={null} view="list" />
       <ErrorView message="x" />
     </Document>
   )

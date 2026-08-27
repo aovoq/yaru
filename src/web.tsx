@@ -1,10 +1,14 @@
+import { watch } from "node:fs"
+import { join } from "node:path"
 import { Hono } from "hono"
 import { jsxRenderer } from "hono/jsx-renderer"
 import { styles } from "./css"
-import { getIssue, listIssues, saveIssue, type SaveInput, type Store } from "./store"
+import { getIssue, listIssues, saveIssue, type Issue, type SaveInput, type Store } from "./store"
 import { BLANK, BoardPage, Document, ErrorView } from "./ui"
 
 export const DEFAULT_PORT = 47800
+
+const FILTER_KEYS = ["query", "status", "assignee", "label", "view"] as const
 
 export function createApp(store: Store) {
   const app = new Hono()
@@ -32,26 +36,117 @@ export function createApp(store: Store) {
   app.get("/", (c) => {
     const query = c.req.query("query") || ""
     const id = c.req.query("id")
-    const issues = listIssues(store, { query: query || undefined })
+    const status = c.req.query("status") || undefined
+    const assignee = c.req.query("assignee") || undefined
+    const label = c.req.query("label") || undefined
+    const view = c.req.query("view") === "list" ? "list" : "board"
+    const issues = listIssues(store, {
+      query: query || undefined,
+      status,
+      assignee,
+      label,
+    })
     const current = id === "new" ? BLANK : id ? getIssue(store, id) : null
-    return c.render(<BoardPage issues={issues} query={query} current={current} />)
+    return c.render(
+      <BoardPage
+        issues={issues}
+        query={query}
+        current={current}
+        status={status}
+        assignee={assignee}
+        label={label}
+        view={view}
+      />,
+    )
   })
 
   app.post("/issues", async (c) => {
     const body = await c.req.parseBody()
-    saveIssue(store, {
-      id: str(body.id) || undefined,
-      title: str(body.title),
-      status: str(body.status) || undefined,
-      assignee: str(body.assignee),
-      labels: str(body.labels)
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      body: str(body.body),
+    const filters = {
+      query: c.req.query("query") || str(body.query),
+      view: c.req.query("view") || str(body.view),
+      label: c.req.query("label") || str(body.label),
+      status: c.req.query("status") || str(body.filter_status),
+      assignee: c.req.query("assignee") || str(body.filter_assignee),
+    }
+    const draft = draftFrom(body)
+    try {
+      saveIssue(store, {
+        id: draft.id || undefined,
+        title: draft.title,
+        status: draft.status,
+        assignee: draft.assignee,
+        labels: draft.labels,
+        body: draft.body,
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      if (!message.includes("title is required")) throw err
+      c.status(400)
+      return c.render(
+        <BoardPage
+          issues={listIssues(store, {
+            query: filters.query || undefined,
+            status: filters.status || undefined,
+            assignee: filters.assignee || undefined,
+            label: filters.label || undefined,
+          })}
+          query={filters.query}
+          current={draft}
+          status={filters.status || undefined}
+          assignee={filters.assignee || undefined}
+          label={filters.label || undefined}
+          view={filters.view === "list" ? "list" : "board"}
+          error={message}
+        />,
+      )
+    }
+    return c.redirect(hrefFrom(filters))
+  })
+
+  app.get("/events", (c) => {
+    const encoder = new TextEncoder()
+    let watcher: ReturnType<typeof watch> | undefined
+    const stream = new ReadableStream({
+      start(controller) {
+        const send = () => {
+          try {
+            controller.enqueue(encoder.encode("data: change\n\n"))
+          } catch {}
+        }
+        const target = join(store.dir, "issues")
+        try {
+          watcher = watch(target, send)
+        } catch {
+          watcher = watch(store.dir, { recursive: true }, send)
+        }
+        const ping = setInterval(() => {
+          try {
+            controller.enqueue(encoder.encode(": ping\n\n"))
+          } catch {
+            clearInterval(ping)
+          }
+        }, 15000)
+        const close = () => {
+          clearInterval(ping)
+          watcher?.close()
+          try {
+            controller.close()
+          } catch {}
+        }
+        c.req.raw.signal.addEventListener("abort", close)
+      },
+      cancel() {
+        watcher?.close()
+      },
     })
-    const query = str(body.query)
-    return c.redirect(query ? `/?query=${encodeURIComponent(query)}` : "/")
+    return new Response(stream, {
+      headers: {
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        connection: "keep-alive",
+      },
+    })
   })
 
   app.get("/api/issues", (c) => {
@@ -79,14 +174,51 @@ export function createApp(store: Store) {
 
 export function serve(store: Store, port = DEFAULT_PORT) {
   const app = createApp(store)
-  const server = Bun.serve({
-    port,
-    hostname: "127.0.0.1",
-    fetch: app.fetch,
-  })
-  console.log(`yaru  http://127.0.0.1:${server.port}`)
+  try {
+    const server = Bun.serve({
+      port,
+      hostname: "127.0.0.1",
+      fetch: app.fetch,
+    })
+    console.log(`yaru  http://127.0.0.1:${server.port}`)
+  } catch (err) {
+    if (isAddrInUse(err)) {
+      console.log(`yaru  already running  http://127.0.0.1:${port}`)
+      return
+    }
+    throw err
+  }
+}
+
+function isAddrInUse(err: unknown): boolean {
+  return err instanceof Error && "code" in err && err.code === "EADDRINUSE"
+}
+
+function hrefFrom(source: Record<string, unknown>): string {
+  const params = new URLSearchParams()
+  for (const key of FILTER_KEYS) {
+    const value = str(source[key])
+    if (value) params.set(key, value)
+  }
+  const qs = params.toString()
+  return qs ? `/?${qs}` : "/"
 }
 
 function str(value: unknown): string {
   return typeof value === "string" ? value : ""
+}
+
+function draftFrom(body: Record<string, unknown>): Issue {
+  return {
+    ...BLANK,
+    id: str(body.id),
+    title: str(body.title),
+    status: str(body.status) || "todo",
+    assignee: str(body.assignee) || null,
+    labels: str(body.labels)
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+    body: str(body.body),
+  }
 }

@@ -14,14 +14,14 @@ import { DEFAULT_PORT, serve } from "./web"
 
 const HELP = `yaru — local issues, markdown in .yaru
 
-  yaru init [--prefix YAR]
-  yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT]
-  yaru issue get <id>
-  yaru issue save --title TITLE [--id ID] [--status NAME] [--assignee NAME] [--label NAME] [--body TEXT|-]
-  yaru serve [-p|--port ${DEFAULT_PORT}]
+  bun yaru init [--prefix YAR]
+  bun yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT]
+  bun yaru issue get <id>
+  bun yaru issue save --title TITLE [--id ID] [--status NAME] [--assignee NAME] [--label NAME] [--body TEXT|-]
+  bun yaru serve [-p|--port ${DEFAULT_PORT}]
 `
 
-function main() {
+async function main() {
   try {
     const { rest, flag, flags } = parse(process.argv.slice(2))
     const wantsHelp = Boolean(flag("help") || flag("h") || rest[0] === "help")
@@ -41,7 +41,7 @@ function main() {
       return
     }
     if (cmd === "issue") {
-      issue(rest.slice(1), flag, flags)
+      await issue(rest.slice(1), flag, flags)
       return
     }
     throw new Error(`unknown command: ${cmd}`)
@@ -52,7 +52,7 @@ function main() {
   }
 }
 
-function issue(
+async function issue(
   rest: string[],
   flag: (k: string) => string | undefined,
   flags: Record<string, string[]>,
@@ -97,9 +97,22 @@ function issue(
     if (flag("assignee") !== undefined) input.assignee = flag("assignee")
     const saved = saveIssue(store, input)
     console.log(saved.id)
+    await hintBoard(saved.id)
     return
   }
   throw new Error("usage: yaru issue list|get|save")
+}
+
+async function hintBoard(id: string) {
+  try {
+    const base = `http://127.0.0.1:${DEFAULT_PORT}`
+    const res = await fetch(`${base}/api/issues/${encodeURIComponent(id)}`, {
+      signal: AbortSignal.timeout(200),
+    })
+    if (res.ok) console.log(`${base}/?id=${encodeURIComponent(id)}`)
+  } catch {
+    // board is optional; save already succeeded
+  }
 }
 
 function formatGet(issue: ReturnType<typeof getIssue>): string {
@@ -153,4 +166,4 @@ function parse(argv: string[]) {
   }
 }
 
-main()
+await main()

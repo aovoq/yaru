@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { init, saveIssue } from "./store"
-import { createApp } from "./web"
+import { createApp, serve } from "./web"
 
 const dirs: string[] = []
 
@@ -28,7 +28,8 @@ describe("web", () => {
     expect(html).toContain("<!DOCTYPE html>")
     expect(html).toContain("first card")
     expect(html).toContain("YAR-1")
-    expect(html).toContain("--color-paper")
+    expect(html).toContain("--color-canvas")
+    expect(html).toContain("#5e6ad2")
   })
 
   test("GET /?id= opens drawer", async () => {
@@ -41,12 +42,58 @@ describe("web", () => {
     expect(html).toContain('name="id"')
   })
 
+  test("GET /?status=done filters the board", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "todo only", status: "todo" })
+    saveIssue(store, { title: "done card", status: "done" })
+    const res = await createApp(store).request("/?status=done")
+    expect(res.status).toBe(200)
+    const html = await res.text()
+    expect(html).toContain("done card")
+    expect(html).not.toContain("todo only")
+  })
+
+  test("GET /?view=list returns html", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "listed" })
+    const res = await createApp(store).request("/?view=list")
+    expect(res.status).toBe(200)
+    expect(res.headers.get("content-type")).toContain("text/html")
+    const html = await res.text()
+    expect(html).toContain("<!DOCTYPE html>")
+  })
+
+  test("POST /issues without title stays in the drawer", async () => {
+    const app = createApp(workspace())
+    const res = await app.request("/issues", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ title: "", body: "keep me" }).toString(),
+    })
+    expect(res.status).toBe(400)
+    const html = await res.text()
+    expect(html).toContain("title is required")
+    expect(html).toContain("keep me")
+    expect(html).toContain("Save")
+    expect(html).not.toContain(">back<")
+  })
+
+  test("GET /events is an event stream", async () => {
+    const app = createApp(workspace())
+    const ac = new AbortController()
+    const res = await app.request("/events", { signal: ac.signal })
+    expect(res.status).toBe(200)
+    expect(res.headers.get("content-type")).toContain("text/event-stream")
+    ac.abort()
+    await res.body?.cancel()
+  })
+
   test("POST /issues creates then lists", async () => {
     const app = createApp(workspace())
     const res = await app.request("/issues", {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ title: "from form", status: "todo" }).toString(),
+      body: new URLSearchParams({ title: "from form" }).toString(),
     })
     expect(res.status).toBe(302)
     expect(res.headers.get("location")).toBe("/")
@@ -54,6 +101,36 @@ describe("web", () => {
     const issues = await list.json()
     expect(issues).toHaveLength(1)
     expect(issues[0].title).toBe("from form")
+  })
+
+  test("POST /issues does not treat issue status as a board filter", async () => {
+    const app = createApp(workspace())
+    const res = await app.request("/issues", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ title: "move me", status: "done" }).toString(),
+    })
+    expect(res.status).toBe(302)
+    expect(res.headers.get("location")).toBe("/")
+  })
+
+  test("POST /issues preserves filter params", async () => {
+    const app = createApp(workspace())
+    const res = await app.request("/issues", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        title: "filtered",
+        status: "todo",
+        query: "needle",
+        filter_status: "done",
+      }).toString(),
+    })
+    expect(res.status).toBe(302)
+    const location = res.headers.get("location") ?? ""
+    expect(location).toContain("query=needle")
+    expect(location).toContain("status=done")
+    expect(location).not.toContain("todo")
   })
 
   test("GET /api/issues json and filters", async () => {
@@ -86,6 +163,27 @@ describe("web", () => {
     })
     expect(res.status).toBe(200)
     expect((await res.json()).id).toBe("YAR-1")
+  })
+
+  test("serve on a taken port reports already running", () => {
+    const first = Bun.serve({
+      port: 0,
+      hostname: "127.0.0.1",
+      fetch: () => new Response("ok"),
+    })
+    const logs: string[] = []
+    const orig = console.log
+    console.log = (...args: unknown[]) => {
+      logs.push(args.map(String).join(" "))
+    }
+    try {
+      serve(workspace(), first.port)
+      expect(logs.some((line) => line.includes("already running"))).toBe(true)
+      expect(logs.some((line) => line.includes(`127.0.0.1:${first.port}`))).toBe(true)
+    } finally {
+      console.log = orig
+      first.stop()
+    }
   })
 
   test("missing issue is 404", async () => {
