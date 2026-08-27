@@ -34,6 +34,12 @@ export type BoardPageProps = {
   error?: string
 }
 
+const SIDEBAR_MIN = 160
+const SIDEBAR_MAX = 480
+const SIDEBAR_COLLAPSE = 160
+
+const SIDEBAR_BOOT = `try{if(localStorage.getItem("yaru.sidebar.open")==="0")document.documentElement.setAttribute("data-sidebar","closed");var w=+localStorage.getItem("yaru.sidebar.width");if(w>=${SIDEBAR_MIN}&&w<=${SIDEBAR_MAX})document.documentElement.style.setProperty("--sidebar-width",w+"px")}catch(e){}`
+
 export function pageHref(filters: PageFilters, id?: string): string {
   const p = new URLSearchParams()
   if (filters.query) p.set("query", filters.query)
@@ -64,6 +70,7 @@ export function Document({ css, children }: PropsWithChildren<{ css: string }>) 
           href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235e6ad2'/%3E%3Ctext x='16' y='22' font-family='sans-serif' font-size='17' font-weight='600' text-anchor='middle' fill='white'%3Ey%3C/text%3E%3C/svg%3E"
         />
         <style dangerouslySetInnerHTML={{ __html: css }} />
+        <script dangerouslySetInnerHTML={{ __html: SIDEBAR_BOOT }} />
       </head>
       <body class="h-screen overflow-hidden bg-canvas font-sans text-[13px] leading-normal text-ink antialiased scheme-dark">
         {children}
@@ -110,12 +117,27 @@ function Sidebar({ all, ctx }: { all: Issue[]; ctx: PageFilters }) {
   const labels = distinct(all.flatMap((issue) => issue.labels))
   const people = distinct(all.map((issue) => issue.assignee ?? ""))
   return (
-    <nav id="sidebar" class="hidden w-56 shrink-0 flex-col border-r border-hairline md:flex">
-      <div class="flex h-12 shrink-0 items-center gap-2 px-4">
+    <nav
+      id="sidebar"
+      class="relative hidden min-w-0 shrink-0 flex-col overflow-hidden border-r border-hairline md:flex"
+    >
+      <div class="flex h-12 shrink-0 items-center gap-2 px-3">
         <span class="grid size-5 shrink-0 place-items-center rounded-[5px] bg-primary text-[11px] font-semibold text-on-primary">
           y
         </span>
-        <span class="text-[13px] font-medium tracking-tight text-ink">yaru</span>
+        <span class="min-w-0 flex-1 truncate text-[13px] font-medium tracking-tight text-ink">
+          yaru
+        </span>
+        <button
+          id="sidebar-toggle"
+          type="button"
+          title="Collapse sidebar"
+          aria-label="Collapse sidebar"
+          aria-controls="sidebar"
+          class="grid size-7 shrink-0 place-items-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-primary-focus/50"
+        >
+          <SidebarIcon />
+        </button>
       </div>
       <div class="flex-1 overflow-y-auto px-2 pb-4">
         <NavItem
@@ -164,9 +186,16 @@ function Sidebar({ all, ctx }: { all: Issue[]; ctx: PageFilters }) {
           </>
         ) : null}
       </div>
-      <div class="shrink-0 border-t border-hairline px-4 py-3 text-[11px] text-ink-tertiary">
+      <div class="shrink-0 truncate border-t border-hairline px-3 py-3 text-[11px] text-ink-tertiary">
         <Kbd>C</Kbd> new · <Kbd>/</Kbd> search · <Kbd>J K</Kbd> move
       </div>
+      <div
+        id="sidebar-resizer"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize sidebar"
+        class="absolute inset-y-0 -right-1 z-10 w-2 cursor-col-resize touch-none hover:bg-primary"
+      />
     </nav>
   )
 }
@@ -205,6 +234,17 @@ function Header({ ctx, count }: { ctx: PageFilters; count: number }) {
       <span class="grid size-5 shrink-0 place-items-center rounded-[5px] bg-primary text-[11px] font-semibold text-on-primary md:hidden">
         y
       </span>
+      <button
+        id="sidebar-open"
+        type="button"
+        title="Open sidebar"
+        aria-label="Open sidebar"
+        aria-controls="sidebar"
+        aria-expanded="false"
+        class="hidden size-7 shrink-0 place-items-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-primary-focus/50"
+      >
+        <SidebarIcon />
+      </button>
       <h1 class="hidden shrink-0 items-center gap-2 text-[13px] font-medium text-ink sm:flex">
         {ctx.status ? labelStatus(ctx.status) : "All issues"}
         <span class="font-normal text-ink-tertiary tabular-nums">{count}</span>
@@ -817,6 +857,24 @@ function PlusIcon() {
   )
 }
 
+function SidebarIcon() {
+  return (
+    <svg class="size-3.5" viewBox="0 0 14 14" aria-hidden="true">
+      <rect
+        x="1.5"
+        y="2"
+        width="11"
+        height="10"
+        rx="1.5"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+      />
+      <path d="M5.5 2v10" stroke="currentColor" stroke-width="1.5" />
+    </svg>
+  )
+}
+
 function CrossIcon() {
   return (
     <svg class="size-3" viewBox="0 0 14 14" aria-hidden="true">
@@ -922,6 +980,60 @@ const SCRIPT = `(() => {
     const tag = el.tagName
     return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable
   }
+
+  const sidebarMin = ${SIDEBAR_MIN}
+  const sidebarMax = ${SIDEBAR_MAX}
+  const sidebarCollapse = ${SIDEBAR_COLLAPSE}
+  const applySidebarWidth = (px) => {
+    const w = Math.min(sidebarMax, Math.max(sidebarMin, Math.round(px)))
+    document.documentElement.style.setProperty("--sidebar-width", w + "px")
+    try { localStorage.setItem("yaru.sidebar.width", String(w)) } catch (err) {}
+    return w
+  }
+  const setSidebarOpen = (open) => {
+    if (open) document.documentElement.removeAttribute("data-sidebar")
+    else document.documentElement.setAttribute("data-sidebar", "closed")
+    try { localStorage.setItem("yaru.sidebar.open", open ? "1" : "0") } catch (err) {}
+  }
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest && (e.target.closest("#sidebar-toggle") || e.target.closest("#sidebar-open"))
+    if (!btn) return
+    setSidebarOpen(document.documentElement.getAttribute("data-sidebar") === "closed")
+  })
+  let sidebarDrag = false
+  const onSidebarDown = (e) => {
+    if (sidebarDrag || e.button) return
+    const handle = e.target.closest && e.target.closest("#sidebar-resizer")
+    if (!handle) return
+    e.preventDefault()
+    sidebarDrag = true
+    const root = document.documentElement
+    root.setAttribute("data-resizing", "")
+    const sel = window.getSelection && window.getSelection()
+    if (sel && sel.removeAllRanges) sel.removeAllRanges()
+    const onMove = (ev) => {
+      if (ev.clientX < sidebarCollapse) {
+        setSidebarOpen(false)
+        return
+      }
+      setSidebarOpen(true)
+      applySidebarWidth(ev.clientX)
+    }
+    const onUp = () => {
+      sidebarDrag = false
+      root.removeAttribute("data-resizing")
+      document.removeEventListener("pointermove", onMove)
+      document.removeEventListener("pointerup", onUp)
+      document.removeEventListener("mousemove", onMove)
+      document.removeEventListener("mouseup", onUp)
+    }
+    document.addEventListener("pointermove", onMove)
+    document.addEventListener("pointerup", onUp)
+    document.addEventListener("mousemove", onMove)
+    document.addEventListener("mouseup", onUp)
+  }
+  document.addEventListener("pointerdown", onSidebarDown)
+  document.addEventListener("mousedown", onSidebarDown)
 
   if (q) {
     let timer

@@ -41,6 +41,25 @@ const INPUT = `@import "tailwindcss";
     scrollbar-color: #34343a transparent;
   }
 }
+#sidebar {
+  width: var(--sidebar-width, 14rem);
+}
+html[data-sidebar="closed"] #sidebar {
+  display: none;
+}
+@media (min-width: 768px) {
+  html[data-sidebar="closed"] #sidebar-open {
+    display: grid;
+  }
+}
+html[data-resizing],
+html[data-resizing] * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+html[data-resizing] #sidebar-resizer {
+  background: #5e6ad2;
+}
 `
 
 let cached: Promise<string> | undefined

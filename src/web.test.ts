@@ -53,6 +53,17 @@ describe("web", () => {
     expect(html).toContain("--color-semantic-danger")
   })
 
+  test("GET / sidebar can collapse and resize", async () => {
+    const html = await (await createApp(workspace()).request("/")).text()
+    expect(html).toContain('id="sidebar"')
+    expect(html).toContain('id="sidebar-toggle"')
+    expect(html).toContain('id="sidebar-open"')
+    expect(html).toContain('id="sidebar-resizer"')
+    expect(html).toContain("yaru.sidebar.open")
+    expect(html).toContain("yaru.sidebar.width")
+    expect(html).toContain("--sidebar-width")
+  })
+
   test("GET /?id= opens drawer", async () => {
     const store = workspace()
     saveIssue(store, { title: "drawer me", body: "hello body" })
