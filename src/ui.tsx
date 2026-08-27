@@ -35,10 +35,10 @@ export type BoardPageProps = {
 }
 
 const SIDEBAR_MIN = 160
-const SIDEBAR_MAX = 480
+const SIDEBAR_MAX = 280
 const SIDEBAR_COLLAPSE = 160
 
-const SIDEBAR_BOOT = `try{if(localStorage.getItem("yaru.sidebar.open")==="0")document.documentElement.setAttribute("data-sidebar","closed");var w=+localStorage.getItem("yaru.sidebar.width");if(w>=${SIDEBAR_MIN}&&w<=${SIDEBAR_MAX})document.documentElement.style.setProperty("--sidebar-width",w+"px")}catch(e){}`
+const SIDEBAR_BOOT = `try{if(localStorage.getItem("yaru.sidebar.open")==="0")document.documentElement.setAttribute("data-sidebar","closed");var w=+localStorage.getItem("yaru.sidebar.width");if(w>=${SIDEBAR_MIN})document.documentElement.style.setProperty("--sidebar-width",Math.min(${SIDEBAR_MAX},w)+"px")}catch(e){}`
 
 export function pageHref(filters: PageFilters, id?: string): string {
   const p = new URLSearchParams()
