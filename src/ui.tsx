@@ -194,19 +194,23 @@ function labelStatus(status: string): string {
   return status.replaceAll("_", " ")
 }
 
-const SEARCH = `const q = document.getElementById("q")
-if (q) q.addEventListener("input", () => {
-  clearTimeout(window.__yaru)
-  window.__yaru = setTimeout(async () => {
-    const value = q.value.trim()
-    const url = value ? "/?query=" + encodeURIComponent(value) : "/"
-    const res = await fetch(url)
-    const html = await res.text()
-    const doc = new DOMParser().parseFromString(html, "text/html")
-    const next = doc.getElementById("board")
-    const board = document.getElementById("board")
-    if (next && board) board.replaceWith(next)
-    history.replaceState(null, "", url)
-  }, 120)
-})
+const SEARCH = `(() => {
+  const q = document.getElementById("q")
+  if (!q) return
+  let timer
+  q.addEventListener("input", () => {
+    clearTimeout(timer)
+    timer = setTimeout(async () => {
+      const value = q.value.trim()
+      const url = value ? "/?query=" + encodeURIComponent(value) : "/"
+      const res = await fetch(url)
+      const html = await res.text()
+      const doc = new DOMParser().parseFromString(html, "text/html")
+      const next = doc.getElementById("board")
+      const board = document.getElementById("board")
+      if (next && board) board.replaceWith(next)
+      history.replaceState(null, "", url)
+    }, 120)
+  })
+})()
 `
