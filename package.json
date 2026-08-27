@@ -11,6 +11,7 @@
   "type": "module",
   "module": "src/index.ts",
   "scripts": {
+    "dev": "bun --watch run src/index.ts serve",
     "yaru": "bun run src/index.ts",
     "build": "bun build src/index.ts --compile --outfile yaru",
     "fmt": "oxfmt --write .",
