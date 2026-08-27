@@ -1,0 +1,5 @@
+node_modules/
+# compiled single-file binary
+/yaru
+*.tgz
+

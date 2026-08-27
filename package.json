@@ -1,0 +1,28 @@
+{
+  "name": "yaru",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local issues. Markdown in .yaru.",
+  "homepage": "https://github.com/aovoq/yaru",
+  "license": "MIT",
+  "bin": {
+    "yaru": "src/index.ts"
+  },
+  "type": "module",
+  "module": "src/index.ts",
+  "scripts": {
+    "yaru": "bun run src/index.ts",
+    "build": "bun build src/index.ts --compile --outfile yaru",
+    "fmt": "oxfmt --write .",
+    "fmt:check": "oxfmt --check .",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "hono": "^4.13.5",
+    "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.0",
+    "oxfmt": "^0.65.0"
+  }
+}
