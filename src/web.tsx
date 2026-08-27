@@ -46,10 +46,16 @@ export function createApp(store: Store) {
       assignee,
       label,
     })
-    const current = id === "new" ? BLANK : id ? getIssue(store, id) : null
+    const current =
+      id === "new"
+        ? { ...BLANK, status: c.req.query("new_status") || status || "todo" }
+        : id
+          ? getIssue(store, id)
+          : null
     return c.render(
       <BoardPage
         issues={issues}
+        all={listIssues(store)}
         query={query}
         current={current}
         status={status}
@@ -92,6 +98,7 @@ export function createApp(store: Store) {
             assignee: filters.assignee || undefined,
             label: filters.label || undefined,
           })}
+          all={listIssues(store)}
           query={filters.query}
           current={draft}
           status={filters.status || undefined}

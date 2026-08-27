@@ -32,6 +32,15 @@ const INPUT = `@import "tailwindcss";
   --radius-lg: 12px;
   --radius-xl: 16px;
 }
+@layer base {
+  ::selection {
+    background: color-mix(in oklab, #5e6ad2 45%, transparent);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #34343a transparent;
+  }
+}
 `
 
 let cached: Promise<string> | undefined
@@ -57,7 +66,7 @@ async function sampleHtml(): Promise<string> {
     ...BLANK,
     id: "1",
     title: "x",
-    labels: ["a"],
+    labels: ["a", "b"],
     assignee: "me",
     body: "b",
     dueDate: "2000-01-01",
@@ -65,14 +74,16 @@ async function sampleHtml(): Promise<string> {
   }
   const issues = [
     issue,
-    { ...issue, id: "2", dueDate: "2099-01-01", priority: "high" as const },
-    { ...issue, id: "3", dueDate: null, priority: "medium" as const },
-    { ...issue, id: "4", dueDate: null, priority: "low" as const },
+    { ...issue, id: "2", status: "backlog", dueDate: "2099-01-01", priority: "high" as const },
+    { ...issue, id: "3", status: "in_progress", dueDate: null, priority: "medium" as const },
+    { ...issue, id: "4", status: "done", dueDate: null, priority: "low" as const },
+    { ...issue, id: "5", status: "canceled", assignee: null, priority: null, labels: [] },
   ]
   const node = (
     <Document css="">
       <BoardPage
         issues={issues}
+        all={issues}
         query="q"
         current={issue}
         status="todo"
@@ -80,7 +91,9 @@ async function sampleHtml(): Promise<string> {
         label="a"
         error="title is required"
       />
-      <BoardPage issues={issues} query="q" current={null} view="list" />
+      <BoardPage issues={issues} all={issues} query="q" current={BLANK} view="list" />
+      <BoardPage issues={[]} all={[]} query="" current={null} />
+      <BoardPage issues={[]} all={[]} query="none" current={null} />
       <ErrorView message="x" />
     </Document>
   )

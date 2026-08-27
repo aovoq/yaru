@@ -282,8 +282,8 @@ describe("web", () => {
     const html = await (await createApp(store).request("/?view=list")).text()
     expect(html).toContain("2026-08-20")
     expect(html).toContain('data-priority="low"')
-    expect(html).toContain(">due<")
-    expect(html).toContain(">priority<")
+    expect(html).toContain(">Todo<")
+    expect(html).toContain(">listed<")
   })
 
   test("drawer has dueDate and priority fields", async () => {
