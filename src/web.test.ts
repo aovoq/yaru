@@ -117,6 +117,9 @@ describe("web", () => {
     const html = await res.text()
     expect(html).toContain("overflow-x-auto")
     expect(html).toContain(">boarded<")
+    expect(html).toContain(".w-\\[300px\\]")
+    expect(html).toContain(".rounded-lg")
+    expect(html).toContain(".shadow-\\[inset_0_1px_0_0_rgb")
   })
 
   test("POST /issues without title stays in the drawer", async () => {

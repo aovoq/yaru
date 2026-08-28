@@ -105,6 +105,7 @@ async function sampleHtml(): Promise<string> {
         all={issues}
         query="q"
         current={issue}
+        view="board"
         status="todo"
         assignee="me"
         label="a"
