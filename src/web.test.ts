@@ -51,6 +51,18 @@ describe("web", () => {
     expect(html).toContain("--color-canvas")
     expect(html).toContain("#5e6ad2")
     expect(html).toContain("--color-semantic-danger")
+    expect(html).toContain('id="root"')
+    expect(html).toContain('id="yaru-initial-state"')
+    expect(html).toContain('src="/assets/app.js"')
+  })
+
+  test("GET /assets/app.js returns the browser UI", async () => {
+    const res = await createApp(workspace()).request("/assets/app.js")
+    expect(res.status).toBe(200)
+    expect(res.headers.get("content-type")).toContain("text/javascript")
+    const script = await res.text()
+    expect(script).toContain("yaru-initial-state")
+    expect(script).toContain("EventSource")
   })
 
   test("GET / sidebar can collapse and resize", async () => {
@@ -82,17 +94,29 @@ describe("web", () => {
     expect(res.status).toBe(200)
     const html = await res.text()
     expect(html).toContain("done card")
-    expect(html).not.toContain("todo only")
+    expect(html).not.toContain(">todo only<")
   })
 
-  test("GET /?view=list returns html", async () => {
+  test("GET / defaults to list view", async () => {
     const store = workspace()
     saveIssue(store, { title: "listed" })
-    const res = await createApp(store).request("/?view=list")
+    const res = await createApp(store).request("/")
     expect(res.status).toBe(200)
     expect(res.headers.get("content-type")).toContain("text/html")
     const html = await res.text()
     expect(html).toContain("<!DOCTYPE html>")
+    expect(html).toContain(">listed<")
+    expect(html).toContain(">Todo<")
+  })
+
+  test("GET /?view=board returns board", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "boarded" })
+    const res = await createApp(store).request("/?view=board")
+    expect(res.status).toBe(200)
+    const html = await res.text()
+    expect(html).toContain("overflow-x-auto")
+    expect(html).toContain(">boarded<")
   })
 
   test("POST /issues without title stays in the drawer", async () => {
@@ -224,6 +248,20 @@ describe("web", () => {
     expect(rows[0].title).toBe("done one")
   })
 
+  test("GET /api/page returns URL-derived UI state", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "todo issue", status: "todo" })
+    saveIssue(store, { title: "done issue", status: "done" })
+    const res = await createApp(store).request("/api/page?status=done&id=2&view=board")
+    expect(res.status).toBe(200)
+    const page = await res.json()
+    expect(page.issues.map((issue: { title: string }) => issue.title)).toEqual(["done issue"])
+    expect(page.all).toHaveLength(2)
+    expect(page.current.title).toBe("done issue")
+    expect(page.status).toBe("done")
+    expect(page.view).toBe("board")
+  })
+
   test("GET /api/issues/:id", async () => {
     const store = workspace()
     saveIssue(store, { title: "one" })
@@ -280,7 +318,7 @@ describe("web", () => {
     d.setDate(d.getDate() - 1)
     const yesterday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
     saveIssue(store, { title: "late card", dueDate: yesterday, priority: "high" })
-    const html = await (await createApp(store).request("/")).text()
+    const html = await (await createApp(store).request("/?view=board")).text()
     expect(html).toContain(yesterday)
     expect(html).toContain("data-overdue")
     expect(html).toContain("text-semantic-danger")
@@ -290,7 +328,7 @@ describe("web", () => {
   test("list view shows dueDate and priority", async () => {
     const store = workspace()
     saveIssue(store, { title: "listed", dueDate: "2026-08-20", priority: "low" })
-    const html = await (await createApp(store).request("/?view=list")).text()
+    const html = await (await createApp(store).request("/")).text()
     expect(html).toContain("2026-08-20")
     expect(html).toContain('data-priority="low"')
     expect(html).toContain(">Todo<")
@@ -343,7 +381,7 @@ describe("web", () => {
     const now = new Date()
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
     saveIssue(store, { title: "today card", dueDate: today })
-    const html = await (await createApp(store).request("/")).text()
+    const html = await (await createApp(store).request("/?view=board")).text()
     expect(html).toContain(today)
     expect(html).not.toContain("data-overdue")
   })

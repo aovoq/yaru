@@ -2,9 +2,11 @@ import { watch } from "node:fs"
 import { join } from "node:path"
 import { Hono } from "hono"
 import { jsxRenderer } from "hono/jsx-renderer"
+import { clientScript } from "./client-script"
 import { styles } from "./css"
+import { getPageData } from "./page"
 import { getIssue, listIssues, saveIssue, type Issue, type SaveInput, type Store } from "./store"
-import { BLANK, BoardPage, Document, ErrorView } from "./ui"
+import { BLANK, BoardPage, Document, ErrorView, parseView } from "./ui"
 
 export const DEFAULT_PORT = 47800
 
@@ -34,36 +36,14 @@ export function createApp(store: Store) {
   })
 
   app.get("/", (c) => {
-    const query = c.req.query("query") || ""
-    const id = c.req.query("id")
-    const status = c.req.query("status") || undefined
-    const assignee = c.req.query("assignee") || undefined
-    const label = c.req.query("label") || undefined
-    const view = c.req.query("view") === "list" ? "list" : "board"
-    const issues = listIssues(store, {
-      query: query || undefined,
-      status,
-      assignee,
-      label,
+    return c.render(<BoardPage {...getPageData(store, new URL(c.req.url))} />)
+  })
+
+  app.get("/assets/app.js", async (c) => {
+    return c.body(await clientScript(), 200, {
+      "content-type": "text/javascript; charset=utf-8",
+      "cache-control": "no-cache",
     })
-    const current =
-      id === "new"
-        ? { ...BLANK, status: c.req.query("new_status") || status || "todo" }
-        : id
-          ? getIssue(store, id)
-          : null
-    return c.render(
-      <BoardPage
-        issues={issues}
-        all={listIssues(store)}
-        query={query}
-        current={current}
-        status={status}
-        assignee={assignee}
-        label={label}
-        view={view}
-      />,
-    )
   })
 
   app.post("/issues", async (c) => {
@@ -104,7 +84,7 @@ export function createApp(store: Store) {
           status={filters.status || undefined}
           assignee={filters.assignee || undefined}
           label={filters.label || undefined}
-          view={filters.view === "list" ? "list" : "board"}
+          view={parseView(filters.view)}
           error={message}
         />,
       )
@@ -164,6 +144,10 @@ export function createApp(store: Store) {
         due: c.req.query("due") === "overdue" ? "overdue" : undefined,
       }),
     )
+  })
+
+  app.get("/api/page", (c) => {
+    return c.json(getPageData(store, new URL(c.req.url)))
   })
 
   app.get("/api/issues/:id", (c) => {

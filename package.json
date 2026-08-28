@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "bun --watch run src/index.ts serve",
     "yaru": "bun run src/index.ts",
-    "build": "bun build src/index.ts --compile --outfile yaru",
+    "build": "bun run src/build.ts",
     "fmt": "oxfmt --write .",
     "fmt:check": "oxfmt --check .",
     "test": "bun test"
