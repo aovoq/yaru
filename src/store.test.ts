@@ -4,12 +4,15 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
   findRoot,
+  getComment,
   getIssue,
   init,
+  listComments,
   listIssues,
   open,
   pageIssues,
   parsePatch,
+  saveComment,
   saveIssue,
 } from "./store"
 
@@ -478,5 +481,137 @@ x
     expect(() => pageIssues([], { limit: 251 })).toThrow(
       "invalid limit: expected an integer from 1 to 250, actual 251",
     )
+  })
+
+  test("status timestamps set and clear with the matching state", () => {
+    const store = workspace()
+    const created = saveIssue(store, { title: "work" })
+    expect(created.startedAt).toBeNull()
+    expect(created.completedAt).toBeNull()
+    expect(created.canceledAt).toBeNull()
+
+    const started = saveIssue(store, { id: "1", status: "in_progress" })
+    expect(started.startedAt).toBeTruthy()
+    expect(started.completedAt).toBeNull()
+    const firstStart = started.startedAt
+
+    const done = saveIssue(store, { id: "1", status: "done" })
+    expect(done.startedAt).toBe(firstStart)
+    expect(done.completedAt).toBeTruthy()
+    expect(done.canceledAt).toBeNull()
+
+    const reopened = saveIssue(store, { id: "1", status: "todo" })
+    expect(reopened.startedAt).toBe(firstStart)
+    expect(reopened.completedAt).toBeNull()
+    expect(reopened.canceledAt).toBeNull()
+
+    const canceled = saveIssue(store, { id: "1", status: "canceled" })
+    expect(canceled.canceledAt).toBeTruthy()
+    expect(canceled.completedAt).toBeNull()
+    expect(saveIssue(store, { id: "1", status: "todo" }).canceledAt).toBeNull()
+  })
+
+  test("creating as done sets completedAt", () => {
+    const store = workspace()
+    const created = saveIssue(store, { title: "already", status: "done" })
+    expect(created.completedAt).toBeTruthy()
+    expect(created.startedAt).toBeNull()
+  })
+
+  test("parent links children and rejects cycles", () => {
+    const store = workspace()
+    saveIssue(store, { title: "parent" })
+    saveIssue(store, { title: "child", parent: "1" })
+    expect(getIssue(store, "2").parent).toBe("1")
+    expect(getIssue(store, "1").children).toEqual(["2"])
+    expect(listIssues(store, { parent: "1" }).map((issue) => issue.id)).toEqual(["2"])
+    expect(listIssues(store, { parent: null }).map((issue) => issue.id)).toEqual(["1"])
+
+    expect(() => saveIssue(store, { id: "1", parent: "2" })).toThrow(
+      "invalid parent: cycle: 2 is a descendant of 1",
+    )
+    expect(() => saveIssue(store, { id: "1", parent: "1" })).toThrow(
+      "invalid parent: an issue cannot be its own parent, actual 1",
+    )
+    expect(() => saveIssue(store, { title: "x", parent: "9" })).toThrow(
+      "invalid parent: issue not found: 9",
+    )
+    expect(saveIssue(store, { id: "2", parent: "none" }).parent).toBeNull()
+    expect(getIssue(store, "1").children).toEqual([])
+  })
+
+  test("blocks are append-only and blockedBy is derived", () => {
+    const store = workspace()
+    saveIssue(store, { title: "a" })
+    saveIssue(store, { title: "b" })
+    saveIssue(store, { title: "c" })
+    expect(saveIssue(store, { id: "1", addBlocks: ["2"] }).blocks).toEqual(["2"])
+    expect(getIssue(store, "2").blockedBy).toEqual(["1"])
+    expect(saveIssue(store, { id: "3", addBlockedBy: ["1"] }).blockedBy).toEqual(["1"])
+    expect(getIssue(store, "1").blocks).toEqual(["2", "3"])
+
+    expect(saveIssue(store, { id: "1", addBlocks: ["2"] }).blocks).toEqual(["2", "3"])
+    expect(saveIssue(store, { id: "1", removeBlocks: ["2"] }).blocks).toEqual(["3"])
+    expect(getIssue(store, "2").blockedBy).toEqual([])
+    expect(saveIssue(store, { id: "3", removeBlockedBy: ["1"] }).blockedBy).toEqual([])
+    expect(getIssue(store, "1").blocks).toEqual([])
+  })
+
+  test("blocks replace the outgoing set when blocks is passed", () => {
+    const store = workspace()
+    saveIssue(store, { title: "a" })
+    saveIssue(store, { title: "b" })
+    saveIssue(store, { title: "c" })
+    saveIssue(store, { id: "1", addBlocks: ["2", "3"] })
+    expect(saveIssue(store, { id: "1", blocks: ["3"] }).blocks).toEqual(["3"])
+    expect(getIssue(store, "2").blockedBy).toEqual([])
+    expect(getIssue(store, "3").blockedBy).toEqual(["1"])
+  })
+
+  test("blocks reject self, missing, and cycles", () => {
+    const store = workspace()
+    saveIssue(store, { title: "a" })
+    saveIssue(store, { title: "b" })
+    expect(() => saveIssue(store, { id: "1", addBlocks: ["1"] })).toThrow(
+      "invalid block: an issue cannot block itself, actual 1",
+    )
+    expect(() => saveIssue(store, { id: "1", addBlocks: ["9"] })).toThrow(
+      "invalid block: issue not found: 9",
+    )
+    saveIssue(store, { id: "1", addBlocks: ["2"] })
+    expect(() => saveIssue(store, { id: "2", addBlocks: ["1"] })).toThrow(
+      "invalid block: cycle: 2 already blocked by 1",
+    )
+  })
+
+  test("comments create, reply, list, and update", () => {
+    const store = workspace()
+    saveIssue(store, { title: "topic" })
+    const created = saveComment(store, { issue: "1", body: "first" })
+    expect(created.id).toBe("1")
+    expect(created.issue).toBe("1")
+    expect(created.parent).toBeNull()
+    expect(created.body).toBe("first")
+    expect(created.author).toBeTruthy()
+
+    const reply = saveComment(store, { parent: "1", body: "second" })
+    expect(reply.parent).toBe("1")
+    expect(reply.issue).toBe("1")
+    expect(listComments(store, { issue: "1" }).map((comment) => comment.id)).toEqual(["1", "2"])
+    expect(getComment(store, "1").body).toBe("first")
+    expect(saveComment(store, { id: "1", body: "edited" }).body).toBe("edited")
+  })
+
+  test("comments require an issue or parent and a body", () => {
+    const store = workspace()
+    saveIssue(store, { title: "topic" })
+    expect(() => saveComment(store, { body: "x" })).toThrow(
+      "issue is required when creating a comment",
+    )
+    expect(() => saveComment(store, { issue: "1", body: "" })).toThrow(
+      'invalid body: expected a non-empty string, actual ""',
+    )
+    expect(() => saveComment(store, { issue: "9", body: "x" })).toThrow("issue not found: 9")
+    expect(() => saveComment(store, { parent: "9", body: "x" })).toThrow("comment not found: 9")
   })
 })

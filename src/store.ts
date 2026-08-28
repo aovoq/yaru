@@ -19,6 +19,23 @@ export type Issue = {
   labels: string[]
   dueDate: string | null
   priority: Priority | null
+  parent: string | null
+  blocks: string[]
+  blockedBy: string[]
+  children: string[]
+  startedAt: string | null
+  completedAt: string | null
+  canceledAt: string | null
+  createdAt: string
+  updatedAt: string
+  body: string
+}
+
+export type Comment = {
+  id: string
+  issue: string
+  parent: string | null
+  author: string
   createdAt: string
   updatedAt: string
   body: string
@@ -30,6 +47,7 @@ export type Filter = {
   label?: string
   query?: string
   due?: "overdue"
+  parent?: string | null
 }
 
 export type PatchOp =
@@ -48,8 +66,21 @@ export type SaveInput = {
   labels?: string[]
   dueDate?: string | null
   priority?: string | null
+  parent?: string | null
+  blocks?: string[]
+  addBlocks?: string[]
+  removeBlocks?: string[]
+  addBlockedBy?: string[]
+  removeBlockedBy?: string[]
   body?: string
   patch?: unknown
+}
+
+export type SaveCommentInput = {
+  id?: string
+  issue?: string
+  parent?: string | null
+  body?: string
 }
 
 export const LIST_LIMIT_DEFAULT = 50
@@ -88,15 +119,14 @@ export function init(root: string): Store {
   const dir = join(root, ".yaru")
   if (existsSync(join(dir, "config.yml"))) throw new Error("already a yaru workspace")
   mkdirSync(join(dir, "issues"), { recursive: true })
+  mkdirSync(join(dir, "comments"), { recursive: true })
   writeFileSync(join(dir, "config.yml"), "")
   return { root, dir }
 }
 
-export function listIssues(store: Store, filter: Filter = {}): Issue[] {
+function loadRawIssues(store: Store): Issue[] {
   const dir = join(store.dir, "issues")
   if (!existsSync(dir)) return []
-  const resolved: Filter = { ...filter, assignee: resolveAssignee(filter.assignee) }
-  if (resolved.status !== undefined) resolved.status = resolveStatus(resolved.status)
   const issues: Issue[] = []
   for (const name of readdirSync(dir)) {
     if (!name.endsWith(".md")) continue
@@ -106,6 +136,24 @@ export function listIssues(store: Store, filter: Filter = {}): Issue[] {
       // 壊れた手編集ファイルが一覧全体を隠さないようにする
     }
   }
+  return issues
+}
+
+function withRelations(issues: Issue[]): Issue[] {
+  return issues.map((issue) => ({
+    ...issue,
+    blockedBy: issues.filter((other) => other.blocks.includes(issue.id)).map((other) => other.id),
+    children: issues.filter((other) => other.parent === issue.id).map((other) => other.id),
+  }))
+}
+
+export function listIssues(store: Store, filter: Filter = {}): Issue[] {
+  const resolved: Filter = { ...filter, assignee: resolveAssignee(filter.assignee) }
+  if (resolved.status !== undefined) resolved.status = resolveStatus(resolved.status)
+  if (resolved.parent !== undefined && resolved.parent !== null) {
+    resolved.parent = resolved.parent === "none" ? null : resolved.parent
+  }
+  const issues = withRelations(loadRawIssues(store))
   issues.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || b.id.localeCompare(a.id))
   return issues.filter((issue) => match(issue, resolved))
 }
@@ -136,7 +184,9 @@ export function pageIssues(
 export function getIssue(store: Store, id: string): Issue {
   const path = issuePath(store, id)
   if (!existsSync(path)) throw new Error(`issue not found: ${id}`)
-  return readIssue(path, id)
+  const issue = readIssue(path, id)
+  const others = loadRawIssues(store).filter((row) => row.id !== id)
+  return withRelations([...others, issue]).find((row) => row.id === id)!
 }
 
 export function saveIssue(store: Store, input: SaveInput): Issue {
@@ -148,6 +198,7 @@ export function saveIssue(store: Store, input: SaveInput): Issue {
   const patch = input.patch !== undefined ? parsePatch(input.patch) : undefined
   if (patch && input.body !== undefined) throw new Error("cannot pass body and patch together")
   if (patch && !input.id) throw new Error("patch is only valid when updating an existing issue")
+  const all = loadRawIssues(store)
   if (input.id) {
     const path = issuePath(store, input.id)
     if (!existsSync(path)) throw new Error(`issue not found: ${input.id}`)
@@ -157,25 +208,43 @@ export function saveIssue(store: Store, input: SaveInput): Issue {
         `invalid title: expected a non-empty string, actual ${JSON.stringify(input.title)}`,
       )
     }
+    const nextStatus = status ?? current.status
+    const times = statusTimestamps(current, nextStatus, now)
+    const parent =
+      input.parent !== undefined
+        ? resolveParent(input.id, input.parent, all)
+        : current.parent
+    const relations = resolveBlocks(input.id, current.blocks, input, all)
     const issue: Issue = {
       ...current,
       title: input.title !== undefined ? input.title.trim() : current.title,
-      status: status ?? current.status,
+      status: nextStatus,
       assignee: assignee !== undefined ? assignee : current.assignee,
       labels: input.labels ?? current.labels,
       dueDate: dueDate !== undefined ? dueDate : current.dueDate,
       priority: priority !== undefined ? priority : current.priority,
+      parent,
+      blocks: relations.blocks,
+      startedAt: times.startedAt,
+      completedAt: times.completedAt,
+      canceledAt: times.canceledAt,
       body: patch ? applyPatch(current.body, patch) : (input.body ?? current.body),
       updatedAt: now,
     }
-    writeReplace(path, issue)
-    return issue
+    writeReplace(path, formatIssue(issue))
+    writeBlockOwners(store, relations.owners, now)
+    return getIssue(store, issue.id)
   }
   for (;;) {
-    const created = newIssue(nextId(store), input, { assignee, dueDate, priority, status }, now)
+    const id = nextId(store)
+    const created = newIssue(id, input, { assignee, dueDate, priority, status }, now)
+    created.parent = input.parent !== undefined ? resolveParent(id, input.parent, all) : null
+    const relations = resolveBlocks(id, [], input, all)
+    created.blocks = relations.blocks
     try {
-      writeCreate(issuePath(store, created.id), created)
-      return created
+      writeCreate(issuePath(store, created.id), formatIssue(created))
+      writeBlockOwners(store, relations.owners, now)
+      return getIssue(store, created.id)
     } catch (err) {
       if (!isEexist(err)) throw err
     }
@@ -194,14 +263,23 @@ function newIssue(
   now: string,
 ): Issue {
   if (!input.title?.trim()) throw new Error("title is required when creating an issue")
+  const status = resolved.status ?? "todo"
+  const times = statusTimestamps(null, status, now)
   return {
     id,
     title: input.title.trim(),
-    status: resolved.status ?? "todo",
+    status,
     assignee: resolved.assignee ?? null,
     labels: input.labels ?? [],
     dueDate: resolved.dueDate ?? null,
     priority: resolved.priority ?? null,
+    parent: null,
+    blocks: [],
+    blockedBy: [],
+    children: [],
+    startedAt: times.startedAt,
+    completedAt: times.completedAt,
+    canceledAt: times.canceledAt,
     createdAt: now,
     updatedAt: now,
     body: input.body ?? "",
@@ -233,6 +311,10 @@ function match(issue: Issue, filter: Filter): boolean {
     if (!hay.includes(q)) return false
   }
   if (filter.due === "overdue" && !isOverdue(issue.dueDate)) return false
+  if (filter.parent !== undefined) {
+    if (filter.parent === null && issue.parent !== null) return false
+    if (typeof filter.parent === "string" && issue.parent !== filter.parent) return false
+  }
   return true
 }
 
@@ -317,6 +399,304 @@ function gitName(): string {
   return name || "me"
 }
 
+function parseIdList(raw: string): string[] {
+  return unique(
+    raw
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean),
+  )
+}
+
+function unique(ids: string[]): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const id of ids) {
+    if (seen.has(id)) continue
+    seen.add(id)
+    result.push(id)
+  }
+  return result
+}
+
+function statusTimestamps(
+  current: Issue | null,
+  status: string,
+  now: string,
+): { startedAt: string | null; completedAt: string | null; canceledAt: string | null } {
+  const startedAt =
+    current?.startedAt ?? (status === "in_progress" ? now : null)
+  const completedAt =
+    status === "done" ? (current?.status === "done" ? current.completedAt : now) : null
+  const canceledAt =
+    status === "canceled" ? (current?.status === "canceled" ? current.canceledAt : now) : null
+  return { startedAt, completedAt, canceledAt }
+}
+
+function resolveParent(
+  issueId: string,
+  value: string | null,
+  all: Issue[],
+): string | null {
+  const parent = blankToNull(value) ?? null
+  if (parent === null) return null
+  if (parent === issueId) {
+    throw new Error(`invalid parent: an issue cannot be its own parent, actual ${issueId}`)
+  }
+  if (!all.some((issue) => issue.id === parent)) {
+    throw new Error(`invalid parent: issue not found: ${parent}`)
+  }
+  if (isDescendant(all, parent, issueId)) {
+    throw new Error(`invalid parent: cycle: ${parent} is a descendant of ${issueId}`)
+  }
+  return parent
+}
+
+function isDescendant(all: Issue[], node: string, ancestor: string): boolean {
+  const byId = new Map(all.map((issue) => [issue.id, issue]))
+  const seen = new Set<string>()
+  let current = byId.get(node)
+  while (current?.parent) {
+    if (current.parent === ancestor) return true
+    if (seen.has(current.parent)) return true
+    seen.add(current.parent)
+    current = byId.get(current.parent)
+  }
+  return false
+}
+
+function resolveBlocks(
+  issueId: string,
+  currentBlocks: string[],
+  input: SaveInput,
+  all: Issue[],
+): { blocks: string[]; owners: { id: string; blocks: string[] }[] } {
+  const hasAddOrRemove =
+    input.addBlocks !== undefined ||
+    input.removeBlocks !== undefined ||
+    input.addBlockedBy !== undefined ||
+    input.removeBlockedBy !== undefined
+  if (input.blocks !== undefined && hasAddOrRemove) {
+    throw new Error(
+      "cannot pass blocks with addBlocks, removeBlocks, addBlockedBy, or removeBlockedBy",
+    )
+  }
+  let blocks = currentBlocks.slice()
+  if (input.blocks !== undefined) blocks = unique(input.blocks)
+  else {
+    if (input.removeBlocks) {
+      const remove = new Set(input.removeBlocks)
+      blocks = blocks.filter((id) => !remove.has(id))
+    }
+    if (input.addBlocks) blocks = unique([...blocks, ...input.addBlocks])
+  }
+
+  const graph = new Map(all.map((issue) => [issue.id, issue.blocks.slice()]))
+  if (!graph.has(issueId)) graph.set(issueId, [])
+  graph.set(issueId, blocks)
+
+  const owners = new Map<string, string[]>()
+  const ownerBlocks = (id: string): string[] => {
+    if (!owners.has(id)) {
+      const issue = all.find((row) => row.id === id)
+      if (!issue) throw new Error(`invalid block: issue not found: ${id}`)
+      owners.set(id, issue.blocks.slice())
+    }
+    return owners.get(id)!
+  }
+
+  if (input.removeBlockedBy) {
+    for (const id of input.removeBlockedBy) {
+      owners.set(
+        id,
+        ownerBlocks(id).filter((block) => block !== issueId),
+      )
+      graph.set(id, owners.get(id)!)
+    }
+  }
+  if (input.addBlockedBy) {
+    for (const id of unique(input.addBlockedBy)) {
+      if (id === issueId) {
+        throw new Error(`invalid block: an issue cannot block itself, actual ${issueId}`)
+      }
+      const next = unique([...ownerBlocks(id), issueId])
+      owners.set(id, next)
+      graph.set(id, next)
+    }
+  }
+
+  for (const to of blocks) {
+    if (to === issueId) {
+      throw new Error(`invalid block: an issue cannot block itself, actual ${issueId}`)
+    }
+    if (!all.some((issue) => issue.id === to)) {
+      throw new Error(`invalid block: issue not found: ${to}`)
+    }
+  }
+
+  const newEdges: [string, string][] = []
+  for (const to of blocks) {
+    if (!currentBlocks.includes(to)) newEdges.push([issueId, to])
+  }
+  if (input.addBlockedBy) {
+    for (const id of unique(input.addBlockedBy)) newEdges.push([id, issueId])
+  }
+  for (const [from, to] of newEdges) {
+    if (hasPath(graph, to, from)) {
+      throw new Error(`invalid block: cycle: ${from} already blocked by ${to}`)
+    }
+  }
+
+  return {
+    blocks,
+    owners: [...owners].map(([id, next]) => ({ id, blocks: next })),
+  }
+}
+
+function hasPath(graph: Map<string, string[]>, from: string, to: string): boolean {
+  const seen = new Set<string>()
+  const stack = [from]
+  while (stack.length > 0) {
+    const node = stack.pop()!
+    if (node === to) return true
+    if (seen.has(node)) continue
+    seen.add(node)
+    for (const next of graph.get(node) ?? []) stack.push(next)
+  }
+  return false
+}
+
+function writeBlockOwners(
+  store: Store,
+  owners: { id: string; blocks: string[] }[],
+  now: string,
+): void {
+  for (const owner of owners) {
+    const path = issuePath(store, owner.id)
+    const issue = readIssue(path, owner.id)
+    writeReplace(path, formatIssue({ ...issue, blocks: owner.blocks, updatedAt: now }))
+  }
+}
+
+export function listComments(store: Store, filter: { issue: string }): Comment[] {
+  getIssue(store, filter.issue)
+  const comments = loadRawComments(store).filter((comment) => comment.issue === filter.issue)
+  comments.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))
+  return comments
+}
+
+export function getComment(store: Store, id: string): Comment {
+  const path = commentPath(store, id)
+  if (!existsSync(path)) throw new Error(`comment not found: ${id}`)
+  return readComment(path, id)
+}
+
+export function saveComment(store: Store, input: SaveCommentInput): Comment {
+  const now = new Date().toISOString()
+  if (input.id) {
+    const current = getComment(store, input.id)
+    if (input.body !== undefined && !input.body.trim()) {
+      throw new Error(`invalid body: expected a non-empty string, actual ${JSON.stringify(input.body)}`)
+    }
+    const comment: Comment = {
+      ...current,
+      body: input.body !== undefined ? input.body : current.body,
+      updatedAt: now,
+    }
+    writeReplace(commentPath(store, comment.id), formatComment(comment))
+    return comment
+  }
+  const parent = input.parent ? getComment(store, input.parent) : null
+  const issue = parent ? parent.issue : input.issue
+  if (!issue) throw new Error("issue is required when creating a comment")
+  getIssue(store, issue)
+  if (!input.body?.trim()) {
+    throw new Error(
+      `invalid body: expected a non-empty string, actual ${JSON.stringify(input.body ?? "")}`,
+    )
+  }
+  mkdirSync(join(store.dir, "comments"), { recursive: true })
+  for (;;) {
+    const comment: Comment = {
+      id: nextCommentId(store),
+      issue,
+      parent: parent ? parent.id : null,
+      author: gitName(),
+      createdAt: now,
+      updatedAt: now,
+      body: input.body,
+    }
+    try {
+      writeCreate(commentPath(store, comment.id), formatComment(comment))
+      return comment
+    } catch (err) {
+      if (!isEexist(err)) throw err
+    }
+  }
+}
+
+function loadRawComments(store: Store): Comment[] {
+  const dir = join(store.dir, "comments")
+  if (!existsSync(dir)) return []
+  const comments: Comment[] = []
+  for (const name of readdirSync(dir)) {
+    if (!name.endsWith(".md")) continue
+    try {
+      comments.push(readComment(join(dir, name), name.slice(0, -3)))
+    } catch {
+      // 壊れた手編集ファイルが一覧全体を隠さないようにする
+    }
+  }
+  return comments
+}
+
+function commentPath(store: Store, id: string): string {
+  return join(store.dir, "comments", `${id}.md`)
+}
+
+function nextCommentId(store: Store): string {
+  const dir = join(store.dir, "comments")
+  let max = 0
+  if (existsSync(dir)) {
+    for (const name of readdirSync(dir)) {
+      const match = name.match(/^(\d+)\.md$/)
+      if (!match) continue
+      const n = Number(match[1])
+      if (n > max) max = n
+    }
+  }
+  return String(max + 1)
+}
+
+function readComment(path: string, stem: string): Comment {
+  const { meta, body } = parseFrontmatter(readFileSync(path, "utf8"))
+  if (!meta.issue) throw new Error("invalid comment file")
+  return {
+    id: stem,
+    issue: meta.issue,
+    parent: blankToNull(meta.parent ?? "") ?? null,
+    author: meta.author || gitName(),
+    createdAt: meta.createdAt || "",
+    updatedAt: meta.updatedAt || "",
+    body,
+  }
+}
+
+function formatComment(comment: Comment): string {
+  return `---
+id: ${comment.id}
+issue: ${comment.issue}
+parent: ${comment.parent ?? ""}
+author: ${comment.author}
+createdAt: ${comment.createdAt}
+updatedAt: ${comment.updatedAt}
+---
+
+${comment.body}
+`
+}
+
+
 function issuePath(store: Store, id: string): string {
   return join(store.dir, "issues", `${id}.md`)
 }
@@ -327,17 +707,17 @@ function readIssue(path: string, stem: string): Issue {
   return issue
 }
 
-function writeCreate(path: string, issue: Issue): void {
-  writeFileSync(path, formatIssue(issue), { flag: "wx" })
+function writeCreate(path: string, text: string): void {
+  writeFileSync(path, text, { flag: "wx" })
 }
 
-function writeReplace(path: string, issue: Issue): void {
+function writeReplace(path: string, text: string): void {
   const tmp = `${path}.tmp`
-  writeFileSync(tmp, formatIssue(issue))
+  writeFileSync(tmp, text)
   renameSync(tmp, path)
 }
 
-function parseIssue(text: string): Issue {
+function parseFrontmatter(text: string): { meta: Record<string, string>; body: string } {
   const normalized = text.replace(/\r\n/g, "\n")
   if (!normalized.startsWith("---\n")) throw new Error("invalid issue file")
   const end = normalized.indexOf("\n---\n", 4)
@@ -353,6 +733,11 @@ function parseIssue(text: string): Issue {
     if (i < 0) continue
     meta[line.slice(0, i).trim()] = line.slice(i + 1).trim()
   }
+  return { meta, body }
+}
+
+function parseIssue(text: string): Issue {
+  const { meta, body } = parseFrontmatter(text)
   return {
     id: meta.id || "",
     title: meta.title || "",
@@ -364,6 +749,13 @@ function parseIssue(text: string): Issue {
       .filter(Boolean),
     dueDate: resolveDueDate(meta.dueDate ?? "") ?? null,
     priority: resolvePriority(meta.priority ?? "") ?? null,
+    parent: blankToNull(meta.parent ?? "") ?? null,
+    blocks: parseIdList(meta.blocks || ""),
+    blockedBy: [],
+    children: [],
+    startedAt: blankToNull(meta.startedAt ?? "") ?? null,
+    completedAt: blankToNull(meta.completedAt ?? "") ?? null,
+    canceledAt: blankToNull(meta.canceledAt ?? "") ?? null,
     createdAt: meta.createdAt || "",
     updatedAt: meta.updatedAt || "",
     body,
@@ -379,6 +771,11 @@ assignee: ${issue.assignee ?? ""}
 labels: ${issue.labels.join(", ")}
 dueDate: ${issue.dueDate ?? ""}
 priority: ${issue.priority ?? ""}
+parent: ${issue.parent ?? ""}
+blocks: ${issue.blocks.join(", ")}
+startedAt: ${issue.startedAt ?? ""}
+completedAt: ${issue.completedAt ?? ""}
+canceledAt: ${issue.canceledAt ?? ""}
 createdAt: ${issue.createdAt}
 updatedAt: ${issue.updatedAt}
 ---
