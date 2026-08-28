@@ -112,6 +112,8 @@ function issueInput(issue: Issue): SaveInput {
     labels: issue.labels,
     dueDate: issue.dueDate,
     priority: issue.priority,
+    parent: issue.parent,
+    blocks: issue.blocks,
     body: issue.body,
   }
 }

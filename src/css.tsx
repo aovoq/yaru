@@ -110,10 +110,11 @@ async function sampleHtml(): Promise<string> {
         assignee="me"
         label="a"
         error="title is required"
+        comments={[]}
       />
-      <BoardPage issues={issues} all={issues} query="q" current={BLANK} view="list" />
-      <BoardPage issues={[]} all={[]} query="" current={null} />
-      <BoardPage issues={[]} all={[]} query="none" current={null} />
+      <BoardPage issues={issues} all={issues} query="q" current={BLANK} view="list" comments={[]} />
+      <BoardPage issues={[]} all={[]} query="" current={null} comments={[]} />
+      <BoardPage issues={[]} all={[]} query="none" current={null} comments={[]} />
       <ErrorView message="x" />
     </Document>
   )

@@ -8,12 +8,15 @@ export type DraftField =
   | "labels"
   | "dueDate"
   | "priority"
+  | "parent"
+  | "blocks"
   | "body"
 
 export type ClientState = PageData & {
   selectedIssueId: string | null
   draftDirty: boolean
   labelInput: string
+  blockInput: string
   requestError?: string
 }
 
@@ -32,6 +35,8 @@ export function createClientState(
     selectedIssueId: null,
     draftDirty: false,
     labelInput: page.current?.labels.join(", ") ?? "",
+    blockInput: page.current?.blocks.join(", ") ?? "",
+    comments: page.comments ?? [],
   }
 }
 
@@ -50,6 +55,10 @@ export function reduceClientState(state: ClientState, action: ClientAction): Cli
       labelInput: preserveCurrent
         ? state.labelInput
         : (action.page.current?.labels.join(", ") ?? ""),
+      blockInput: preserveCurrent
+        ? state.blockInput
+        : (action.page.current?.blocks.join(", ") ?? ""),
+      comments: preserveCurrent ? state.comments : (action.page.comments ?? []),
       requestError: undefined,
     }
   }
@@ -60,6 +69,7 @@ export function reduceClientState(state: ClientState, action: ClientAction): Cli
       current: updateDraft(state.current, action.field, action.value),
       draftDirty: true,
       labelInput: action.field === "labels" ? action.value : state.labelInput,
+      blockInput: action.field === "blocks" ? action.value : state.blockInput,
       error: undefined,
       requestError: undefined,
     }
@@ -71,16 +81,16 @@ export function reduceClientState(state: ClientState, action: ClientAction): Cli
 }
 
 function updateDraft(issue: Issue, field: DraftField, value: string): Issue {
-  if (field === "labels") {
+  if (field === "labels" || field === "blocks") {
     return {
       ...issue,
-      labels: value
+      [field]: value
         .split(",")
-        .map((label) => label.trim())
+        .map((part) => part.trim())
         .filter(Boolean),
     }
   }
-  if (field === "assignee" || field === "dueDate" || field === "priority") {
+  if (field === "assignee" || field === "dueDate" || field === "priority" || field === "parent") {
     return { ...issue, [field]: value || null }
   }
   return { ...issue, [field]: value }

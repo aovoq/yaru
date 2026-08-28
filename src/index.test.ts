@@ -68,21 +68,24 @@ test("bare value flags error instead of storing true", () => {
   expect(out.stderr.toString()).toContain("missing value for --body")
 })
 
-test("list help mentions filters json and overdue", () => {
+test("list help mentions filters format and overdue", () => {
   const help = run(["issue", "list", "--help"]).stdout.toString()
   expect(help).toContain("--due overdue")
-  expect(help).toContain("--json")
+  expect(help).toContain("--format")
+  expect(help).toContain("--parent")
   expect(help).toContain("--limit")
   expect(help).toContain("--cursor")
   expect(help).toContain("--assignee me")
 })
 
-test("save help documents patch json and linear id rules", () => {
+test("save help documents patch format and linear id rules", () => {
   const help = run(["issue", "save", "--help"]).stdout.toString()
   expect(help).toContain("--dueDate")
   expect(help).toContain("--priority")
   expect(help).toContain("--patch")
-  expect(help).toContain("--json")
+  expect(help).toContain("--format")
+  expect(help).toContain("--parent")
+  expect(help).toContain("--block")
   expect(help).toContain("Do not pass --id when creating")
   expect(help).toContain("replace_range")
   expect(help).toContain("none")
@@ -175,7 +178,7 @@ test("list rejects unknown flags", () => {
 
 test("json list get and save return issue objects", () => {
   const root = workspace()
-  const saveOut = run(["issue", "save", "--title", "hello", "--label", "cli", "--json"], root)
+  const saveOut = run(["issue", "save", "--title", "hello", "--label", "cli"], root)
   const saved = JSON.parse(saveOut.stdout.toString())
   expect(saved).toMatchObject({
     id: "1",
@@ -191,22 +194,40 @@ test("json list get and save return issue objects", () => {
   expect(saved.updatedAt).toBeTruthy()
   expect(saveOut.stdout.toString()).not.toContain("http://")
 
-  const listed = JSON.parse(run(["issue", "list", "--json"], root).stdout.toString())
+  const listed = JSON.parse(run(["issue", "list"], root).stdout.toString())
   expect(listed.hasNextPage).toBe(false)
   expect(listed.issues).toHaveLength(1)
   expect(listed.issues[0].labels).toEqual(["cli"])
   expect(listed.issues[0].createdAt).toBe(saved.createdAt)
 
-  const got = JSON.parse(run(["issue", "get", "1", "--json"], root).stdout.toString())
+  const got = JSON.parse(run(["issue", "get", "1"], root).stdout.toString())
   expect(got).toMatchObject({ id: "1", title: "hello", labels: ["cli"], body: "" })
 })
 
 test("json list is empty without printing (none)", () => {
   const root = workspace()
-  const out = run(["issue", "list", "--json"], root)
+  const out = run(["issue", "list"], root)
   expect(out.exitCode).toBe(0)
   expect(out.stdout.toString()).not.toContain("(none)")
   expect(JSON.parse(out.stdout.toString())).toEqual({ issues: [], hasNextPage: false })
+})
+
+test("format human prints a table", () => {
+  const root = workspace()
+  expect(run(["issue", "save", "--title", "hello"], root).exitCode).toBe(0)
+  const out = run(["issue", "list", "--format", "human"], root)
+  expect(out.exitCode).toBe(0)
+  expect(out.stdout.toString()).toContain("hello")
+  expect(out.stdout.toString()).not.toContain("{")
+  const short = run(["issue", "list", "-f", "human"], root)
+  expect(short.stdout.toString()).toContain("hello")
+})
+
+test("format rejects unknown values", () => {
+  const root = workspace()
+  const out = run(["issue", "list", "--format", "xml"], root)
+  expect(out.exitCode).toBe(1)
+  expect(out.stderr.toString()).toContain("invalid format: expected json or human, actual xml")
 })
 
 test("list paginates with limit and cursor", () => {
@@ -214,15 +235,12 @@ test("list paginates with limit and cursor", () => {
   expect(run(["issue", "save", "--title", "a"], root).exitCode).toBe(0)
   expect(run(["issue", "save", "--title", "b"], root).exitCode).toBe(0)
   expect(run(["issue", "save", "--title", "c"], root).exitCode).toBe(0)
-  const first = JSON.parse(run(["issue", "list", "--limit", "2", "--json"], root).stdout.toString())
+  const first = JSON.parse(run(["issue", "list", "--limit", "2"], root).stdout.toString())
   expect(first.issues.map((issue: { id: string }) => issue.id)).toEqual(["3", "2"])
   expect(first.hasNextPage).toBe(true)
   expect(first.cursor).toBe("2")
   const second = JSON.parse(
-    run(
-      ["issue", "list", "--limit", "2", "--cursor", first.cursor, "--json"],
-      root,
-    ).stdout.toString(),
+    run(["issue", "list", "--limit", "2", "--cursor", first.cursor], root).stdout.toString(),
   )
   expect(second.issues.map((issue: { id: string }) => issue.id)).toEqual(["1"])
   expect(second.hasNextPage).toBe(false)
@@ -255,6 +273,43 @@ test("save patch reads stdin", () => {
   )
   expect(out.exitCode).toBe(0)
   expect(run(["issue", "get", "1"], root).stdout.toString()).toContain("core!")
+})
+
+test("save parent blocks and timestamps appear in json", () => {
+  const root = workspace()
+  expect(run(["issue", "save", "--title", "parent"], root).exitCode).toBe(0)
+  expect(run(["issue", "save", "--title", "child", "--parent", "1"], root).exitCode).toBe(0)
+  const child = JSON.parse(run(["issue", "get", "2"], root).stdout.toString())
+  expect(child.parent).toBe("1")
+  const parent = JSON.parse(
+    run(["issue", "save", "--id", "1", "--block", "2"], root).stdout.toString(),
+  )
+  expect(parent.blocks).toEqual(["2"])
+  expect(parent.children).toEqual(["2"])
+  const blocked = JSON.parse(run(["issue", "get", "2"], root).stdout.toString())
+  expect(blocked.blockedBy).toEqual(["1"])
+  const started = JSON.parse(
+    run(["issue", "save", "--id", "2", "--status", "in_progress"], root).stdout.toString(),
+  )
+  expect(started.startedAt).toBeTruthy()
+  expect(started.completedAt).toBeNull()
+})
+
+test("comment save list get roundtrip", () => {
+  const root = workspace()
+  expect(run(["issue", "save", "--title", "topic"], root).exitCode).toBe(0)
+  const created = JSON.parse(
+    run(["comment", "save", "--issue", "1", "--body", "hello"], root).stdout.toString(),
+  )
+  expect(created).toMatchObject({ id: "1", issue: "1", parent: null, body: "hello" })
+  const reply = JSON.parse(
+    run(["comment", "save", "--parent", "1", "--body", "reply"], root).stdout.toString(),
+  )
+  expect(reply.parent).toBe("1")
+  const listed = JSON.parse(run(["comment", "list", "--issue", "1"], root).stdout.toString())
+  expect(listed.comments.map((comment: { id: string }) => comment.id)).toEqual(["1", "2"])
+  const got = JSON.parse(run(["comment", "get", "1"], root).stdout.toString())
+  expect(got.body).toBe("hello")
 })
 
 test("save rejects body and patch together", () => {

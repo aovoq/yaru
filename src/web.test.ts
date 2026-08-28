@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test"
 import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { init, saveIssue } from "./store"
+import { init, saveComment, saveIssue } from "./store"
 import { createApp, serve } from "./web"
 
 const dirs: string[] = []
@@ -424,5 +424,46 @@ describe("web", () => {
     const rows = await (await createApp(store).request("/api/issues?due=overdue")).json()
     expect(rows).toHaveLength(1)
     expect(rows[0].title).toBe("late")
+  })
+
+  test("GET /api/issues includes parent blocks and timestamps", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "parent" })
+    saveIssue(store, { title: "child", parent: "1", status: "in_progress" })
+    saveIssue(store, { id: "1", addBlocks: ["2"] })
+    const child = await (await createApp(store).request("/api/issues/2")).json()
+    expect(child.parent).toBe("1")
+    expect(child.blockedBy).toEqual(["1"])
+    expect(child.startedAt).toBeTruthy()
+    const parent = await (await createApp(store).request("/api/issues/1")).json()
+    expect(parent.blocks).toEqual(["2"])
+    expect(parent.children).toEqual(["2"])
+  })
+
+  test("comments API creates and lists", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "topic" })
+    const app = createApp(store)
+    const created = await app.request("/api/comments", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ issue: "1", body: "hello" }),
+    })
+    expect(created.status).toBe(200)
+    expect((await created.json()).body).toBe("hello")
+    const listed = await (await app.request("/api/comments?issue=1")).json()
+    expect(listed).toHaveLength(1)
+  })
+
+  test("GET /?id= shows parent blocks and comments", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "parent" })
+    saveIssue(store, { title: "child", parent: "1" })
+    saveComment(store, { issue: "2", body: "note" })
+    const html = await (await createApp(store).request("/?id=2")).text()
+    expect(html).toContain("Parent")
+    expect(html).toContain("Blocks")
+    expect(html).toContain("Comments")
+    expect(html).toContain("note")
   })
 })

@@ -2,11 +2,14 @@
 import { readFileSync } from "node:fs"
 import {
   findRoot,
+  getComment,
   getIssue,
   init,
+  listComments,
   listIssues,
   open,
   pageIssues,
+  saveComment,
   saveIssue,
   type Filter,
   type SaveInput,
@@ -19,9 +22,12 @@ const GLOBAL_HELP = `yaru — local issues, markdown in .yaru
   yaru issue list
   yaru issue get <id>
   yaru issue save
+  yaru comment list --issue ID
+  yaru comment get <id>
+  yaru comment save
   yaru serve [-p|--port ${DEFAULT_PORT}]
 
-Issue commands print their contract with --help, e.g. yaru issue save --help.
+Output is JSON unless --format human. Commands print their contract with --help.
 `
 
 const ISSUE_HELP = `yaru issue — list, get, or save issues
@@ -31,21 +37,25 @@ const ISSUE_HELP = `yaru issue — list, get, or save issues
   yaru issue save
 
 Each subcommand documents its flags with --help.
+Output is JSON unless --format human.
 `
 
 const LIST_HELP = `yaru issue list — list issues in this workspace
 
 For my issues, use --assignee me. Use --assignee none for no assignee.
+Use --parent none for issues with no parent.
 
 Usage:
   yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT]
-                  [--due overdue] [--limit N] [--cursor ID] [--json]
+                  [--due overdue] [--parent ID] [--limit N] [--cursor ID]
+                  [-f|--format json|human]
 
 --query searches issue id, title, or body.
 --due overdue is dueDate before today.
+--parent filters by parent issue id.
 --limit max results (default 50, max 250).
---cursor next page cursor from a previous --json list.
---json prints {issues, hasNextPage, cursor} instead of a table.
+--cursor next page cursor from a previous list.
+--format json (default) prints {issues, hasNextPage, cursor}. human prints a table.
 
 Status: backlog, todo, in_progress, done, canceled
 `
@@ -53,9 +63,10 @@ Status: backlog, todo, in_progress, done, canceled
 const GET_HELP = `yaru issue get — retrieve one issue by id
 
 Usage:
-  yaru issue get <id> [--json]
+  yaru issue get <id> [-f|--format json|human]
 
---json prints the issue object, including labels, body, createdAt, and updatedAt.
+JSON includes labels, body, parent, children, blocks, blockedBy,
+startedAt, completedAt, canceledAt, createdAt, and updatedAt.
 `
 
 const SAVE_HELP = `yaru issue save — create or update an issue
@@ -64,9 +75,12 @@ If --id is provided, updates the existing issue; otherwise creates a new one.
 Do not pass --id when creating. Title is required when creating.
 
 Omitted fields stay unchanged on update. --assignee me is git config user.name.
-none clears assignee, dueDate, or priority.
+none clears assignee, dueDate, priority, or parent.
 
 Repeat --label to set labels; any --label replaces the whole list. Omit to leave labels unchanged.
+
+--block ID appends an outgoing block. --blockedBy ID records that the other issue blocks this one.
+--removeBlock ID / --removeBlockedBy ID remove those relations. Repeatable.
 
 --body is Markdown. Use --body - to read stdin. Do not escape newlines.
 
@@ -85,14 +99,57 @@ Patch operations:
 
 Usage:
   yaru issue save --title TITLE [--status NAME] [--assignee NAME] [--label NAME]
-                  [--dueDate YYYY-MM-DD] [--priority NAME] [--body TEXT|-] [--json]
+                  [--dueDate YYYY-MM-DD] [--priority NAME] [--parent ID]
+                  [--block ID] [--blockedBy ID] [--body TEXT|-]
+                  [-f|--format json|human]
   yaru issue save --id ID [--title TITLE] [--status NAME] [--assignee NAME] [--label NAME]
-                  [--dueDate YYYY-MM-DD] [--priority NAME] [--body TEXT|-|--patch JSON|-] [--json]
+                  [--dueDate YYYY-MM-DD] [--priority NAME] [--parent ID]
+                  [--block ID] [--blockedBy ID] [--removeBlock ID] [--removeBlockedBy ID]
+                  [--body TEXT|-|--patch JSON|-] [-f|--format json|human]
 
 Status: backlog, todo, in_progress, done, canceled
 Priority: urgent, high, medium, low
 `
 
+const COMMENT_HELP = `yaru comment — list, get, or save comments
+
+  yaru comment list --issue ID
+  yaru comment get <id>
+  yaru comment save
+
+Each subcommand documents its flags with --help.
+Output is JSON unless --format human.
+`
+
+const COMMENT_LIST_HELP = `yaru comment list — list comments on an issue
+
+Usage:
+  yaru comment list --issue ID [-f|--format json|human]
+
+JSON prints {comments}. Comments are ordered by createdAt.
+`
+
+const COMMENT_GET_HELP = `yaru comment get — retrieve one comment by id
+
+Usage:
+  yaru comment get <id> [-f|--format json|human]
+`
+
+const COMMENT_SAVE_HELP = `yaru comment save — create or update a comment
+
+If --id is provided, updates the existing comment; otherwise creates a new one.
+Do not pass --id when creating. Body is required when creating.
+To start a thread, pass --issue. To reply, pass --parent; the issue is inferred.
+
+--body is Markdown. Use --body - to read stdin. Do not escape newlines.
+
+Usage:
+  yaru comment save --issue ID --body TEXT|- [-f|--format json|human]
+  yaru comment save --parent ID --body TEXT|- [-f|--format json|human]
+  yaru comment save --id ID --body TEXT|- [-f|--format json|human]
+`
+
+const FORMAT_FLAGS = ["format", "f"] as const
 const LIST_FLAGS = new Set([
   "help",
   "h",
@@ -101,11 +158,12 @@ const LIST_FLAGS = new Set([
   "label",
   "query",
   "due",
+  "parent",
   "limit",
   "cursor",
-  "json",
+  ...FORMAT_FLAGS,
 ])
-const GET_FLAGS = new Set(["help", "h", "id", "json"])
+const GET_FLAGS = new Set(["help", "h", "id", ...FORMAT_FLAGS])
 const SAVE_FLAGS = new Set([
   "help",
   "h",
@@ -116,10 +174,18 @@ const SAVE_FLAGS = new Set([
   "label",
   "dueDate",
   "priority",
+  "parent",
+  "block",
+  "blockedBy",
+  "removeBlock",
+  "removeBlockedBy",
   "body",
   "patch",
-  "json",
+  ...FORMAT_FLAGS,
 ])
+const COMMENT_LIST_FLAGS = new Set(["help", "h", "issue", ...FORMAT_FLAGS])
+const COMMENT_GET_FLAGS = new Set(["help", "h", "id", ...FORMAT_FLAGS])
+const COMMENT_SAVE_FLAGS = new Set(["help", "h", "id", "issue", "parent", "body", ...FORMAT_FLAGS])
 const INIT_FLAGS = new Set(["help", "h"])
 const SERVE_FLAGS = new Set(["help", "h", "port", "p"])
 
@@ -152,6 +218,10 @@ async function main() {
       await issue(rest.slice(1), flag, flags)
       return
     }
+    if (cmd === "comment") {
+      await comment(rest.slice(1), flag, flags)
+      return
+    }
     throw new Error(`unknown command: ${cmd}`)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -166,6 +236,12 @@ function helpFor(rest: string[]): string {
     if (rest[1] === "get") return GET_HELP
     if (rest[1] === "save") return SAVE_HELP
     return ISSUE_HELP
+  }
+  if (rest[0] === "comment") {
+    if (rest[1] === "list") return COMMENT_LIST_HELP
+    if (rest[1] === "get") return COMMENT_GET_HELP
+    if (rest[1] === "save") return COMMENT_SAVE_HELP
+    return COMMENT_HELP
   }
   return GLOBAL_HELP
 }
@@ -185,6 +261,9 @@ async function issue(
     if (flag("query")) filter.query = flag("query")
     if (flag("label")) filter.label = flag("label")
     if (flag("assignee") !== undefined) filter.assignee = flag("assignee")
+    if (flag("parent") !== undefined) {
+      filter.parent = flag("parent") === "none" ? null : flag("parent")
+    }
     if (flag("due") !== undefined) {
       if (flag("due") !== "overdue") {
         throw new Error(`invalid due: expected overdue, actual ${flag("due")}`)
@@ -195,7 +274,7 @@ async function issue(
       limit: parseLimitFlag(flag("limit")),
       cursor: flag("cursor"),
     })
-    if (flag("json")) {
+    if (outputFormat(flag) === "json") {
       printJson(page)
       return
     }
@@ -220,7 +299,7 @@ async function issue(
     if (!id) throw new Error("usage: yaru issue get <id>")
     assertNoExtra(rest.slice(flag("id") ? 1 : 2))
     const found = getIssue(open(findRoot()), id)
-    if (flag("json")) printJson(found)
+    if (outputFormat(flag) === "json") printJson(found)
     else process.stdout.write(formatGet(found))
     return
   }
@@ -241,8 +320,13 @@ async function issue(
     if (flag("assignee") !== undefined) input.assignee = flag("assignee")
     if (flag("dueDate") !== undefined) input.dueDate = flag("dueDate")
     if (flag("priority") !== undefined) input.priority = flag("priority")
+    if (flag("parent") !== undefined) input.parent = flag("parent")
+    if (flags.block) input.addBlocks = flags.block
+    if (flags.blockedBy) input.addBlockedBy = flags.blockedBy
+    if (flags.removeBlock) input.removeBlocks = flags.removeBlock
+    if (flags.removeBlockedBy) input.removeBlockedBy = flags.removeBlockedBy
     const saved = saveIssue(open(findRoot()), input)
-    if (flag("json")) {
+    if (outputFormat(flag) === "json") {
       printJson(saved)
       return
     }
@@ -251,6 +335,61 @@ async function issue(
     return
   }
   throw new Error("usage: yaru issue list|get|save")
+}
+
+async function comment(
+  rest: string[],
+  flag: (k: string) => string | undefined,
+  flags: Record<string, string[]>,
+) {
+  const sub = rest[0]
+  if (sub === "list") {
+    assertKnownFlags(flags, COMMENT_LIST_FLAGS)
+    assertNoExtra(rest.slice(1))
+    const issue = flag("issue")
+    if (!issue) throw new Error("usage: yaru comment list --issue ID")
+    const comments = listComments(open(findRoot()), { issue })
+    if (outputFormat(flag) === "json") {
+      printJson({ comments })
+      return
+    }
+    if (comments.length === 0) {
+      console.log("(none)")
+      return
+    }
+    for (const row of comments) {
+      console.log(`${row.id}  ${row.author}  ${row.body.split("\n")[0]}`)
+    }
+    return
+  }
+  if (sub === "get") {
+    assertKnownFlags(flags, COMMENT_GET_FLAGS)
+    const id = flag("id") || rest[1]
+    if (!id) throw new Error("usage: yaru comment get <id>")
+    assertNoExtra(rest.slice(flag("id") ? 1 : 2))
+    const found = getComment(open(findRoot()), id)
+    if (outputFormat(flag) === "json") printJson(found)
+    else process.stdout.write(formatComment(found))
+    return
+  }
+  if (sub === "save") {
+    assertKnownFlags(flags, COMMENT_SAVE_FLAGS)
+    assertNoExtra(rest.slice(1))
+    const body = flag("body") === "-" ? readStdin() : flag("body")
+    const saved = saveComment(open(findRoot()), {
+      id: flag("id"),
+      issue: flag("issue"),
+      parent: flag("parent"),
+      body,
+    })
+    if (outputFormat(flag) === "json") {
+      printJson(saved)
+      return
+    }
+    console.log(saved.id)
+    return
+  }
+  throw new Error("usage: yaru comment list|get|save")
 }
 
 async function hintBoard(id: string) {
@@ -267,10 +406,24 @@ async function hintBoard(id: string) {
 
 function formatGet(issue: ReturnType<typeof getIssue>): string {
   const labels = issue.labels.join(", ") || "-"
-  return `${issue.id}  ${issue.status}  ${issue.assignee ?? "-"}  ${labels}  ${issue.dueDate ?? "-"}  ${issue.priority ?? "-"}
+  const blocks = issue.blocks.join(", ") || "-"
+  const blockedBy = issue.blockedBy.join(", ") || "-"
+  return `${issue.id}  ${issue.status}  ${issue.assignee ?? "-"}  ${labels}  ${issue.dueDate ?? "-"}  ${issue.priority ?? "-"}  parent ${issue.parent ?? "-"}  blocks ${blocks}  blockedBy ${blockedBy}
 ${issue.title}
 
 ${issue.body}${issue.body ? "\n" : ""}`
+}
+
+function formatComment(comment: ReturnType<typeof getComment>): string {
+  return `${comment.id}  ${comment.issue}  ${comment.parent ?? "-"}  ${comment.author}
+${comment.body}${comment.body ? "\n" : ""}`
+}
+
+function outputFormat(flag: (k: string) => string | undefined): "json" | "human" {
+  const raw = flag("format") || flag("f")
+  if (raw === undefined) return "json"
+  if (raw === "json" || raw === "human") return raw
+  throw new Error(`invalid format: expected json or human, actual ${raw}`)
 }
 
 function parsePatchJson(raw: string): unknown {
@@ -318,7 +471,7 @@ function assertNoExtra(rest: string[]) {
   if (rest.length > 0) throw new Error(`unexpected argument: ${rest[0]}`)
 }
 
-const BARE = new Set(["help", "h", "json"])
+const BARE = new Set(["help", "h"])
 
 function parse(argv: string[]) {
   const rest: string[] = []

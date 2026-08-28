@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "hono/jsx"
 import { DEFAULT_VIEW } from "../page"
-import { PRIORITIES, type Issue } from "../store"
+import { PRIORITIES, type Comment, type Issue } from "../store"
 import { ChevronIcon, CrossIcon } from "./icons"
 import type { DraftField } from "./state"
 import { issueColumns, pageHref, priorityLabel, statusLabel, type PageFilters } from "./view-model"
@@ -10,6 +10,8 @@ export function IssueDrawer({
   filters,
   error,
   labelInput,
+  blockInput,
+  comments,
   onChange,
   onSave,
 }: {
@@ -17,6 +19,8 @@ export function IssueDrawer({
   filters: PageFilters
   error?: string
   labelInput: string
+  blockInput: string
+  comments: Comment[]
   onChange: (field: DraftField, value: string) => void
   onSave: () => Promise<void>
 }) {
@@ -35,7 +39,7 @@ export function IssueDrawer({
       <form
         method="post"
         action="/issues"
-        class="flex h-full min-h-0 flex-col"
+        class="flex min-h-0 flex-1 flex-col"
         onSubmit={(event: SubmitEvent) => {
           event.preventDefault()
           void onSave()
@@ -127,6 +131,44 @@ export function IssueDrawer({
                 class={FIELD}
               />
             </PropRow>
+            <PropRow label="Parent">
+              <input
+                name="parent"
+                value={issue.parent ?? ""}
+                onInput={change("parent")}
+                placeholder="Issue id"
+                class={FIELD}
+              />
+            </PropRow>
+            <PropRow label="Blocks">
+              <input
+                name="blocks"
+                value={blockInput}
+                onInput={change("blocks")}
+                placeholder="Comma separated ids"
+                class={FIELD}
+              />
+            </PropRow>
+            {issue.blockedBy.length > 0 ? (
+              <PropRow label="Blocked by">
+                <span class="font-mono text-[12px] text-ink">{issue.blockedBy.join(", ")}</span>
+              </PropRow>
+            ) : null}
+            {issue.startedAt ? (
+              <PropRow label="Started">
+                <span class="font-mono text-[12px] text-ink-tertiary">{issue.startedAt}</span>
+              </PropRow>
+            ) : null}
+            {issue.completedAt ? (
+              <PropRow label="Completed">
+                <span class="font-mono text-[12px] text-ink-tertiary">{issue.completedAt}</span>
+              </PropRow>
+            ) : null}
+            {issue.canceledAt ? (
+              <PropRow label="Canceled">
+                <span class="font-mono text-[12px] text-ink-tertiary">{issue.canceledAt}</span>
+              </PropRow>
+            ) : null}
           </div>
           <div class="flex min-h-0 flex-1 flex-col gap-1.5 border-t border-hairline pt-4">
             <span class="text-xs text-ink-tertiary">Description</span>
@@ -138,6 +180,24 @@ export function IssueDrawer({
               class="min-h-40 w-full flex-1 resize-none border-0 bg-transparent p-0 font-sans text-[13px] leading-relaxed text-ink placeholder:text-ink-tertiary focus-visible:outline-none"
             />
           </div>
+          {issue.id ? (
+            <div class="flex flex-col gap-2 border-t border-hairline pt-4">
+              <span class="text-xs text-ink-tertiary">Comments</span>
+              {comments.length === 0 ? (
+                <p class="text-[12px] text-ink-tertiary">No comments</p>
+              ) : (
+                comments.map((comment) => (
+                  <div class="rounded-md border border-hairline px-3 py-2">
+                    <div class="text-[11px] text-ink-tertiary">
+                      {comment.author}
+                      {comment.parent ? ` · reply to ${comment.parent}` : ""}
+                    </div>
+                    <p class="mt-1 whitespace-pre-wrap text-[13px] text-ink">{comment.body}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : null}
         </div>
         <div class="flex shrink-0 items-center justify-end gap-2 border-t border-hairline px-4 py-3">
           <a
@@ -155,6 +215,31 @@ export function IssueDrawer({
           </button>
         </div>
       </form>
+      {issue.id ? (
+        <form method="post" action="/comments" class="shrink-0 border-t border-hairline px-4 py-3">
+          {filters.query ? <input type="hidden" name="query" value={filters.query} /> : null}
+          {filters.view && filters.view !== DEFAULT_VIEW ? (
+            <input type="hidden" name="view" value={filters.view} />
+          ) : null}
+          {filters.status ? <input type="hidden" name="status" value={filters.status} /> : null}
+          {filters.assignee ? (
+            <input type="hidden" name="assignee" value={filters.assignee} />
+          ) : null}
+          {filters.label ? <input type="hidden" name="label" value={filters.label} /> : null}
+          <input type="hidden" name="issue" value={issue.id} />
+          <textarea
+            name="body"
+            placeholder="Leave a comment…"
+            class="mb-2 h-16 w-full resize-none rounded-md border border-hairline bg-transparent p-2 font-sans text-[13px] text-ink placeholder:text-ink-tertiary focus-visible:outline-none"
+          />
+          <button
+            type="submit"
+            class="inline-flex h-7 cursor-pointer items-center rounded-md border-0 bg-surface-2 px-3 font-sans text-xs font-medium text-ink hover:bg-surface-3"
+          >
+            Comment
+          </button>
+        </form>
+      ) : null}
     </aside>
   )
 }

@@ -211,9 +211,7 @@ export function saveIssue(store: Store, input: SaveInput): Issue {
     const nextStatus = status ?? current.status
     const times = statusTimestamps(current, nextStatus, now)
     const parent =
-      input.parent !== undefined
-        ? resolveParent(input.id, input.parent, all)
-        : current.parent
+      input.parent !== undefined ? resolveParent(input.id, input.parent, all) : current.parent
     const relations = resolveBlocks(input.id, current.blocks, input, all)
     const issue: Issue = {
       ...current,
@@ -424,8 +422,7 @@ function statusTimestamps(
   status: string,
   now: string,
 ): { startedAt: string | null; completedAt: string | null; canceledAt: string | null } {
-  const startedAt =
-    current?.startedAt ?? (status === "in_progress" ? now : null)
+  const startedAt = current?.startedAt ?? (status === "in_progress" ? now : null)
   const completedAt =
     status === "done" ? (current?.status === "done" ? current.completedAt : now) : null
   const canceledAt =
@@ -433,11 +430,7 @@ function statusTimestamps(
   return { startedAt, completedAt, canceledAt }
 }
 
-function resolveParent(
-  issueId: string,
-  value: string | null,
-  all: Issue[],
-): string | null {
+function resolveParent(issueId: string, value: string | null, all: Issue[]): string | null {
   const parent = blankToNull(value) ?? null
   if (parent === null) return null
   if (parent === issueId) {
@@ -596,7 +589,9 @@ export function saveComment(store: Store, input: SaveCommentInput): Comment {
   if (input.id) {
     const current = getComment(store, input.id)
     if (input.body !== undefined && !input.body.trim()) {
-      throw new Error(`invalid body: expected a non-empty string, actual ${JSON.stringify(input.body)}`)
+      throw new Error(
+        `invalid body: expected a non-empty string, actual ${JSON.stringify(input.body)}`,
+      )
     }
     const comment: Comment = {
       ...current,
@@ -695,7 +690,6 @@ updatedAt: ${comment.updatedAt}
 ${comment.body}
 `
 }
-
 
 function issuePath(store: Store, id: string): string {
   return join(store.dir, "issues", `${id}.md`)

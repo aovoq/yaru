@@ -94,6 +94,8 @@ export function BoardPage(props: BoardPageProps) {
           filters={filters}
           error={state.requestError ?? state.error}
           labelInput={state.labelInput}
+          blockInput={state.blockInput}
+          comments={state.comments}
           onChange={controller.changeDraft}
           onSave={controller.saveCurrent}
         />

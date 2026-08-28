@@ -9,6 +9,7 @@ function page(title: string): PageData {
     all: [issue],
     query: "",
     current: issue,
+    comments: [],
     view: "list",
   }
 }

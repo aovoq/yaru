@@ -1,11 +1,20 @@
-import { watch } from "node:fs"
+import { existsSync, watch } from "node:fs"
 import { join } from "node:path"
 import { Hono } from "hono"
 import { jsxRenderer } from "hono/jsx-renderer"
 import { clientScript } from "./client-script"
 import { styles } from "./css"
 import { getPageData } from "./page"
-import { getIssue, listIssues, saveIssue, type Issue, type SaveInput, type Store } from "./store"
+import {
+  getIssue,
+  listComments,
+  listIssues,
+  saveComment,
+  saveIssue,
+  type Issue,
+  type SaveInput,
+  type Store,
+} from "./store"
 import { BLANK, BoardPage, Document, ErrorView, parseView } from "./ui"
 
 export const DEFAULT_PORT = 47800
@@ -65,6 +74,8 @@ export function createApp(store: Store) {
         labels: "labels" in body ? draft.labels : undefined,
         dueDate: "dueDate" in body ? draft.dueDate : undefined,
         priority: "priority" in body ? draft.priority : undefined,
+        parent: "parent" in body ? draft.parent : undefined,
+        blocks: "blocks" in body ? draft.blocks : undefined,
         body: "body" in body ? draft.body : undefined,
       })
     } catch (err) {
@@ -85,6 +96,7 @@ export function createApp(store: Store) {
           assignee={filters.assignee || undefined}
           label={filters.label || undefined}
           view={parseView(filters.view)}
+          comments={draft.id ? listComments(store, { issue: draft.id }) : []}
           error={message}
         />,
       )
@@ -94,7 +106,7 @@ export function createApp(store: Store) {
 
   app.get("/events", (c) => {
     const encoder = new TextEncoder()
-    let watcher: ReturnType<typeof watch> | undefined
+    let watchers: ReturnType<typeof watch>[] = []
     let ping: ReturnType<typeof setInterval> | undefined
     const stream = new ReadableStream({
       start(controller) {
@@ -104,16 +116,24 @@ export function createApp(store: Store) {
           } catch {}
         }
         send(": connected\n\n")
-        const target = join(store.dir, "issues")
+        const sendChange = () => send("data: change\n\n")
+        const issuesDir = join(store.dir, "issues")
         try {
-          watcher = watch(target, () => send("data: change\n\n"))
+          watchers.push(watch(issuesDir, sendChange))
         } catch {
-          watcher = watch(store.dir, { recursive: true }, () => send("data: change\n\n"))
+          watchers.push(watch(store.dir, { recursive: true }, sendChange))
+        }
+        const commentsDir = join(store.dir, "comments")
+        if (existsSync(commentsDir)) {
+          try {
+            watchers.push(watch(commentsDir, sendChange))
+          } catch {}
         }
         ping = setInterval(() => send(": ping\n\n"), 5000)
         const close = () => {
           if (ping) clearInterval(ping)
-          watcher?.close()
+          for (const watcher of watchers) watcher.close()
+          watchers = []
           try {
             controller.close()
           } catch {}
@@ -122,7 +142,8 @@ export function createApp(store: Store) {
       },
       cancel() {
         if (ping) clearInterval(ping)
-        watcher?.close()
+        for (const watcher of watchers) watcher.close()
+        watchers = []
       },
     })
     return new Response(stream, {
@@ -157,6 +178,33 @@ export function createApp(store: Store) {
   app.post("/api/issues", async (c) => {
     const input = await c.req.json<SaveInput>()
     return c.json(saveIssue(store, input))
+  })
+
+  app.get("/api/comments", (c) => {
+    const issue = c.req.query("issue")
+    if (!issue) throw new Error("issue is required when listing comments")
+    return c.json(listComments(store, { issue }))
+  })
+
+  app.post("/api/comments", async (c) => {
+    return c.json(saveComment(store, await c.req.json()))
+  })
+
+  app.post("/comments", async (c) => {
+    const body = await c.req.parseBody()
+    const saved = saveComment(store, {
+      issue: str(body.issue) || undefined,
+      parent: str(body.parent) || undefined,
+      body: str(body.body),
+    })
+    const params = new URLSearchParams()
+    for (const key of FILTER_KEYS) {
+      const value = c.req.query(key) || str(body[key])
+      if (value) params.set(key, value)
+    }
+    params.set("id", saved.issue)
+    const qs = params.toString()
+    return c.redirect(qs ? `/?${qs}` : `/?id=${encodeURIComponent(saved.issue)}`)
   })
 
   return app
@@ -215,6 +263,11 @@ function draftFrom(body: Record<string, unknown>): Issue {
       .filter(Boolean),
     dueDate: str(body.dueDate) || null,
     priority: (str(body.priority) || null) as Issue["priority"],
+    parent: str(body.parent) || null,
+    blocks: str(body.blocks)
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean),
     body: str(body.body),
   }
 }
