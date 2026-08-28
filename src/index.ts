@@ -27,7 +27,7 @@ const GLOBAL_HELP = `yaru — local issues, markdown in .yaru
   yaru comment save
   yaru serve [-p|--port ${DEFAULT_PORT}]
 
-Output is JSON unless --format human. Commands print their contract with --help.
+Output is JSON unless -f / --format. Commands print their contract with --help.
 `
 
 const ISSUE_HELP = `yaru issue — list, get, or save issues
@@ -37,7 +37,7 @@ const ISSUE_HELP = `yaru issue — list, get, or save issues
   yaru issue save
 
 Each subcommand documents its flags with --help.
-Output is JSON unless --format human.
+Output is JSON unless -f / --format.
 `
 
 const LIST_HELP = `yaru issue list — list issues in this workspace
@@ -48,14 +48,14 @@ Use --parent none for issues with no parent.
 Usage:
   yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT]
                   [--due overdue] [--parent ID] [--limit N] [--cursor ID]
-                  [-f|--format json|human]
+                  [-f|--format]
 
 --query searches issue id, title, or body.
 --due overdue is dueDate before today.
 --parent filters by parent issue id.
 --limit max results (default 50, max 250).
 --cursor next page cursor from a previous list.
---format json (default) prints {issues, hasNextPage, cursor}. human prints a table.
+Default output is {issues, hasNextPage, cursor}. -f / --format prints a table.
 
 Status: backlog, todo, in_progress, done, canceled
 `
@@ -63,7 +63,7 @@ Status: backlog, todo, in_progress, done, canceled
 const GET_HELP = `yaru issue get — retrieve one issue by id
 
 Usage:
-  yaru issue get <id> [-f|--format json|human]
+  yaru issue get <id> [-f|--format]
 
 JSON includes labels, body, parent, children, blocks, blockedBy,
 startedAt, completedAt, canceledAt, createdAt, and updatedAt.
@@ -101,11 +101,11 @@ Usage:
   yaru issue save --title TITLE [--status NAME] [--assignee NAME] [--label NAME]
                   [--dueDate YYYY-MM-DD] [--priority NAME] [--parent ID]
                   [--block ID] [--blockedBy ID] [--body TEXT|-]
-                  [-f|--format json|human]
+                  [-f|--format]
   yaru issue save --id ID [--title TITLE] [--status NAME] [--assignee NAME] [--label NAME]
                   [--dueDate YYYY-MM-DD] [--priority NAME] [--parent ID]
                   [--block ID] [--blockedBy ID] [--removeBlock ID] [--removeBlockedBy ID]
-                  [--body TEXT|-|--patch JSON|-] [-f|--format json|human]
+                  [--body TEXT|-|--patch JSON|-] [-f|--format]
 
 Status: backlog, todo, in_progress, done, canceled
 Priority: urgent, high, medium, low
@@ -118,13 +118,13 @@ const COMMENT_HELP = `yaru comment — list, get, or save comments
   yaru comment save
 
 Each subcommand documents its flags with --help.
-Output is JSON unless --format human.
+Output is JSON unless -f / --format.
 `
 
 const COMMENT_LIST_HELP = `yaru comment list — list comments on an issue
 
 Usage:
-  yaru comment list --issue ID [-f|--format json|human]
+  yaru comment list --issue ID [-f|--format]
 
 JSON prints {comments}. Comments are ordered by createdAt.
 `
@@ -132,7 +132,7 @@ JSON prints {comments}. Comments are ordered by createdAt.
 const COMMENT_GET_HELP = `yaru comment get — retrieve one comment by id
 
 Usage:
-  yaru comment get <id> [-f|--format json|human]
+  yaru comment get <id> [-f|--format]
 `
 
 const COMMENT_SAVE_HELP = `yaru comment save — create or update a comment
@@ -144,9 +144,9 @@ To start a thread, pass --issue. To reply, pass --parent; the issue is inferred.
 --body is Markdown. Use --body - to read stdin. Do not escape newlines.
 
 Usage:
-  yaru comment save --issue ID --body TEXT|- [-f|--format json|human]
-  yaru comment save --parent ID --body TEXT|- [-f|--format json|human]
-  yaru comment save --id ID --body TEXT|- [-f|--format json|human]
+  yaru comment save --issue ID --body TEXT|- [-f|--format]
+  yaru comment save --parent ID --body TEXT|- [-f|--format]
+  yaru comment save --id ID --body TEXT|- [-f|--format]
 `
 
 const FORMAT_FLAGS = ["format", "f"] as const
@@ -420,10 +420,7 @@ ${comment.body}${comment.body ? "\n" : ""}`
 }
 
 function outputFormat(flag: (k: string) => string | undefined): "json" | "human" {
-  const raw = flag("format") || flag("f")
-  if (raw === undefined) return "json"
-  if (raw === "json" || raw === "human") return raw
-  throw new Error(`invalid format: expected json or human, actual ${raw}`)
+  return flag("format") || flag("f") ? "human" : "json"
 }
 
 function parsePatchJson(raw: string): unknown {
@@ -471,7 +468,7 @@ function assertNoExtra(rest: string[]) {
   if (rest.length > 0) throw new Error(`unexpected argument: ${rest[0]}`)
 }
 
-const BARE = new Set(["help", "h"])
+const BARE = new Set(["help", "h", "format", "f"])
 
 function parse(argv: string[]) {
   const rest: string[] = []

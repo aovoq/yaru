@@ -15,24 +15,24 @@ Local Linear. Each issue is `.yaru/issues/<id>.md`. Comments are `.yaru/comments
 
 `yaru` on PATH, from the user's workspace. Syntax authority is `--help`. Do not invent flags. Do not write a required `--`.
 
-Output is JSON unless `-f human` / `--format human`.
+Output is JSON unless `-f` / `--format`.
 
 ```
 yaru init
 yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT]
                 [--due overdue] [--parent ID] [--limit N] [--cursor ID]
-                [-f|--format json|human]
-yaru issue get <id> [-f|--format json|human]
+                [-f|--format]
+yaru issue get <id> [-f|--format]
 yaru issue save --title TITLE [--status NAME] [--assignee NAME] [--label NAME]
                 [--dueDate DATE] [--priority NAME] [--parent ID]
                 [--block ID] [--blockedBy ID] [--body TEXT|-]
-                [-f|--format json|human]
+                [-f|--format]
 yaru issue save --id ID [--title TITLE] [--status NAME] [--assignee NAME] [--label NAME]
                 [--dueDate DATE] [--priority NAME] [--parent ID]
                 [--block ID] [--blockedBy ID] [--removeBlock ID] [--removeBlockedBy ID]
-                [--body TEXT|-|--patch JSON|-] [-f|--format json|human]
-yaru comment list --issue ID [-f|--format json|human]
-yaru comment get <id> [-f|--format json|human]
+                [--body TEXT|-|--patch JSON|-] [-f|--format]
+yaru comment list --issue ID [-f|--format]
+yaru comment get <id> [-f|--format]
 yaru comment save --issue ID --body TEXT|-
 yaru comment save --parent ID --body TEXT|-
 yaru comment save --id ID --body TEXT|-
@@ -55,7 +55,7 @@ Without `--id` creates (title required, status defaults to `todo`). With `--id` 
 
 Patch operations: `replace`, `insert_before`, `insert_after`, `prepend`, `append`, `replace_range`.
 
-Default output is the saved issue object. `--format human` prints the id, and a running board may print `/?id=<id>`.
+Default output is the saved issue object. `-f` / `--format` prints the id, and a running board may print `/?id=<id>`.
 
 ### list / get
 

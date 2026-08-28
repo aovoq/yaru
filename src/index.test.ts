@@ -212,22 +212,15 @@ test("json list is empty without printing (none)", () => {
   expect(JSON.parse(out.stdout.toString())).toEqual({ issues: [], hasNextPage: false })
 })
 
-test("format human prints a table", () => {
+test("format flag without a value prints a table", () => {
   const root = workspace()
   expect(run(["issue", "save", "--title", "hello"], root).exitCode).toBe(0)
-  const out = run(["issue", "list", "--format", "human"], root)
+  const out = run(["issue", "list", "--format"], root)
   expect(out.exitCode).toBe(0)
   expect(out.stdout.toString()).toContain("hello")
   expect(out.stdout.toString()).not.toContain("{")
-  const short = run(["issue", "list", "-f", "human"], root)
+  const short = run(["issue", "list", "-f"], root)
   expect(short.stdout.toString()).toContain("hello")
-})
-
-test("format rejects unknown values", () => {
-  const root = workspace()
-  const out = run(["issue", "list", "--format", "xml"], root)
-  expect(out.exitCode).toBe(1)
-  expect(out.stderr.toString()).toContain("invalid format: expected json or human, actual xml")
 })
 
 test("list paginates with limit and cursor", () => {
