@@ -6,37 +6,145 @@ import {
   init,
   listIssues,
   open,
+  pageIssues,
   saveIssue,
   type Filter,
   type SaveInput,
 } from "./store"
 import { DEFAULT_PORT, serve } from "./web"
 
-const HELP = `yaru — local issues, markdown in .yaru
+const GLOBAL_HELP = `yaru — local issues, markdown in .yaru
 
-  bun yaru init
-  bun yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT] [--due overdue]
-  bun yaru issue get <id>
-  bun yaru issue save --title TITLE [--id ID] [--status NAME] [--assignee NAME] [--label NAME] [--dueDate DATE] [--priority NAME] [--body TEXT|-]
-  bun yaru serve [-p|--port ${DEFAULT_PORT}]
+  yaru init
+  yaru issue list
+  yaru issue get <id>
+  yaru issue save
+  yaru serve [-p|--port ${DEFAULT_PORT}]
+
+Issue commands print their contract with --help, e.g. yaru issue save --help.
 `
+
+const ISSUE_HELP = `yaru issue — list, get, or save issues
+
+  yaru issue list
+  yaru issue get <id>
+  yaru issue save
+
+Each subcommand documents its flags with --help.
+`
+
+const LIST_HELP = `yaru issue list — list issues in this workspace
+
+For my issues, use --assignee me. Use --assignee none for no assignee.
+
+Usage:
+  yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT]
+                  [--due overdue] [--limit N] [--cursor ID] [--json]
+
+--query searches issue id, title, or body.
+--due overdue is dueDate before today.
+--limit max results (default 50, max 250).
+--cursor next page cursor from a previous --json list.
+--json prints {issues, hasNextPage, cursor} instead of a table.
+
+Status: backlog, todo, in_progress, done, canceled
+`
+
+const GET_HELP = `yaru issue get — retrieve one issue by id
+
+Usage:
+  yaru issue get <id> [--json]
+
+--json prints the issue object, including labels, body, createdAt, and updatedAt.
+`
+
+const SAVE_HELP = `yaru issue save — create or update an issue
+
+If --id is provided, updates the existing issue; otherwise creates a new one.
+Do not pass --id when creating. Title is required when creating.
+
+Omitted fields stay unchanged on update. --assignee me is git config user.name.
+none clears assignee, dueDate, or priority.
+
+Repeat --label to set labels; any --label replaces the whole list. Omit to leave labels unchanged.
+
+--body is Markdown. Use --body - to read stdin. Do not escape newlines.
+
+--patch is a JSON array of partial body edits, applied in order and atomically
+(one failing operation aborts the whole save). Every anchor string must match
+the current body exactly once. Only valid on update, in place of --body.
+Use --patch - to read the JSON array from stdin.
+
+Patch operations:
+  replace         {"op":"replace","old_string":"...","new_string":"...","replace_all":false}
+  insert_before   {"op":"insert_before","anchor":"...","text":"..."}
+  insert_after    {"op":"insert_after","anchor":"...","text":"..."}
+  prepend         {"op":"prepend","text":"..."}
+  append          {"op":"append","text":"..."}
+  replace_range   {"op":"replace_range","from":"...","to":"...","new_string":"..."}
+
+Usage:
+  yaru issue save --title TITLE [--status NAME] [--assignee NAME] [--label NAME]
+                  [--dueDate YYYY-MM-DD] [--priority NAME] [--body TEXT|-] [--json]
+  yaru issue save --id ID [--title TITLE] [--status NAME] [--assignee NAME] [--label NAME]
+                  [--dueDate YYYY-MM-DD] [--priority NAME] [--body TEXT|-|--patch JSON|-] [--json]
+
+Status: backlog, todo, in_progress, done, canceled
+Priority: urgent, high, medium, low
+`
+
+const LIST_FLAGS = new Set([
+  "help",
+  "h",
+  "status",
+  "assignee",
+  "label",
+  "query",
+  "due",
+  "limit",
+  "cursor",
+  "json",
+])
+const GET_FLAGS = new Set(["help", "h", "id", "json"])
+const SAVE_FLAGS = new Set([
+  "help",
+  "h",
+  "id",
+  "title",
+  "status",
+  "assignee",
+  "label",
+  "dueDate",
+  "priority",
+  "body",
+  "patch",
+  "json",
+])
+const INIT_FLAGS = new Set(["help", "h"])
+const SERVE_FLAGS = new Set(["help", "h", "port", "p"])
 
 async function main() {
   try {
     const { rest, flag, flags } = parse(process.argv.slice(2))
     const wantsHelp = Boolean(flag("help") || flag("h") || rest[0] === "help")
-    if (wantsHelp || rest.length === 0) {
-      process.stdout.write(HELP)
-      process.exit(wantsHelp ? 0 : 1)
+    if (wantsHelp) {
+      process.stdout.write(helpFor(rest))
+      process.exit(0)
+    }
+    if (rest.length === 0) {
+      process.stdout.write(GLOBAL_HELP)
+      process.exit(1)
     }
 
     const cmd = rest[0]
     if (cmd === "init") {
+      assertKnownFlags(flags, INIT_FLAGS)
       const store = init(process.cwd())
       console.log(`initialized ${store.dir}`)
       return
     }
     if (cmd === "serve") {
+      assertKnownFlags(flags, SERVE_FLAGS)
       serve(open(findRoot()), parsePort(flag("port") || flag("p")))
       return
     }
@@ -52,30 +160,51 @@ async function main() {
   }
 }
 
+function helpFor(rest: string[]): string {
+  if (rest[0] === "issue") {
+    if (rest[1] === "list") return LIST_HELP
+    if (rest[1] === "get") return GET_HELP
+    if (rest[1] === "save") return SAVE_HELP
+    return ISSUE_HELP
+  }
+  return GLOBAL_HELP
+}
+
 async function issue(
   rest: string[],
   flag: (k: string) => string | undefined,
   flags: Record<string, string[]>,
 ) {
-  const store = open(findRoot())
   const sub = rest[0]
   if (sub === "list") {
+    assertKnownFlags(flags, LIST_FLAGS)
+    assertNoExtra(rest.slice(1))
+    const store = open(findRoot())
     const filter: Filter = {}
     if (flag("status")) filter.status = flag("status")
     if (flag("query")) filter.query = flag("query")
     if (flag("label")) filter.label = flag("label")
     if (flag("assignee") !== undefined) filter.assignee = flag("assignee")
     if (flag("due") !== undefined) {
-      if (flag("due") !== "overdue") throw new Error("usage: --due overdue")
+      if (flag("due") !== "overdue") {
+        throw new Error(`invalid due: expected overdue, actual ${flag("due")}`)
+      }
       filter.due = "overdue"
     }
-    const rows = listIssues(store, filter)
-    if (rows.length === 0) {
+    const page = pageIssues(listIssues(store, filter), {
+      limit: parseLimitFlag(flag("limit")),
+      cursor: flag("cursor"),
+    })
+    if (flag("json")) {
+      printJson(page)
+      return
+    }
+    if (page.issues.length === 0) {
       console.log("(none)")
       return
     }
-    const width = Math.max(...rows.map((r) => r.id.length))
-    for (const row of rows) {
+    const width = Math.max(...page.issues.map((row) => row.id.length))
+    for (const row of page.issues) {
       const who = row.assignee ?? "-"
       const due = row.dueDate ?? "-"
       const priority = row.priority ?? "-"
@@ -86,24 +215,37 @@ async function issue(
     return
   }
   if (sub === "get") {
+    assertKnownFlags(flags, GET_FLAGS)
     const id = flag("id") || rest[1]
     if (!id) throw new Error("usage: yaru issue get <id>")
-    const found = getIssue(store, id)
-    process.stdout.write(formatGet(found))
+    assertNoExtra(rest.slice(flag("id") ? 1 : 2))
+    const found = getIssue(open(findRoot()), id)
+    if (flag("json")) printJson(found)
+    else process.stdout.write(formatGet(found))
     return
   }
   if (sub === "save") {
+    assertKnownFlags(flags, SAVE_FLAGS)
+    assertNoExtra(rest.slice(1))
     const input: SaveInput = {}
-    if (flag("id") || rest[1]) input.id = flag("id") || rest[1]
+    if (flag("id")) input.id = flag("id")
     if (flag("title") !== undefined) input.title = flag("title")
     if (flag("status") !== undefined) input.status = flag("status")
+    if (flag("body") !== undefined && flag("patch") !== undefined) {
+      throw new Error("cannot pass body and patch together")
+    }
     if (flag("body") === "-") input.body = readStdin()
     else if (flag("body") !== undefined) input.body = flag("body")
+    if (flag("patch") !== undefined) input.patch = parsePatchJson(flag("patch")!)
     if (flags.label) input.labels = flags.label
     if (flag("assignee") !== undefined) input.assignee = flag("assignee")
     if (flag("dueDate") !== undefined) input.dueDate = flag("dueDate")
     if (flag("priority") !== undefined) input.priority = flag("priority")
-    const saved = saveIssue(store, input)
+    const saved = saveIssue(open(findRoot()), input)
+    if (flag("json")) {
+      printJson(saved)
+      return
+    }
     console.log(saved.id)
     await hintBoard(saved.id)
     return
@@ -131,6 +273,29 @@ ${issue.title}
 ${issue.body}${issue.body ? "\n" : ""}`
 }
 
+function parsePatchJson(raw: string): unknown {
+  const text = raw === "-" ? readStdin() : raw
+  try {
+    return JSON.parse(text)
+  } catch {
+    throw new Error(
+      `invalid patch: expected a JSON array of operations, actual ${JSON.stringify(text)}`,
+    )
+  }
+}
+
+function parseLimitFlag(raw: string | undefined): number | undefined {
+  if (raw === undefined) return undefined
+  if (!/^[0-9]+$/.test(raw)) {
+    throw new Error(`invalid limit: expected an integer from 1 to 250, actual ${raw}`)
+  }
+  return Number(raw)
+}
+
+function printJson(value: unknown) {
+  process.stdout.write(`${JSON.stringify(value, null, 2)}\n`)
+}
+
 function readStdin(): string {
   return readFileSync(0, "utf8")
 }
@@ -142,7 +307,18 @@ function parsePort(raw: string | undefined): number {
   return port
 }
 
-const BARE = new Set(["help", "h"])
+function assertKnownFlags(flags: Record<string, string[]>, allowed: Set<string>) {
+  for (const key of Object.keys(flags)) {
+    if (allowed.has(key)) continue
+    throw new Error(`unknown flag: ${key.length === 1 ? `-${key}` : `--${key}`}`)
+  }
+}
+
+function assertNoExtra(rest: string[]) {
+  if (rest.length > 0) throw new Error(`unexpected argument: ${rest[0]}`)
+}
+
+const BARE = new Set(["help", "h", "json"])
 
 function parse(argv: string[]) {
   const rest: string[] = []

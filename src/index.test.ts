@@ -6,8 +6,13 @@ import { join } from "node:path"
 const cli = join(import.meta.dir, "index.ts")
 const dirs: string[] = []
 
-function run(args: string[], cwd?: string) {
-  return Bun.spawnSync(["bun", cli, ...args], { cwd, stdout: "pipe", stderr: "pipe" })
+function run(args: string[], cwd?: string, stdin?: string) {
+  return Bun.spawnSync(["bun", cli, ...args], {
+    cwd,
+    stdin: stdin !== undefined ? Buffer.from(stdin) : undefined,
+    stdout: "pipe",
+    stderr: "pipe",
+  })
 }
 
 function workspace() {
@@ -37,10 +42,10 @@ test("help exits 0", () => {
   expect(run(["-h"]).exitCode).toBe(0)
 })
 
-test("help shows bun yaru commands", () => {
+test("help shows yaru commands", () => {
   const help = run(["--help"]).stdout.toString()
-  expect(help).toContain("bun yaru issue save")
-  expect(help).toContain("bun yaru serve")
+  expect(help).toContain("yaru issue save")
+  expect(help).toContain("yaru serve")
 })
 
 test("bun run yaru forwards issue args", () => {
@@ -63,11 +68,38 @@ test("bare value flags error instead of storing true", () => {
   expect(out.stderr.toString()).toContain("missing value for --body")
 })
 
-test("help mentions dueDate and overdue", () => {
-  const help = run(["--help"]).stdout.toString()
+test("list help mentions filters json and overdue", () => {
+  const help = run(["issue", "list", "--help"]).stdout.toString()
   expect(help).toContain("--due overdue")
+  expect(help).toContain("--json")
+  expect(help).toContain("--limit")
+  expect(help).toContain("--cursor")
+  expect(help).toContain("--assignee me")
+})
+
+test("save help documents patch json and linear id rules", () => {
+  const help = run(["issue", "save", "--help"]).stdout.toString()
   expect(help).toContain("--dueDate")
   expect(help).toContain("--priority")
+  expect(help).toContain("--patch")
+  expect(help).toContain("--json")
+  expect(help).toContain("Do not pass --id when creating")
+  expect(help).toContain("replace_range")
+  expect(help).toContain("none")
+  expect(help).toContain("exactly once")
+})
+
+test("subcommand help does not require a workspace", () => {
+  const root = mkdtempSync(join(tmpdir(), "yaru-cli-help-"))
+  dirs.push(root)
+  writeFileSync(
+    join(root, "tsconfig.json"),
+    JSON.stringify({ compilerOptions: { jsx: "react-jsx", jsxImportSource: "hono/jsx" } }),
+  )
+  const out = run(["issue", "get", "--help"], root)
+  expect(out.exitCode).toBe(0)
+  expect(out.stderr.toString()).toBe("")
+  expect(out.stdout.toString()).toContain("yaru issue get")
 })
 
 test("save get list dueDate and overdue", () => {
@@ -105,5 +137,142 @@ test("save rejects unknown priority", () => {
   const root = workspace()
   const out = run(["issue", "save", "--title", "x", "--priority", "p0"], root)
   expect(out.exitCode).toBe(1)
-  expect(out.stderr.toString()).toContain("invalid priority")
+  expect(out.stderr.toString()).toContain(
+    "invalid priority: expected urgent, high, medium, or low, actual p0",
+  )
+})
+
+test("save rejects unknown status with expected values", () => {
+  const root = workspace()
+  const out = run(["issue", "save", "--title", "x", "--status", "nope"], root)
+  expect(out.exitCode).toBe(1)
+  expect(out.stderr.toString()).toContain(
+    "invalid status: expected backlog, todo, in_progress, done, or canceled, actual nope",
+  )
+})
+
+test("save with unused id does not create", () => {
+  const root = workspace()
+  const out = run(["issue", "save", "--id", "9", "--title", "x"], root)
+  expect(out.exitCode).toBe(1)
+  expect(out.stderr.toString()).toContain("issue not found: 9")
+  expect(run(["issue", "get", "9"], root).exitCode).toBe(1)
+})
+
+test("save rejects a positional argument", () => {
+  const root = workspace()
+  const out = run(["issue", "save", "1", "--title", "x"], root)
+  expect(out.exitCode).toBe(1)
+  expect(out.stderr.toString()).toContain("unexpected argument: 1")
+})
+
+test("list rejects unknown flags", () => {
+  const root = workspace()
+  const out = run(["issue", "list", "--foo", "bar"], root)
+  expect(out.exitCode).toBe(1)
+  expect(out.stderr.toString()).toContain("unknown flag: --foo")
+})
+
+test("json list get and save return issue objects", () => {
+  const root = workspace()
+  const saveOut = run(["issue", "save", "--title", "hello", "--label", "cli", "--json"], root)
+  const saved = JSON.parse(saveOut.stdout.toString())
+  expect(saved).toMatchObject({
+    id: "1",
+    title: "hello",
+    status: "todo",
+    labels: ["cli"],
+    assignee: null,
+    dueDate: null,
+    priority: null,
+    body: "",
+  })
+  expect(saved.createdAt).toBeTruthy()
+  expect(saved.updatedAt).toBeTruthy()
+  expect(saveOut.stdout.toString()).not.toContain("http://")
+
+  const listed = JSON.parse(run(["issue", "list", "--json"], root).stdout.toString())
+  expect(listed.hasNextPage).toBe(false)
+  expect(listed.issues).toHaveLength(1)
+  expect(listed.issues[0].labels).toEqual(["cli"])
+  expect(listed.issues[0].createdAt).toBe(saved.createdAt)
+
+  const got = JSON.parse(run(["issue", "get", "1", "--json"], root).stdout.toString())
+  expect(got).toMatchObject({ id: "1", title: "hello", labels: ["cli"], body: "" })
+})
+
+test("json list is empty without printing (none)", () => {
+  const root = workspace()
+  const out = run(["issue", "list", "--json"], root)
+  expect(out.exitCode).toBe(0)
+  expect(out.stdout.toString()).not.toContain("(none)")
+  expect(JSON.parse(out.stdout.toString())).toEqual({ issues: [], hasNextPage: false })
+})
+
+test("list paginates with limit and cursor", () => {
+  const root = workspace()
+  expect(run(["issue", "save", "--title", "a"], root).exitCode).toBe(0)
+  expect(run(["issue", "save", "--title", "b"], root).exitCode).toBe(0)
+  expect(run(["issue", "save", "--title", "c"], root).exitCode).toBe(0)
+  const first = JSON.parse(run(["issue", "list", "--limit", "2", "--json"], root).stdout.toString())
+  expect(first.issues.map((issue: { id: string }) => issue.id)).toEqual(["3", "2"])
+  expect(first.hasNextPage).toBe(true)
+  expect(first.cursor).toBe("2")
+  const second = JSON.parse(
+    run(
+      ["issue", "list", "--limit", "2", "--cursor", first.cursor, "--json"],
+      root,
+    ).stdout.toString(),
+  )
+  expect(second.issues.map((issue: { id: string }) => issue.id)).toEqual(["1"])
+  expect(second.hasNextPage).toBe(false)
+})
+
+test("list rejects an invalid limit", () => {
+  const root = workspace()
+  const out = run(["issue", "list", "--limit", "0"], root)
+  expect(out.exitCode).toBe(1)
+  expect(out.stderr.toString()).toContain(
+    "invalid limit: expected an integer from 1 to 250, actual 0",
+  )
+})
+
+test("save patch updates body without replacing it", () => {
+  const root = workspace()
+  expect(run(["issue", "save", "--title", "x", "--body", "alpha beta"], root).exitCode).toBe(0)
+  const patch = JSON.stringify([{ op: "replace", old_string: "beta", new_string: "BETA" }])
+  expect(run(["issue", "save", "--id", "1", "--patch", patch], root).exitCode).toBe(0)
+  expect(run(["issue", "get", "1"], root).stdout.toString()).toContain("alpha BETA")
+})
+
+test("save patch reads stdin", () => {
+  const root = workspace()
+  expect(run(["issue", "save", "--title", "x", "--body", "core"], root).exitCode).toBe(0)
+  const out = run(
+    ["issue", "save", "--id", "1", "--patch", "-"],
+    root,
+    JSON.stringify([{ op: "append", text: "!" }]),
+  )
+  expect(out.exitCode).toBe(0)
+  expect(run(["issue", "get", "1"], root).stdout.toString()).toContain("core!")
+})
+
+test("save rejects body and patch together", () => {
+  const root = workspace()
+  expect(run(["issue", "save", "--title", "x", "--body", "keep"], root).exitCode).toBe(0)
+  const out = run(
+    [
+      "issue",
+      "save",
+      "--id",
+      "1",
+      "--body",
+      "new",
+      "--patch",
+      JSON.stringify([{ op: "append", text: "!" }]),
+    ],
+    root,
+  )
+  expect(out.exitCode).toBe(1)
+  expect(out.stderr.toString()).toContain("cannot pass body and patch together")
 })

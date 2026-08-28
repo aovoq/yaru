@@ -153,7 +153,9 @@ export function saveIssue(store: Store, input: SaveInput): Issue {
     if (!existsSync(path)) throw new Error(`issue not found: ${input.id}`)
     const current = readIssue(path, input.id)
     if (input.title !== undefined && !input.title.trim()) {
-      throw new Error(`invalid title: expected a non-empty string, actual ${JSON.stringify(input.title)}`)
+      throw new Error(
+        `invalid title: expected a non-empty string, actual ${JSON.stringify(input.title)}`,
+      )
     }
     const issue: Issue = {
       ...current,
