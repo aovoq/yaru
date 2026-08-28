@@ -2,7 +2,16 @@ import { afterEach, describe, expect, test } from "bun:test"
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { findRoot, getIssue, init, listIssues, open, saveIssue } from "./store"
+import {
+  findRoot,
+  getIssue,
+  init,
+  listIssues,
+  open,
+  pageIssues,
+  parsePatch,
+  saveIssue,
+} from "./store"
 
 function ymd(offset: number): string {
   const d = new Date()
@@ -96,10 +105,10 @@ body
     expect(getIssue(store, "1").status).toBe("done")
   })
 
-  test("save with unused id creates it", () => {
+  test("save with unused id does not create", () => {
     const store = workspace()
-    expect(saveIssue(store, { id: "7", title: "explicit" }).id).toBe("7")
-    expect(getIssue(store, "7").title).toBe("explicit")
+    expect(() => saveIssue(store, { id: "7", title: "explicit" })).toThrow("issue not found: 7")
+    expect(() => getIssue(store, "7")).toThrow("issue not found: 7")
   })
 
   test("next id follows filenames not frontmatter", () => {
@@ -159,11 +168,15 @@ x
 
   test("save rejects invalid dueDate", () => {
     const store = workspace()
-    expect(() => saveIssue(store, { title: "x", dueDate: "2026-02-30" })).toThrow(/invalid dueDate/)
-    expect(() => saveIssue(store, { title: "x", dueDate: "2026-08-20T00:00:00Z" })).toThrow(
-      /invalid dueDate/,
+    expect(() => saveIssue(store, { title: "x", dueDate: "2026-02-30" })).toThrow(
+      "invalid dueDate: expected YYYY-MM-DD, actual 2026-02-30",
     )
-    expect(() => saveIssue(store, { title: "x", dueDate: "08-20" })).toThrow(/invalid dueDate/)
+    expect(() => saveIssue(store, { title: "x", dueDate: "2026-08-20T00:00:00Z" })).toThrow(
+      "invalid dueDate: expected YYYY-MM-DD, actual 2026-08-20T00:00:00Z",
+    )
+    expect(() => saveIssue(store, { title: "x", dueDate: "08-20" })).toThrow(
+      "invalid dueDate: expected YYYY-MM-DD, actual 08-20",
+    )
   })
 
   test("list --due overdue is before local today only", () => {
@@ -191,9 +204,42 @@ x
 
   test("save rejects unknown priority", () => {
     const store = workspace()
-    expect(() => saveIssue(store, { title: "x", priority: "p0" })).toThrow(/invalid priority/)
-    expect(() => saveIssue(store, { title: "x", priority: "0" })).toThrow(/invalid priority/)
-    expect(() => saveIssue(store, { title: "x", priority: "Urgent" })).toThrow(/invalid priority/)
+    expect(() => saveIssue(store, { title: "x", priority: "p0" })).toThrow(
+      "invalid priority: expected urgent, high, medium, or low, actual p0",
+    )
+    expect(() => saveIssue(store, { title: "x", priority: "0" })).toThrow(
+      "invalid priority: expected urgent, high, medium, or low, actual 0",
+    )
+    expect(() => saveIssue(store, { title: "x", priority: "Urgent" })).toThrow(
+      "invalid priority: expected urgent, high, medium, or low, actual Urgent",
+    )
+  })
+
+  test("save rejects unknown status", () => {
+    const store = workspace()
+    expect(() => saveIssue(store, { title: "x", status: "nope" })).toThrow(
+      "invalid status: expected backlog, todo, in_progress, done, or canceled, actual nope",
+    )
+    expect(() => saveIssue(store, { title: "x", status: "Todo" })).toThrow(
+      "invalid status: expected backlog, todo, in_progress, done, or canceled, actual Todo",
+    )
+  })
+
+  test("save rejects empty title on update", () => {
+    const store = workspace()
+    saveIssue(store, { title: "keep" })
+    expect(() => saveIssue(store, { id: "1", title: "" })).toThrow(
+      'invalid title: expected a non-empty string, actual ""',
+    )
+    expect(getIssue(store, "1").title).toBe("keep")
+  })
+
+  test("list rejects unknown status filter", () => {
+    const store = workspace()
+    saveIssue(store, { title: "ok" })
+    expect(() => listIssues(store, { status: "nope" })).toThrow(
+      "invalid status: expected backlog, todo, in_progress, done, or canceled, actual nope",
+    )
   })
 
   test("list skips hand-edited invalid dueDate and priority", () => {
@@ -234,5 +280,203 @@ x
 `,
     )
     expect(listIssues(store).map((i) => i.id)).toEqual(["1"])
+  })
+
+  test("list skips hand-edited invalid status", () => {
+    const store = workspace()
+    saveIssue(store, { title: "ok" })
+    writeFileSync(
+      join(store.dir, "issues", "2.md"),
+      `---
+id: 2
+title: bad status
+status: nope
+assignee:
+labels:
+dueDate:
+priority:
+createdAt: t
+updatedAt: t
+---
+
+x
+`,
+    )
+    expect(listIssues(store).map((i) => i.id)).toEqual(["1"])
+    expect(() => getIssue(store, "2")).toThrow(
+      "invalid status: expected backlog, todo, in_progress, done, or canceled, actual nope",
+    )
+  })
+
+  test("patch replace unique occurrence", () => {
+    const store = workspace()
+    saveIssue(store, { title: "x", body: "alpha\nbeta\ngamma" })
+    const updated = saveIssue(store, {
+      id: "1",
+      patch: [{ op: "replace", old_string: "beta", new_string: "BETA" }],
+    })
+    expect(updated.body).toBe("alpha\nBETA\ngamma")
+    expect(getIssue(store, "1").body).toBe("alpha\nBETA\ngamma")
+  })
+
+  test("patch replace_all replaces every occurrence", () => {
+    const store = workspace()
+    saveIssue(store, { title: "x", body: "foo bar foo" })
+    expect(
+      saveIssue(store, {
+        id: "1",
+        patch: [{ op: "replace", old_string: "foo", new_string: "baz", replace_all: true }],
+      }).body,
+    ).toBe("baz bar baz")
+  })
+
+  test("patch replace requires a unique match", () => {
+    const store = workspace()
+    saveIssue(store, { title: "x", body: "foo bar foo" })
+    expect(() =>
+      saveIssue(store, {
+        id: "1",
+        patch: [{ op: "replace", old_string: "foo", new_string: "baz" }],
+      }),
+    ).toThrow(
+      "patch replace: old_string must match the current body exactly once, expected 1 match, actual 2",
+    )
+    expect(getIssue(store, "1").body).toBe("foo bar foo")
+  })
+
+  test("patch replace fails when old_string is missing", () => {
+    const store = workspace()
+    saveIssue(store, { title: "x", body: "only" })
+    expect(() =>
+      saveIssue(store, {
+        id: "1",
+        patch: [{ op: "replace", old_string: "missing", new_string: "x" }],
+      }),
+    ).toThrow(
+      "patch replace: old_string must match the current body exactly once, expected 1 match, actual 0",
+    )
+  })
+
+  test("patch insert_before and insert_after", () => {
+    const store = workspace()
+    saveIssue(store, { title: "x", body: "middle" })
+    expect(
+      saveIssue(store, {
+        id: "1",
+        patch: [
+          { op: "insert_before", anchor: "middle", text: "before\n" },
+          { op: "insert_after", anchor: "middle", text: "\nafter" },
+        ],
+      }).body,
+    ).toBe("before\nmiddle\nafter")
+  })
+
+  test("patch prepend and append", () => {
+    const store = workspace()
+    saveIssue(store, { title: "x", body: "core" })
+    expect(
+      saveIssue(store, {
+        id: "1",
+        patch: [
+          { op: "prepend", text: "start\n" },
+          { op: "append", text: "\nend" },
+        ],
+      }).body,
+    ).toBe("start\ncore\nend")
+  })
+
+  test("patch replace_range keeps the exclusive end", () => {
+    const store = workspace()
+    saveIssue(store, { title: "x", body: "hello WORLD foo" })
+    expect(
+      saveIssue(store, {
+        id: "1",
+        patch: [{ op: "replace_range", from: "hello ", to: " foo", new_string: "hi" }],
+      }).body,
+    ).toBe("hi foo")
+  })
+
+  test("patch is atomic", () => {
+    const store = workspace()
+    saveIssue(store, { title: "x", body: "alpha\nbeta" })
+    expect(() =>
+      saveIssue(store, {
+        id: "1",
+        patch: [
+          { op: "replace", old_string: "alpha", new_string: "ALPHA" },
+          { op: "replace", old_string: "missing", new_string: "x" },
+        ],
+      }),
+    ).toThrow(
+      "patch replace: old_string must match the current body exactly once, expected 1 match, actual 0",
+    )
+    expect(getIssue(store, "1").body).toBe("alpha\nbeta")
+  })
+
+  test("patch cannot combine with body", () => {
+    const store = workspace()
+    saveIssue(store, { title: "x", body: "keep" })
+    expect(() =>
+      saveIssue(store, {
+        id: "1",
+        body: "new",
+        patch: [{ op: "append", text: "!" }],
+      }),
+    ).toThrow("cannot pass body and patch together")
+    expect(getIssue(store, "1").body).toBe("keep")
+  })
+
+  test("patch is only valid on update", () => {
+    const store = workspace()
+    expect(() =>
+      saveIssue(store, {
+        title: "x",
+        patch: [{ op: "append", text: "!" }],
+      }),
+    ).toThrow("patch is only valid when updating an existing issue")
+  })
+
+  test("parsePatch rejects empty arrays and unknown ops", () => {
+    expect(() => parsePatch([])).toThrow("invalid patch: expected 1 to 50 operations, actual 0")
+    expect(() => parsePatch({ op: "replace" })).toThrow(
+      "invalid patch: expected a JSON array of operations, actual object",
+    )
+    expect(() => parsePatch([{ op: "splice", text: "x" }])).toThrow(
+      "invalid patch: expected op replace, insert_before, insert_after, prepend, append, or replace_range, actual splice",
+    )
+  })
+
+  test("pageIssues slices by limit and cursor", () => {
+    const store = workspace()
+    saveIssue(store, { title: "a" })
+    saveIssue(store, { title: "b" })
+    saveIssue(store, { title: "c" })
+    const all = listIssues(store)
+    expect(all.map((issue) => issue.id)).toEqual(["3", "2", "1"])
+    const first = pageIssues(all, { limit: 2 })
+    expect(first.issues.map((issue) => issue.id)).toEqual(["3", "2"])
+    expect(first.hasNextPage).toBe(true)
+    expect(first.cursor).toBe("2")
+    const second = pageIssues(all, { limit: 2, cursor: first.cursor })
+    expect(second.issues.map((issue) => issue.id)).toEqual(["1"])
+    expect(second.hasNextPage).toBe(false)
+    expect(second.cursor).toBeUndefined()
+  })
+
+  test("pageIssues rejects a cursor that is not in the list", () => {
+    const store = workspace()
+    saveIssue(store, { title: "a" })
+    expect(() => pageIssues(listIssues(store), { cursor: "99" })).toThrow(
+      "cursor not found: expected an issue id from a previous list page, actual 99",
+    )
+  })
+
+  test("pageIssues rejects an out of range limit", () => {
+    expect(() => pageIssues([], { limit: 0 })).toThrow(
+      "invalid limit: expected an integer from 1 to 250, actual 0",
+    )
+    expect(() => pageIssues([], { limit: 251 })).toThrow(
+      "invalid limit: expected an integer from 1 to 250, actual 251",
+    )
   })
 })
