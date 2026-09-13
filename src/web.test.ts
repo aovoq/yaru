@@ -17,24 +17,30 @@ afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true })
 })
 
-async function readSse(
-  reader: ReadableStreamDefaultReader<Uint8Array>,
-  match: (text: string) => boolean,
-  ms = 2000,
-): Promise<string> {
+// reader.read() を race で打ち切ると、後から届いた chunk ごと捨ててしまうため、
+// 未完了の read を次の待機へ持ち越し、受け取った文字列を累積して判定する
+function sseEvents(reader: ReadableStreamDefaultReader<Uint8Array>) {
   const decoder = new TextDecoder()
-  let acc = ""
-  const deadline = Date.now() + ms
-  while (Date.now() < deadline) {
-    const part = await Promise.race([
-      reader.read(),
-      Bun.sleep(Math.max(1, deadline - Date.now())).then(() => null),
-    ])
-    if (!part || part.done) break
-    if (part.value) acc += decoder.decode(part.value, { stream: true })
-    if (match(acc)) return acc
+  let text = ""
+  let done = false
+  let pending: ReturnType<typeof reader.read> | undefined
+  return {
+    text: () => text,
+    async until(match: (text: string) => boolean, ms: number): Promise<boolean> {
+      const deadline = Date.now() + ms
+      while (!match(text) && !done) {
+        const remaining = deadline - Date.now()
+        if (remaining <= 0) return false
+        pending ??= reader.read()
+        const part = await Promise.race([pending, Bun.sleep(remaining).then(() => null)])
+        if (!part) return false
+        pending = undefined
+        if (part.done) done = true
+        else text += decoder.decode(part.value, { stream: true })
+      }
+      return match(text)
+    },
   }
-  throw new Error(`sse timeout: ${JSON.stringify(acc)}`)
 }
 
 describe("web", () => {
@@ -151,8 +157,9 @@ describe("web", () => {
     const ac = new AbortController()
     const res = await createApp(workspace()).request("/events", { signal: ac.signal })
     const reader = res.body!.getReader()
-    const text = await readSse(reader, (s) => s.includes("\n\n"), 500)
-    expect(text.startsWith(":")).toBe(true)
+    const events = sseEvents(reader)
+    expect(await events.until((text) => text.includes("\n\n"), 500)).toBe(true)
+    expect(events.text().startsWith(":")).toBe(true)
     ac.abort()
     await reader.cancel()
   })
@@ -171,8 +178,9 @@ describe("web", () => {
       const res = await fetch(`http://127.0.0.1:${server.port}/events`, { signal: ac.signal })
       expect(res.status).toBe(200)
       expect(res.headers.get("content-type")).toContain("text/event-stream")
-      const text = await readSse(res.body!.getReader(), (s) => s.includes("\n\n"), 500)
-      expect(text.startsWith(":")).toBe(true)
+      const events = sseEvents(res.body!.getReader())
+      expect(await events.until((text) => text.includes("\n\n"), 500)).toBe(true)
+      expect(events.text().startsWith(":")).toBe(true)
     } finally {
       clearTimeout(kill)
       ac.abort()
@@ -185,10 +193,17 @@ describe("web", () => {
     const ac = new AbortController()
     const res = await createApp(store).request("/events", { signal: ac.signal })
     const reader = res.body!.getReader()
-    await readSse(reader, (s) => s.includes("\n\n"), 500)
-    saveIssue(store, { title: "from cli" })
-    const text = await readSse(reader, (s) => s.includes("data: change"), 2000)
-    expect(text).toContain("data: change")
+    const events = sseEvents(reader)
+    expect(await events.until((text) => text.includes("\n\n"), 500)).toBe(true)
+    // Bun の fs.watch は macOS で監視を始めてから数 ms は変更を拾わない
+    // (監視直後の書き込みは 100 回中 5 回取りこぼし、20ms 後なら取りこぼさなかった) ため、
+    // 監視が効くまで保存を繰り返し、保存がいずれ change として届くことを確かめる
+    let received = false
+    for (let attempt = 0; attempt < 20 && !received; attempt++) {
+      saveIssue(store, { title: `from cli ${attempt}` })
+      received = await events.until((text) => text.includes("data: change"), 100)
+    }
+    expect(received).toBe(true)
     ac.abort()
     await reader.cancel()
   })
