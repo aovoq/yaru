@@ -1,13 +1,25 @@
-import { afterEach, expect, test } from "bun:test"
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { afterAll, afterEach, beforeAll, expect, test } from "bun:test"
+import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { buildDistribution } from "./build"
 
-const cli = join(import.meta.dir, "index.ts")
+// bin として配る dist/yaru.js と同じビルドを実行し、
+// 作業ディレクトリに tsconfig.json が無くても動くことをあわせて確かめる
+const distributionDirectory = mkdtempSync(join(tmpdir(), "yaru-cli-bin-"))
+const cli = join(distributionDirectory, "yaru.js")
 const dirs: string[] = []
 
+beforeAll(async () => {
+  await buildDistribution(cli)
+})
+
+afterAll(() => {
+  rmSync(distributionDirectory, { recursive: true, force: true })
+})
+
 function run(args: string[], cwd?: string, stdin?: string) {
-  return Bun.spawnSync(["bun", cli, ...args], {
+  return Bun.spawnSync([cli, ...args], {
     cwd,
     stdin: stdin !== undefined ? Buffer.from(stdin) : undefined,
     stdout: "pipe",
@@ -18,10 +30,6 @@ function run(args: string[], cwd?: string, stdin?: string) {
 function workspace() {
   const root = mkdtempSync(join(tmpdir(), "yaru-cli-"))
   dirs.push(root)
-  writeFileSync(
-    join(root, "tsconfig.json"),
-    JSON.stringify({ compilerOptions: { jsx: "react-jsx", jsxImportSource: "hono/jsx" } }),
-  )
   const init = run(["init"], root)
   if (init.exitCode !== 0) throw new Error(init.stderr.toString())
   return root
@@ -95,10 +103,6 @@ test("save help documents patch format and linear id rules", () => {
 test("subcommand help does not require a workspace", () => {
   const root = mkdtempSync(join(tmpdir(), "yaru-cli-help-"))
   dirs.push(root)
-  writeFileSync(
-    join(root, "tsconfig.json"),
-    JSON.stringify({ compilerOptions: { jsx: "react-jsx", jsxImportSource: "hono/jsx" } }),
-  )
   const out = run(["issue", "get", "--help"], root)
   expect(out.exitCode).toBe(0)
   expect(out.stderr.toString()).toBe("")
