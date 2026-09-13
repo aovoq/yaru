@@ -371,7 +371,7 @@ function SearchBox({
       method="get"
       action="/"
       class="relative hidden sm:block"
-      onSubmit={(event: SubmitEvent) => {
+      onSubmit={(event: Event) => {
         event.preventDefault()
         onSearch(query)
       }}
@@ -474,9 +474,11 @@ function Board({
             }}
             onDragLeave={(event: DragEvent) => {
               const relatedTarget = event.relatedTarget
+              const currentTarget = event.currentTarget
               if (
                 !(relatedTarget instanceof Node) ||
-                !event.currentTarget?.contains(relatedTarget)
+                !(currentTarget instanceof Node) ||
+                !currentTarget.contains(relatedTarget)
               ) {
                 setOverStatus(null)
               }

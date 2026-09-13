@@ -15,7 +15,8 @@ export type PageController = {
 }
 
 export function usePageController(initialPage: PageData): PageController {
-  const [state, dispatch] = useReducer(reduceClientState, initialPage, createClientState)
+  // hono/jsx の useReducer は init が初期値と同じ型を返す前提のため、PageData から ClientState への変換を init に渡せない
+  const [state, dispatch] = useReducer(reduceClientState, createClientState(initialPage))
   const requestSequence = useRef(0)
 
   const navigate = useCallback(

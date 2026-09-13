@@ -43,6 +43,9 @@ function availablePort(): number {
   const server = Bun.serve({ port: 0, fetch: () => new Response() })
   const port = server.port
   server.stop()
+  if (port === undefined) {
+    throw new Error("test server did not bind a tcp port: expected a number, actual undefined")
+  }
   return port
 }
 

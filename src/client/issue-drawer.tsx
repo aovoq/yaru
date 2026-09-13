@@ -40,7 +40,7 @@ export function IssueDrawer({
         method="post"
         action="/issues"
         class="flex min-h-0 flex-1 flex-col"
-        onSubmit={(event: SubmitEvent) => {
+        onSubmit={(event: Event) => {
           event.preventDefault()
           void onSave()
         }}
