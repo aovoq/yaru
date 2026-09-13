@@ -1,5 +1,5 @@
 node_modules/
-# compiled single-file binary
-/yaru
+# bun run build が出力する bin 用の JS
+/dist
 *.tgz
 

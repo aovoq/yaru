@@ -1,9 +1,14 @@
-import { resolve } from "node:path"
+import { chmodSync } from "node:fs"
+import { basename, dirname, resolve } from "node:path"
 import type { BunPlugin } from "bun"
 import { clientScript } from "./client-script"
 
-export async function buildStandalone(
-  outfile = resolve(import.meta.dir, "..", "yaru"),
+// Bun の実行時は JSX の変換設定を作業ディレクトリの tsconfig.json からしか読まないため、
+// src を bin にすると yaru リポジトリの外で hono/jsx ではなく react/jsx-dev-runtime を探して落ちる
+// ビルド時に変換を済ませた単一の JS を bin にして、実行場所に依存しないようにする
+// compile した単一バイナリは Nix の bun が参照する ICU の store path を焼き込み、GC 後に起動しなくなるため使わない
+export async function buildDistribution(
+  outfile = resolve(import.meta.dir, "..", "dist", "yaru.js"),
 ): Promise<void> {
   const embeddedScript = await clientScript()
   const clientScriptModule = resolve(import.meta.dir, "client-script.ts")
@@ -24,16 +29,18 @@ export async function buildStandalone(
     target: "bun",
     minify: true,
     plugins: [plugin],
-    compile: { outfile },
+    outdir: dirname(outfile),
+    naming: basename(outfile),
   })
   if (!result.success) {
     throw new Error(
-      `standalone build failed: expected success, actual ${result.logs.length} errors`,
+      `distribution build failed: expected success, actual ${result.logs.length} errors`,
     )
   }
+  chmodSync(outfile, 0o755)
 }
 
 if (import.meta.main) {
-  await buildStandalone()
+  await buildDistribution()
   console.log("built yaru")
 }

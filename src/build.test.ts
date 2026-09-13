@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test"
 import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { buildStandalone } from "./build"
+import { buildDistribution } from "./build"
 import { init } from "./store"
 
 const directories: string[] = []
@@ -13,12 +13,13 @@ afterEach(() => {
   }
 })
 
-test("standalone executable serves the embedded browser UI", async () => {
+// tsconfig.json を置かない作業ディレクトリから実行し、JSX の変換がリポジトリの tsconfig に依存しないことを確かめる
+test("distribution script serves the embedded browser UI outside the repository", async () => {
   const directory = mkdtempSync(join(tmpdir(), "yaru-build-"))
   directories.push(directory)
   init(directory)
-  const executable = join(directory, "yaru")
-  await buildStandalone(executable)
+  const executable = join(directory, "yaru.js")
+  await buildDistribution(executable)
 
   const port = availablePort()
   const process = Bun.spawn([executable, "serve", "--port", String(port)], {
