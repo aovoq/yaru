@@ -678,17 +678,17 @@ function readComment(path: string, stem: string): Comment {
 }
 
 function formatComment(comment: Comment): string {
-  return `---
-id: ${comment.id}
-issue: ${comment.issue}
-parent: ${comment.parent ?? ""}
-author: ${comment.author}
-createdAt: ${comment.createdAt}
-updatedAt: ${comment.updatedAt}
----
-
-${comment.body}
-`
+  return formatDocument(
+    [
+      ["id", comment.id],
+      ["issue", comment.issue],
+      ["parent", comment.parent ?? ""],
+      ["author", comment.author],
+      ["createdAt", comment.createdAt],
+      ["updatedAt", comment.updatedAt],
+    ],
+    comment.body,
+  )
 }
 
 function issuePath(store: Store, id: string): string {
@@ -757,25 +757,33 @@ function parseIssue(text: string): Issue {
 }
 
 function formatIssue(issue: Issue): string {
-  return `---
-id: ${issue.id}
-title: ${issue.title.replace(/\n/g, " ")}
-status: ${issue.status}
-assignee: ${issue.assignee ?? ""}
-labels: ${issue.labels.join(", ")}
-dueDate: ${issue.dueDate ?? ""}
-priority: ${issue.priority ?? ""}
-parent: ${issue.parent ?? ""}
-blocks: ${issue.blocks.join(", ")}
-startedAt: ${issue.startedAt ?? ""}
-completedAt: ${issue.completedAt ?? ""}
-canceledAt: ${issue.canceledAt ?? ""}
-createdAt: ${issue.createdAt}
-updatedAt: ${issue.updatedAt}
----
+  return formatDocument(
+    [
+      ["id", issue.id],
+      ["title", issue.title.replace(/\n/g, " ")],
+      ["status", issue.status],
+      ["assignee", issue.assignee ?? ""],
+      ["labels", issue.labels.join(", ")],
+      ["dueDate", issue.dueDate ?? ""],
+      ["priority", issue.priority ?? ""],
+      ["parent", issue.parent ?? ""],
+      ["blocks", issue.blocks.join(", ")],
+      ["startedAt", issue.startedAt ?? ""],
+      ["completedAt", issue.completedAt ?? ""],
+      ["canceledAt", issue.canceledAt ?? ""],
+      ["createdAt", issue.createdAt],
+      ["updatedAt", issue.updatedAt],
+    ],
+    issue.body,
+  )
+}
 
-${issue.body}
-`
+// 空の値を `key: ` と書くと行末に空白が残り、.yaru を整形ツールにかけたときに差分が出るため `key:` と書く
+function formatDocument(fields: [key: string, value: string][], body: string): string {
+  const frontmatter = fields
+    .map(([key, value]) => (value === "" ? `${key}:` : `${key}: ${value}`))
+    .join("\n")
+  return `---\n${frontmatter}\n---\n\n${body}\n`
 }
 
 const PATCH_OPS = [

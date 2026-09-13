@@ -584,6 +584,20 @@ x
     )
   })
 
+  test("empty frontmatter values are written without trailing whitespace", () => {
+    const store = workspace()
+    saveIssue(store, { title: "x" })
+    saveComment(store, { issue: "1", body: "c" })
+    const files = [join(store.dir, "issues", "1.md"), join(store.dir, "comments", "1.md")]
+    for (const file of files) {
+      const text = readFileSync(file, "utf8")
+      expect(text).toContain("\nparent:\n")
+      expect(text.split("\n").filter((line) => /\s$/.test(line))).toEqual([])
+    }
+    expect(getIssue(store, "1")).toMatchObject({ assignee: null, dueDate: null, parent: null })
+    expect(getComment(store, "1").parent).toBeNull()
+  })
+
   test("comments create, reply, list, and update", () => {
     const store = workspace()
     saveIssue(store, { title: "topic" })
