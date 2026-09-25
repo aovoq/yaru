@@ -61,3 +61,36 @@
   - 具体的な情報を含めること
   - 期待値と実際の値を示すこと
   - 技術的だが簡潔にすること
+
+## 構成
+
+- CLI (`src/index.ts`) と、1 つの `yaru serve` が全ワークスペースを配る Web (`src/web.tsx`) からなる
+  - `/` にワークスペースの一覧、`/p/<名前>/` に各ワークスペースの板、`/p/<名前>/dashboard` に質問と進み具合
+  - ワークスペースは CLI が開くたびに `~/.local/state/yaru/workspaces.json` へ自動で登録される
+- git の worktree の中では、元のフォルダ (main worktree) の `.yaru` を読み書きする
+- 質問 (`.yaru/questions/`) は git に入れない。issue とコメントは git で管理する
+- 板の画面は hono/jsx/dom で、サーバーで描いた HTML をブラウザで動かす。React などへの乗り換えは、見たまま編集のエディタが要るまでしない
+
+## 変更したあと
+
+- `bun run fmt`、`bun run typecheck`、`bun test` を全て通すこと
+- 使われている `yaru` は `dist/yaru.js` なので、変更を反映するには必ず次の 2 つを行うこと
+  - `bun run build`
+  - `launchctl kickstart -k gui/$(id -u)/com.aovoq.yaru-serve` (常駐の `yaru serve` は画面のスクリプトを起動中ずっと持ち続けるため)
+- 常駐の設定は `~/dotfiles/home/modules/yaru.nix` にある。スマホからは Tailscale (`tailscale serve`) 経由で開く。`funnel` で公開しないこと
+- 同じリポジトリで他のエージェントも作業しているので、コミットの前に `git log` と `git diff` で自分の変更だけかを確かめること
+
+## テスト
+
+- CLI は起動した場所のワークスペースを本物の登録ファイルへ書くので、CLI を動かすテストは `YARU_STATE_DIR` を一時ディレクトリに向けること
+- 本物の `.yaru` (AsukaTravel など) で動作を確かめないこと。写したワークスペースと別のポート (`yaru serve -p 47811`) を使う
+- 画面の確認はデスクトップ幅とスマホ幅 (390px) の両方で行うこと
+  - 撮影は `agent-browser` を使う。ego-browser の screenshot は止まることがある
+  - `input` と `change` のように、実際のブラウザが続けて出すイベントも試すこと
+
+## 画面の決まり
+
+- Tailwind のクラスは `src/css.tsx` の見本を描いた HTML から拾う。新しい画面や、操作したあとにしか出ない部品 (メニュー、知らせ、編集中の欄など) を足したら、見本にも描き足すこと
+- Markdown の描画結果にはクラスを付けられないので、見た目は `src/css.tsx` の `.markdown` に書く
+- 本文は必ず `renderMarkdown` を通して描くこと。生の HTML を通さず、リンクと画像は安全なスキームだけに限っている。本文はエージェントが外から取ってきた文章を含み、画面から質問に答えられるため
+- 属性は変えたとき、文字の欄は離れたときに、その項目だけを自動保存する。読み直すときは手元で変えた項目だけを残す (`src/client/state.ts`)
