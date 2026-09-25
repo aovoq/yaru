@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs"
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import {
   blankToNull,
@@ -96,7 +96,7 @@ export function saveQuestion(store: Store, input: SaveQuestionInput, now = new D
     return withStatus(next, now)
   }
   if (!input.title?.trim()) throw new Error("title is required when creating a question")
-  mkdirSync(join(store.dir, "questions"), { recursive: true })
+  ensureQuestionsDirectory(store)
   for (;;) {
     const created: StoredQuestion = {
       id: nextQuestionId(store),
@@ -265,6 +265,17 @@ function assertBody(body: string): void {
   if (body.includes(QUESTION_ANSWER_MARKER)) {
     throw new Error(`invalid body: must not contain ${QUESTION_ANSWER_MARKER}`)
   }
+}
+
+// 質問はやり取りの最中の状態で、記録として残す issue と違ってブランチごとに分かれると困るので git に入れない
+// リポジトリ側の .gitignore を書き換えずに済むよう、フォルダの中に自分自身ごと無視する .gitignore を置く
+// https://git-scm.com/docs/gitignore
+export function ensureQuestionsDirectory(store: Store): string {
+  const directory = join(store.dir, "questions")
+  mkdirSync(directory, { recursive: true })
+  const ignore = join(directory, ".gitignore")
+  if (!existsSync(ignore)) writeFileSync(ignore, "*\n")
+  return directory
 }
 
 function questionPath(store: Store, id: string): string {

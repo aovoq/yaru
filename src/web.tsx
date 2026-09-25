@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, watch } from "node:fs"
+import { existsSync, watch } from "node:fs"
 import { join } from "node:path"
 import { Hono } from "hono"
 import { jsxRenderer } from "hono/jsx-renderer"
@@ -6,7 +6,7 @@ import { clientScript } from "./client-script"
 import { styles } from "./css"
 import { DashboardPage, DASHBOARD_LIVE_RELOAD, USE_DEFAULT_ANSWER_PREFIX } from "./dashboard"
 import { getPageData } from "./page"
-import { answerQuestion, getQuestion, listQuestions } from "./questions"
+import { answerQuestion, ensureQuestionsDirectory, getQuestion, listQuestions } from "./questions"
 import { readRepositoryState } from "./repository"
 import { readSessionHealth } from "./sessions"
 import {
@@ -166,10 +166,8 @@ export function createApp(store: Store) {
           watchers.push(watch(store.dir, { recursive: true }, sendChange))
         }
         // 質問はエージェントが初めて聞いたときに作られるので、監視の前に用意しておく
-        const questionsDir = join(store.dir, "questions")
         try {
-          mkdirSync(questionsDir, { recursive: true })
-          watchers.push(watch(questionsDir, sendChange))
+          watchers.push(watch(ensureQuestionsDirectory(store), sendChange))
         } catch {}
         const commentsDir = join(store.dir, "comments")
         if (existsSync(commentsDir)) {

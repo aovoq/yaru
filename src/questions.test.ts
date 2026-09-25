@@ -197,4 +197,17 @@ describe("questions", () => {
     expect(created.title).toBe("a b")
     expect(created.defaultAction).toBe("c d")
   })
+
+  test("the questions folder ignores itself in git so live questions are never committed", () => {
+    const store = workspace()
+    Bun.spawnSync(["git", "init", "-q"], { cwd: store.root })
+    saveQuestion(store, { title: "q" }, NOW)
+    expect(readFileSync(join(store.dir, "questions", ".gitignore"), "utf8")).toBe("*\n")
+    const status = Bun.spawnSync(["git", "status", "--porcelain", "--untracked-files=all"], {
+      cwd: store.root,
+      stdout: "pipe",
+    })
+    expect(status.stdout.toString()).not.toContain("questions")
+    expect(listQuestions(store, {}, NOW).map((row) => row.id)).toEqual(["1"])
+  })
 })

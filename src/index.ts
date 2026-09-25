@@ -16,6 +16,7 @@ import {
 } from "./store"
 import {
   answerQuestion,
+  ensureQuestionsDirectory,
   getQuestion,
   listQuestions,
   saveQuestion,
@@ -312,6 +313,7 @@ async function main() {
     if (cmd === "init") {
       assertKnownFlags(flags, INIT_FLAGS)
       const store = init(process.cwd())
+      ensureQuestionsDirectory(store)
       console.log(`initialized ${store.dir}`)
       return
     }
