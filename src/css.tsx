@@ -144,6 +144,7 @@ async function sampleHtml(): Promise<string> {
     sessions: [
       {
         id: "s",
+        worktree: "w",
         title: "t",
         startedAt: "2026-01-01T00:00:00.000Z",
         lastActivityAt: "2026-01-01T00:00:00.000Z",

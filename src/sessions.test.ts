@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test"
-import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { claudeProjectDirectory, readSessionHealth } from "./sessions"
 
 const dirs: string[] = []
@@ -216,5 +216,39 @@ describe("sessions", () => {
     expect(
       readSessionHealth(ROOT, { home: homeDirectory, now: NOW }).sessions[0]!.inputTokens,
     ).toBe(7)
+  })
+
+  test("sessions in the repository's linked worktrees are counted and labeled with their branch", () => {
+    const homeDirectory = home()
+    const main = realpathSync(mkdtempSync(join(tmpdir(), "yaru-main-")))
+    const worktree = join(realpathSync(mkdtempSync(join(tmpdir(), "yaru-worktrees-"))), "feature")
+    dirs.push(main, dirname(worktree))
+    const git = (...args: string[]) =>
+      Bun.spawnSync(["git", ...args], { cwd: main, stdout: "pipe", stderr: "pipe" })
+    git("init", "-q", "-b", "develop")
+    git(
+      "-c",
+      "user.name=t",
+      "-c",
+      "user.email=t@example.com",
+      "commit",
+      "-q",
+      "--allow-empty",
+      "-m",
+      "init",
+    )
+    git("worktree", "add", "-q", "-b", "feature/add-thing", worktree)
+    const usage = { input_tokens: 1, output_tokens: 1 }
+    writeSession(claudeProjectDirectory(main, homeDirectory), "in-main.jsonl", [
+      assistant("m1", "2026-09-25T10:00:00.000Z", usage),
+    ])
+    writeSession(claudeProjectDirectory(worktree, homeDirectory), "in-worktree.jsonl", [
+      assistant("m2", "2026-09-25T11:00:00.000Z", usage),
+    ])
+    const health = readSessionHealth(main, { home: homeDirectory, now: NOW })
+    expect(health.sessions.map((session) => [session.id, session.worktree])).toEqual([
+      ["in-worktree", "feature/add-thing"],
+      ["in-main", null],
+    ])
   })
 })

@@ -7,6 +7,7 @@ const NOW = new Date("2026-09-25T12:00:00.000Z")
 
 const session: SessionSummary = {
   id: "b7c46321-5176-43e5-8eca-b897ae492e7c",
+  worktree: null,
   title: "ダッシュボードを作る",
   startedAt: "2026-09-25T09:00:00.000Z",
   lastActivityAt: "2026-09-25T11:30:00.000Z",
@@ -137,4 +138,19 @@ test("without an upstream the dashboard says the push state is unknown", async (
     ),
   )
   expect(html).toContain("no upstream")
+})
+
+test("a session from a worktree shows its branch", async () => {
+  const html = String(
+    await (
+      <DashboardPage
+        questions={[]}
+        issues={[]}
+        now={NOW}
+        sessionHealth={{ ...health, sessions: [{ ...session, worktree: "feature/add-thing" }] }}
+        repository={null}
+      />
+    ),
+  )
+  expect(html).toContain("feature/add-thing")
 })

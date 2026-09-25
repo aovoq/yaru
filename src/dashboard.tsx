@@ -239,6 +239,9 @@ function SessionsSection({ health, now }: { health: SessionHealth; now: Date }) 
                 </div>
                 <div class="flex flex-wrap gap-x-3 text-[11px] text-ink-tertiary">
                   <span>{relativeTime(session.lastActivityAt ?? "", now)}</span>
+                  {session.worktree ? (
+                    <span class="font-mono text-ink-subtle">{session.worktree}</span>
+                  ) : null}
                   <span>
                     errors {session.toolErrors} / {session.toolResults}
                   </span>

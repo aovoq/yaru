@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
 import { homedir } from "node:os"
-import { join } from "node:path"
+import { basename, join } from "node:path"
 
 // Claude Code のセッションログ (~/.claude/projects/<作業ディレクトリ>/<session>.jsonl) から、
 // エージェントの健康状態 (費用・キャッシュ・ツールのエラー・割り込み) を読む
@@ -8,6 +8,8 @@ import { join } from "node:path"
 
 export type SessionSummary = {
   id: string
+  // linked worktree で動いたセッションはそのブランチ名 (detached ならフォルダ名)。元のフォルダなら null
+  worktree: string | null
   title: string | null
   startedAt: string | null
   lastActivityAt: string | null
@@ -75,7 +77,9 @@ const SYNTHETIC_MODEL = "<synthetic>"
 
 const INTERRUPTION_PREFIX = "[Request interrupted by user"
 
-type FileStats = Omit<SessionSummary, "id" | "subagents" | "models"> & { models: Set<string> }
+type FileStats = Omit<SessionSummary, "id" | "worktree" | "subagents" | "models"> & {
+  models: Set<string>
+}
 
 const fileCache = new Map<string, { modifiedMs: number; size: number; stats: FileStats }>()
 
@@ -90,32 +94,72 @@ export function readSessionHealth(
 ): SessionHealth {
   const now = options.now ?? new Date()
   const windowDays = options.windowDays ?? SESSION_WINDOW_DAYS
-  const directory = claudeProjectDirectory(root, options.home)
-  if (!existsSync(directory)) {
-    return { directory: null, windowDays, sessions: [], totals: summarize([]) }
-  }
   const since = now.getTime() - windowDays * 86_400_000
+  const directory = claudeProjectDirectory(root, options.home)
+  // 並列の worktree で動くエージェントのログは worktree ごとの別ディレクトリに書かれるので、今ある worktree の分も読む
+  // 消した worktree はどこにあったか分からなくなるため数えない
+  const sources = [
+    { directory, worktree: null as string | null },
+    ...linkedWorktrees(root).map((entry) => ({
+      directory: claudeProjectDirectory(entry.path, options.home),
+      worktree: entry.label,
+    })),
+  ]
   const sessions: SessionSummary[] = []
-  for (const name of readdirSync(directory)) {
-    if (!name.endsWith(".jsonl")) continue
-    const path = join(directory, name)
-    const stat = statSync(path)
-    if (stat.mtimeMs < since) continue
-    const id = name.slice(0, -".jsonl".length)
-    const subagentFiles = listJsonl(join(directory, id, "subagents"))
-    sessions.push(
-      combine(
-        id,
-        readFileStats(path, stat.mtimeMs, stat.size),
-        subagentFiles.map((file) => {
-          const subagentStat = statSync(file)
-          return readFileStats(file, subagentStat.mtimeMs, subagentStat.size)
-        }),
-      ),
-    )
+  for (const source of sources) {
+    if (!existsSync(source.directory)) continue
+    for (const name of readdirSync(source.directory)) {
+      if (!name.endsWith(".jsonl")) continue
+      const path = join(source.directory, name)
+      const stat = statSync(path)
+      if (stat.mtimeMs < since) continue
+      const id = name.slice(0, -".jsonl".length)
+      const subagentFiles = listJsonl(join(source.directory, id, "subagents"))
+      sessions.push(
+        combine(
+          id,
+          source.worktree,
+          readFileStats(path, stat.mtimeMs, stat.size),
+          subagentFiles.map((file) => {
+            const subagentStat = statSync(file)
+            return readFileStats(file, subagentStat.mtimeMs, subagentStat.size)
+          }),
+        ),
+      )
+    }
   }
   sessions.sort((a, b) => (b.lastActivityAt ?? "").localeCompare(a.lastActivityAt ?? ""))
-  return { directory, windowDays, sessions, totals: summarize(sessions) }
+  return {
+    directory: existsSync(directory) || sessions.length > 0 ? directory : null,
+    windowDays,
+    sessions,
+    totals: summarize(sessions),
+  }
+}
+
+// git worktree list の先頭は元のフォルダなので、2 つ目以降の linked worktree だけを返す
+// https://git-scm.com/docs/git-worktree#_porcelain_format
+function linkedWorktrees(root: string): { path: string; label: string }[] {
+  if (!existsSync(root)) return []
+  const result = Bun.spawnSync(["git", "worktree", "list", "--porcelain"], {
+    cwd: root,
+    stdout: "pipe",
+    stderr: "ignore",
+  })
+  if (result.exitCode !== 0) return []
+  const entries = result.stdout
+    .toString()
+    .split("\n\n")
+    .map((block) => {
+      const lines = block.split("\n")
+      const path = lines.find((line) => line.startsWith("worktree "))?.slice("worktree ".length)
+      const branch = lines.find((line) => line.startsWith("branch "))?.slice("branch ".length)
+      return path
+        ? { path, label: branch ? branch.replace(/^refs\/heads\//, "") : basename(path) }
+        : null
+    })
+    .filter((entry): entry is { path: string; label: string } => entry !== null)
+  return entries.slice(1)
 }
 
 function listJsonl(directory: string): string[] {
@@ -262,7 +306,12 @@ function countUser(stats: FileStats, content: ContentBlock[]): void {
   }
 }
 
-function combine(id: string, main: FileStats, subagents: FileStats[]): SessionSummary {
+function combine(
+  id: string,
+  worktree: string | null,
+  main: FileStats,
+  subagents: FileStats[],
+): SessionSummary {
   const all = [main, ...subagents]
   const models = new Set<string>()
   for (const stats of all) for (const model of stats.models) models.add(model)
@@ -272,6 +321,7 @@ function combine(id: string, main: FileStats, subagents: FileStats[]): SessionSu
     all.reduce((total, stats) => total + (stats[key] as number), 0)
   return {
     id,
+    worktree,
     title: main.title,
     startedAt: present[0] ?? null,
     lastActivityAt: present[present.length - 1] ?? null,
