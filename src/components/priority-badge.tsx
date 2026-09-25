@@ -1,4 +1,5 @@
 import type { Priority } from "../store"
+import { Pill } from "./pill"
 
 const PRIORITY_CLASS: Record<Priority, string> = {
   urgent: "border-priority-urgent/40 text-priority-urgent",
@@ -11,8 +12,8 @@ const PRIORITY_CLASS: Record<Priority, string> = {
 
 export function PriorityBadge({ priority }: { priority: Priority }) {
   return (
-    <span class={`rounded-full border px-1.5 leading-4 ${PRIORITY_CLASS[priority]}`}>
+    <Pill tone={null} class={PRIORITY_CLASS[priority]}>
       {priority}
-    </span>
+    </Pill>
   )
 }
