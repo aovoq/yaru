@@ -93,9 +93,11 @@
 ## 画面の決まり
 
 - 部品の置き場所
-  - 複数の画面で使う部品は `src/components/` に置く (Button・Markdown・Section・EmptyState・QuestionCard・IssueLinkList・アイコンなど)
+  - 1 つのファイルには 1 つの部品だけを置く。その部品だけが使う小さな関数や定数は同じファイルに置いてよい
+  - 複数の画面で使う部品は `src/components/` に置く。アイコンは数が多いので `src/components/icons/` に 1 つずつ置く
+  - 新しい見た目を書く前に `src/components/` を見て、HeaderBar・Card・ListBox・Pill・Chip・TextLink・IconButton・InlineInput・Textarea・StatTile・RelativeTime などで組めないかを確かめる
   - 1 つの画面だけの部品は、その画面のフォルダに置く (`src/client/board/`、`src/client/issue/`、`src/dashboard/`)
-  - 画面の入口のファイル (`src/client/app.tsx`、`src/client/issue-view.tsx`、`src/dashboard.tsx`) は、状態と部品をつなぐ組み立てだけにする
+  - 画面の入口のファイル (`src/client/app.tsx`、`src/client/issue-view.tsx`、`src/dashboard.tsx`、`src/projects.tsx`) は、状態と部品をつなぐ組み立てだけにする。他のファイルの部品を export し直さない
   - barrel (index) のファイルは作らず、定義しているファイルから直接読み込む
 - ボタンは `Button` か `buttonClass` を使い、クラスを直接並べない。本文は `Markdown` を通す
 - 同じ役割の部品を画面ごとに作らない。見た目が少し違うだけなら、共通の部品に props を足す
