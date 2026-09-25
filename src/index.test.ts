@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, expect, test } from "bun:test"
-import { mkdtempSync, rmSync } from "node:fs"
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { buildDistribution } from "./build"
@@ -435,4 +435,37 @@ test("question help documents wait and the default action", () => {
   const help = run(["question", "wait", "--help"]).stdout.toString()
   expect(help).toContain("--timeout")
   expect(help).toContain("defaultAction")
+})
+
+test("asking a question runs the notify command from config.yml with the question on stdin", () => {
+  const root = workspace()
+  const received = join(root, "received.json")
+  writeFileSync(join(root, ".yaru", "config.yml"), `notify: cat > ${JSON.stringify(received)}\n`)
+  const out = run(["question", "save", "--title", "消すか", "--default", "残す"], root)
+  expect(out.exitCode).toBe(0)
+  const payload = JSON.parse(readFileSync(received, "utf8"))
+  expect(payload).toMatchObject({
+    event: "question.created",
+    question: { id: "1", title: "消すか" },
+  })
+})
+
+test("a failing notify command warns but keeps the saved question", () => {
+  const root = workspace()
+  writeFileSync(join(root, ".yaru", "config.yml"), "notify: echo boom >&2; exit 3\n")
+  const out = run(["question", "save", "--title", "q"], root)
+  expect(out.exitCode).toBe(0)
+  expect(JSON.parse(out.stdout.toString()).id).toBe("1")
+  expect(out.stderr.toString()).toContain(
+    "notify command failed: expected exit code 0, actual 3: boom",
+  )
+})
+
+test("updating a question does not notify", () => {
+  const root = workspace()
+  run(["question", "save", "--title", "q"], root)
+  const received = join(root, "received.json")
+  writeFileSync(join(root, ".yaru", "config.yml"), `notify: cat > ${JSON.stringify(received)}\n`)
+  run(["question", "save", "--id", "1", "--priority", "high"], root)
+  expect(existsSync(received)).toBe(false)
 })

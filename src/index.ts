@@ -21,6 +21,7 @@ import {
   saveQuestion,
   type Question,
 } from "./questions"
+import { notify } from "./notify"
 import { DEFAULT_PORT, serve } from "./web"
 
 const GLOBAL_HELP = `yaru — local issues, markdown in .yaru
@@ -203,6 +204,9 @@ Omitted fields stay unchanged on update. none clears issue, priority, default, o
 --answerBy is a duration from now (30m, 2h, 1d) or an ISO 8601 datetime.
 --body is Markdown context: options, trade-offs, your recommendation. Use --body - to read stdin.
 --status canceled withdraws a question that no longer needs an answer; open restores it.
+
+Creating a question runs the notify command from .yaru/config.yml (notify: COMMAND) with
+{"event":"question.created","question":{...}} on stdin. A failing command only warns.
 
 Usage:
   yaru question save --title TEXT [--issue ID] [--priority NAME] [--default TEXT]
@@ -548,7 +552,8 @@ async function question(
   if (sub === "save") {
     assertKnownFlags(flags, QUESTION_SAVE_FLAGS)
     assertNoExtra(rest.slice(1))
-    const saved = saveQuestion(open(findRoot()), {
+    const store = open(findRoot())
+    const saved = saveQuestion(store, {
       id: flag("id"),
       title: flag("title"),
       issue: flag("issue"),
@@ -558,6 +563,10 @@ async function question(
       status: flag("status"),
       body: flag("body") === "-" ? readStdin() : flag("body"),
     })
+    if (!flag("id")) {
+      const warning = notify(store, { event: "question.created", question: saved })
+      if (warning) console.error(warning)
+    }
     if (outputFormat(flag) === "json") {
       printJson(saved)
       return
