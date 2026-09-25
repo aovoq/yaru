@@ -4,7 +4,8 @@ import { CrossIcon } from "./icons/cross-icon"
 
 // 押して絞り込みを切り替える札
 // pill はスマホ幅の状態の切り替え (mobile-status-nav.tsx) で、選んでいるものだけ面を塗る
-// outline は見出しに並べる、いま掛かっている絞り込み (board/header.tsx) で、removable なら押すと外れることを × で示す
+// outline は見出しに並べる、いま掛かっている絞り込み (board/filter-chips.tsx) で、removable なら押すと外れることを × で示す
+// id はスマホ幅のダッシュボードへの入口 (#mobile-dashboard-link) のように、テストや CSS から 1 つを指したいときに渡す
 
 export type ChipVariant = "pill" | "outline"
 
@@ -22,6 +23,7 @@ const VARIANTS: Record<ChipVariant, { base: string; active: string; inactive: st
 }
 
 export function Chip({
+  id,
   href,
   active = false,
   variant = "pill",
@@ -30,6 +32,7 @@ export function Chip({
   class: extra = "",
   children,
 }: {
+  id?: string
   href?: string
   active?: boolean
   variant?: ChipVariant
@@ -57,10 +60,14 @@ export function Chip({
   )
   if (href !== undefined) {
     return (
-      <a href={href} class={className}>
+      <a id={id} href={href} class={className}>
         {content}
       </a>
     )
   }
-  return <span class={className}>{content}</span>
+  return (
+    <span id={id} class={className}>
+      {content}
+    </span>
+  )
 }

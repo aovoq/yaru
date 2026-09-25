@@ -1,58 +1,12 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks"
-import { CheckIcon } from "../components/icons/check-icon"
-import { ChevronRightIcon } from "../components/icons/chevron-right-icon"
-import { PriorityIcon } from "../components/icons/priority-icon"
-import { StatusIcon } from "../components/icons/status-icon"
-import { clampMenuPosition, type MenuAction, type MenuIcon, type MenuItem } from "./issue-menu"
-import { Avatar } from "../components/avatar"
-import { LabelDot } from "../components/label-dot"
+import { useLayoutEffect, useRef, useState } from "preact/hooks"
+import { clampMenuPosition, type MenuAction, type MenuItem as MenuItemData } from "../issue-menu"
+import { MenuItem } from "./menu-item"
 
-// 右クリックで開くメニュー。子メニューはマウスを載せるか → で開き、↑↓ で移動、↵ で実行、← と Esc で戻る
-// 外を押す・画面を動かす・ウィンドウを離れると閉じる
+// メニューの 1 枚の面。項目を並べ、キーボードでの移動と子メニューの開閉を受け持つ。子メニューは同じ部品で入れ子に描く
+// ↑↓ で移動、→ と ↵ で子メニューを開くか実行、← で親へ戻る、Esc で親へ戻るか閉じる
 // https://www.w3.org/WAI/ARIA/apg/patterns/menubar/
 
-export type OpenMenu = { items: MenuItem[]; x: number; y: number }
-
-export function ContextMenu({
-  menu,
-  onAction,
-  onClose,
-}: {
-  menu: OpenMenu
-  onAction: (action: MenuAction) => void
-  onClose: () => void
-}) {
-  useEffect(() => {
-    const onPointerDown = (event: PointerEvent) => {
-      if (event.target instanceof Element && event.target.closest("[data-context-menu]")) return
-      onClose()
-    }
-    const close = () => onClose()
-    document.addEventListener("pointerdown", onPointerDown, true)
-    window.addEventListener("resize", close)
-    window.addEventListener("blur", close)
-    document.addEventListener("scroll", close, true)
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown, true)
-      window.removeEventListener("resize", close)
-      window.removeEventListener("blur", close)
-      document.removeEventListener("scroll", close, true)
-    }
-  }, [onClose])
-  return (
-    <MenuPanel
-      items={menu.items}
-      anchor={{ x: menu.x, y: menu.y }}
-      onAction={(action) => {
-        onClose()
-        onAction(action)
-      }}
-      onEscape={onClose}
-    />
-  )
-}
-
-function MenuPanel({
+export function MenuPanel({
   items,
   anchor,
   side = "right",
@@ -60,7 +14,7 @@ function MenuPanel({
   onEscape,
   onBack,
 }: {
-  items: MenuItem[]
+  items: MenuItemData[]
   anchor: { x: number; y: number }
   side?: "right" | "left"
   onAction: (action: MenuAction) => void
@@ -162,40 +116,18 @@ function MenuPanel({
           item.kind === "separator" ? (
             <div role="separator" class="mx-1 my-1 h-px bg-hairline" />
           ) : (
-            <button
-              type="button"
-              role={
-                item.kind === "submenu"
-                  ? "menuitem"
-                  : item.checked === undefined
-                    ? "menuitem"
-                    : "menuitemcheckbox"
-              }
-              aria-haspopup={item.kind === "submenu" ? "menu" : undefined}
-              aria-expanded={item.kind === "submenu" ? openIndex === index : undefined}
-              aria-checked={
-                item.kind === "action" && item.checked !== undefined ? item.checked : undefined
-              }
-              data-menu-index={index}
-              data-active={activeIndex === index || openIndex === index ? "" : undefined}
+            <MenuItem
+              item={item}
+              index={index}
+              active={activeIndex === index || openIndex === index}
+              expanded={openIndex === index}
               onPointerEnter={() => {
                 setActiveIndex(index)
                 if (item.kind === "submenu") openSubmenu(index)
                 else setOpenIndex(null)
               }}
               onClick={() => activate(index)}
-              class="flex h-8 w-full cursor-pointer items-center gap-2.5 rounded-md border-0 bg-transparent px-2 text-left font-sans text-[13px] text-ink-muted outline-none data-active:bg-hairline-strong data-active:text-ink"
-            >
-              <span class="grid w-4 shrink-0 place-items-center">
-                {item.icon ? <MenuIconView icon={item.icon} /> : null}
-              </span>
-              <span class="min-w-0 flex-1 truncate">{item.label}</span>
-              {item.kind === "action" && item.checked ? <CheckIcon /> : null}
-              {item.kind === "action" && item.hint ? (
-                <span class="font-mono text-[11px] text-ink-tertiary">{item.hint}</span>
-              ) : null}
-              {item.kind === "submenu" ? <ChevronRightIcon /> : null}
-            </button>
+            />
           ),
         )}
       </div>
@@ -214,11 +146,4 @@ function MenuPanel({
       ) : null}
     </>
   )
-}
-
-function MenuIconView({ icon }: { icon: MenuIcon }) {
-  if (icon.kind === "status") return <StatusIcon status={icon.status} />
-  if (icon.kind === "priority") return <PriorityIcon priority={icon.priority} />
-  if (icon.kind === "avatar") return <Avatar name={icon.name} />
-  return <LabelDot label={icon.label} />
 }

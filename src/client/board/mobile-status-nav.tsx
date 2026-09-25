@@ -1,4 +1,5 @@
 import { STATUSES } from "../../store"
+import { Chip } from "../../components/chip"
 import { QuestionIcon } from "../../components/icons/question-icon"
 import { StatusIcon } from "../../components/icons/status-icon"
 import { pageHref, statusLabel, type PageFilters } from "../view-model"
@@ -12,33 +13,28 @@ export function MobileStatusNav({
   filters: PageFilters
   awaitingQuestionCount: number
 }) {
-  const pill = (active: boolean) =>
-    `inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs no-underline transition-colors ${
-      active ? "bg-surface-2 text-ink" : "text-ink-subtle hover:text-ink"
-    }`
   return (
     <div class="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-hairline px-3 py-1.5 md:hidden">
-      <a href={pageHref({ ...filters, status: undefined })} class={pill(!filters.status)}>
+      <Chip href={pageHref({ ...filters, status: undefined })} active={!filters.status}>
         All
-      </a>
+      </Chip>
       {STATUSES.map((status) => (
-        <a
+        <Chip
           href={pageHref({ ...filters, status: filters.status === status ? undefined : status })}
-          class={pill(filters.status === status)}
+          active={filters.status === status}
+          icon={<StatusIcon status={status} />}
         >
-          <StatusIcon status={status} />
           {statusLabel(status)}
-        </a>
+        </Chip>
       ))}
-      <a
+      <Chip
         id="mobile-dashboard-link"
         href={`${filters.basePath ?? ""}/dashboard`}
-        class={pill(false)}
+        icon={<QuestionIcon />}
       >
-        <QuestionIcon />
         Dashboard
         <span class="text-ink-tertiary tabular-nums">{awaitingQuestionCount}</span>
-      </a>
+      </Chip>
     </div>
   )
 }

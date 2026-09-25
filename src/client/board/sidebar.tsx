@@ -1,15 +1,17 @@
-import type { ComponentChildren } from "preact"
 import { STATUSES, type Issue } from "../../store"
+import { Avatar } from "../../components/avatar"
+import { GroupLabel } from "../../components/group-label"
+import { IconButton } from "../../components/icon-button"
 import { AllIcon } from "../../components/icons/all-icon"
-import { LogoLink } from "../../components/logo-link"
 import { QuestionIcon } from "../../components/icons/question-icon"
 import { SidebarIcon } from "../../components/icons/sidebar-icon"
 import { StatusIcon } from "../../components/icons/status-icon"
-import { Avatar } from "../../components/avatar"
 import { Kbd } from "../../components/kbd"
 import { LabelDot } from "../../components/label-dot"
+import { LogoLink } from "../../components/logo-link"
 import type { SidebarPreference } from "../use-sidebar-preference"
 import { pageHref, statusLabel, type PageFilters } from "../view-model"
+import { NavItem } from "./nav-item"
 
 // デスクトップ幅の左の絞り込み。全件・ダッシュボード・状態・ラベル・担当者ごとの件数を並べる
 // 畳む・幅を変える操作は useSidebarPreference が受け持ち、ここは見た目と呼び出しだけを持つ
@@ -37,17 +39,14 @@ export function Sidebar({
         <span class="min-w-0 flex-1 truncate text-[13px] font-medium tracking-tight text-ink">
           yaru
         </span>
-        <button
+        <IconButton
           id="sidebar-toggle"
-          type="button"
-          title="Collapse sidebar"
-          aria-label="Collapse sidebar"
+          label="Collapse sidebar"
           aria-controls="sidebar"
           onClick={sidebar.closeSidebar}
-          class="grid size-7 shrink-0 place-items-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-primary-focus/50"
         >
           <SidebarIcon />
-        </button>
+        </IconButton>
       </div>
       <div class="flex-1 overflow-y-auto px-2 pb-4">
         <NavItem
@@ -64,7 +63,7 @@ export function Sidebar({
           label="Dashboard"
           count={awaitingQuestionCount}
         />
-        <div class="mt-4 mb-1 px-2 text-[11px] font-medium text-ink-tertiary">Status</div>
+        <GroupLabel class="mt-4 mb-1">Status</GroupLabel>
         {STATUSES.map((status) => (
           <NavItem
             href={pageHref({ ...filters, status: filters.status === status ? undefined : status })}
@@ -76,7 +75,7 @@ export function Sidebar({
         ))}
         {labels.length > 0 ? (
           <>
-            <div class="mt-4 mb-1 px-2 text-[11px] font-medium text-ink-tertiary">Labels</div>
+            <GroupLabel class="mt-4 mb-1">Labels</GroupLabel>
             {labels.map((label) => (
               <NavItem
                 href={pageHref({ ...filters, label: filters.label === label ? undefined : label })}
@@ -90,7 +89,7 @@ export function Sidebar({
         ) : null}
         {people.length > 0 ? (
           <>
-            <div class="mt-4 mb-1 px-2 text-[11px] font-medium text-ink-tertiary">People</div>
+            <GroupLabel class="mt-4 mb-1">People</GroupLabel>
             {people.map((person) => (
               <NavItem
                 href={pageHref({
@@ -118,33 +117,6 @@ export function Sidebar({
         class="absolute inset-y-0 -right-1 z-10 w-2 cursor-col-resize touch-none hover:bg-primary"
       />
     </nav>
-  )
-}
-
-function NavItem({
-  href,
-  active,
-  icon,
-  label,
-  count,
-}: {
-  href: string
-  active: boolean
-  icon: ComponentChildren
-  label: string
-  count: number
-}) {
-  return (
-    <a
-      href={href}
-      class={`flex h-7 items-center gap-2 rounded-md px-2 no-underline transition-colors focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-primary-focus/50 ${
-        active ? "bg-surface-2 text-ink" : "text-ink-subtle hover:bg-surface-1 hover:text-ink"
-      }`}
-    >
-      {icon}
-      <span class="min-w-0 flex-1 truncate text-[13px]">{label}</span>
-      <span class="text-[11px] text-ink-tertiary tabular-nums">{count}</span>
-    </a>
   )
 }
 

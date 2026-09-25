@@ -5,7 +5,8 @@ import { Header } from "./board/header"
 import { MobileStatusNav } from "./board/mobile-status-nav"
 import { Sidebar } from "./board/sidebar"
 import { copyText } from "./clipboard"
-import { ContextMenu, type OpenMenu } from "./context-menu"
+import { ContextMenu, type OpenMenu } from "./context-menu/context-menu"
+import { Alert } from "../components/alert"
 import { Notice } from "../components/notice"
 import { issueMenu, type MenuAction } from "./issue-menu"
 import { IssueView } from "./issue-view"
@@ -175,11 +176,7 @@ export function BoardPage(props: BoardPageProps) {
       ) : null}
       {menu ? <ContextMenu menu={menu} onAction={onMenuAction} onClose={closeMenu} /> : null}
       {notice ? <Notice text={notice} /> : null}
-      {state.requestError && !state.current ? (
-        <p class="fixed top-0 right-0 z-20 rounded-md border border-semantic-danger/40 bg-surface-1 px-3 py-2 text-semantic-danger">
-          {state.requestError}
-        </p>
-      ) : null}
+      {state.requestError && !state.current ? <Alert floating>{state.requestError}</Alert> : null}
     </div>
   )
 }
