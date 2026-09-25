@@ -113,19 +113,7 @@ export function readSessionHealth(
       const path = join(source.directory, name)
       const stat = statSync(path)
       if (stat.mtimeMs < since) continue
-      const id = name.slice(0, -".jsonl".length)
-      const subagentFiles = listJsonl(join(source.directory, id, "subagents"))
-      sessions.push(
-        combine(
-          id,
-          source.worktree,
-          readFileStats(path, stat.mtimeMs, stat.size),
-          subagentFiles.map((file) => {
-            const subagentStat = statSync(file)
-            return readFileStats(file, subagentStat.mtimeMs, subagentStat.size)
-          }),
-        ),
-      )
+      sessions.push(readSession(source.directory, name.slice(0, -".jsonl".length), source.worktree))
     }
   }
   sessions.sort((a, b) => (b.lastActivityAt ?? "").localeCompare(a.lastActivityAt ?? ""))
@@ -135,6 +123,56 @@ export function readSessionHealth(
     sessions,
     totals: summarize(sessions),
   }
+}
+
+// issue や質問に残したセッション ID から、そのセッションの題名や最後に動いた時刻を引く
+// 見るのは元のフォルダ・今ある linked worktree・記録した作業ツリーのログで、期間では絞らない (古い issue のセッションも引けるように)
+// 記録した作業ツリーは消したあとでもログのディレクトリが残るので、そこも探す
+// Codex のセッションはここのログに無いので null になる
+export function findSession(
+  root: string,
+  id: string,
+  options: { home?: string; worktree?: string | null } = {},
+): SessionSummary | null {
+  // ID はファイル名に使うので、パスを辿れる文字を含むものは探さない
+  if (!/^[A-Za-z0-9_-]+$/.test(id)) return null
+  const linked = linkedWorktrees(root)
+  const sources = [
+    { directory: claudeProjectDirectory(root, options.home), worktree: null as string | null },
+    ...linked.map((entry) => ({
+      directory: claudeProjectDirectory(entry.path, options.home),
+      worktree: entry.label,
+    })),
+  ]
+  if (options.worktree && options.worktree !== root) {
+    const known = linked.find((entry) => entry.path === options.worktree)
+    sources.push({
+      directory: claudeProjectDirectory(options.worktree, options.home),
+      worktree: known ? known.label : basename(options.worktree),
+    })
+  }
+  for (const source of sources) {
+    if (existsSync(join(source.directory, `${id}.jsonl`))) {
+      return readSession(source.directory, id, source.worktree)
+    }
+  }
+  return null
+}
+
+// セッションの本体のログと、そのセッションが起こしたサブエージェントのログを合わせて 1 つにまとめる
+function readSession(directory: string, id: string, worktree: string | null): SessionSummary {
+  const path = join(directory, `${id}.jsonl`)
+  const stat = statSync(path)
+  const subagentFiles = listJsonl(join(directory, id, "subagents"))
+  return combine(
+    id,
+    worktree,
+    readFileStats(path, stat.mtimeMs, stat.size),
+    subagentFiles.map((file) => {
+      const subagentStat = statSync(file)
+      return readFileStats(file, subagentStat.mtimeMs, subagentStat.size)
+    }),
+  )
 }
 
 // git worktree list の先頭は元のフォルダなので、2 つ目以降の linked worktree だけを返す

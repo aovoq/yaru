@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test"
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
-import { claudeProjectDirectory, readSessionHealth } from "./sessions"
+import { claudeProjectDirectory, findSession, readSessionHealth } from "./sessions"
 
 const dirs: string[] = []
 
@@ -250,5 +250,46 @@ describe("sessions", () => {
       ["in-worktree", "feature/add-thing"],
       ["in-main", null],
     ])
+  })
+
+  test("a session is found by id even when it is older than the window", () => {
+    const homeDirectory = home()
+    writeSession(
+      claudeProjectDirectory(ROOT, homeDirectory),
+      "old.jsonl",
+      [
+        assistant("m0", "2026-08-01T00:00:00.000Z", { input_tokens: 1, output_tokens: 1 }),
+        { type: "ai-title", aiTitle: "一覧を直す" },
+      ],
+      new Date("2026-08-01T00:00:00.000Z"),
+    )
+    expect(findSession(ROOT, "old", { home: homeDirectory })).toMatchObject({
+      id: "old",
+      title: "一覧を直す",
+      worktree: null,
+      lastActivityAt: "2026-08-01T00:00:00.000Z",
+    })
+  })
+
+  test("a session is found in the recorded worktree even after the worktree was removed", () => {
+    const homeDirectory = home()
+    const removed = "/Users/someone/worktrees/app-feature"
+    writeSession(claudeProjectDirectory(removed, homeDirectory), "gone.jsonl", [
+      { type: "ai-title", aiTitle: "worktree での作業" },
+    ])
+    expect(findSession(ROOT, "gone", { home: homeDirectory })).toBeNull()
+    expect(findSession(ROOT, "gone", { home: homeDirectory, worktree: removed })).toMatchObject({
+      id: "gone",
+      title: "worktree での作業",
+      worktree: "app-feature",
+    })
+  })
+
+  test("an unknown session id or one that is not a plain name finds nothing", () => {
+    const homeDirectory = home()
+    writeSession(claudeProjectDirectory(ROOT, homeDirectory), "s1.jsonl", [])
+    expect(findSession(ROOT, "missing", { home: homeDirectory })).toBeNull()
+    expect(findSession(ROOT, "../s1", { home: homeDirectory })).toBeNull()
+    expect(findSession(ROOT, "", { home: homeDirectory })).toBeNull()
   })
 })

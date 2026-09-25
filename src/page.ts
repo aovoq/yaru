@@ -1,4 +1,14 @@
+import { issueEvents, type IssueEvent } from "./issue-events"
+import {
+  matchesCompletedVisibility,
+  parseCompletedVisibility,
+  parseIssueGroup,
+  parseIssueSort,
+  sortIssues,
+  type IssueDisplay,
+} from "./issue-order"
 import { listQuestions, type Question } from "./questions"
+import { commitsForIssue, type IssueCommit } from "./repository"
 import { getIssue, listComments, listIssues, type Comment, type Issue, type Store } from "./store"
 
 export const BLANK: Issue = {
@@ -18,6 +28,10 @@ export const BLANK: Issue = {
   canceledAt: null,
   createdAt: "",
   updatedAt: "",
+  session: null,
+  worktree: null,
+  branch: null,
+  stale: false,
   body: "",
 }
 
@@ -29,16 +43,35 @@ export function parseView(raw?: string): ViewMode {
   return raw === "board" ? "board" : "list"
 }
 
+// issue ごとの、人の答えを待っている質問 (open と expired) のまとめ
+export type AwaitingSummary = {
+  count: number
+  // そのうち期限を過ぎて、エージェントが既定の動きで進んだもの
+  expired: number
+  // まだ期限の来ていない質問のうち、最も早い期限。期限の付いた open の質問が無ければ null
+  soonestAnswerBy: string | null
+}
+
 export type PageData = {
+  // 絞り込み・終わった issue の見せ方・並べ方を当てた一覧。まとまり (group) は画面がこの順のまま分ける
   issues: Issue[]
+  // 絞り込む前の全ての issue。親や blocks を選ぶ一覧に使う
   all: Issue[]
   query: string
   current: Issue | null
   comments: Comment[]
   questions?: Question[]
+  // 開いている issue の属性の変更履歴 (古い順)
+  events: IssueEvent[]
+  // 開いている issue に関わるコミット (新しい順)
+  commits: IssueCommit[]
   status?: string
   assignee?: string
   label?: string
+  // ?awaiting=1 で、答えを待っている質問のある issue だけに絞っているか
+  awaiting: boolean
+  awaitingByIssue: Record<string, AwaitingSummary>
+  display: IssueDisplay
   view: ViewMode
   // 1 つの yaru serve で複数のワークスペースを配るときの、このワークスペースの URL の接頭辞 (例: /p/app)。単独なら ""
   basePath?: string
@@ -46,43 +79,109 @@ export type PageData = {
   error?: string
 }
 
-export function getPageData(store: Store, url: URL, basePath = ""): PageData {
+export function getPageData(store: Store, url: URL, basePath = "", now = new Date()): PageData {
   const query = url.searchParams.get("query") || ""
   const id = url.searchParams.get("id") || undefined
   const status = url.searchParams.get("status") || undefined
   const assignee = url.searchParams.get("assignee") || undefined
   const label = url.searchParams.get("label") || undefined
+  const awaiting = url.searchParams.get("awaiting") === "1"
   const view = parseView(url.searchParams.get("view") || undefined)
-  const issues = listIssues(store, {
-    query: query || undefined,
-    status,
-    assignee,
-    label,
-  })
-  const current =
-    id === "new"
-      ? {
-          ...BLANK,
-          status: url.searchParams.get("new_status") || status || "todo",
-          parent: url.searchParams.get("new_parent") || null,
-        }
-      : id
-        ? getIssue(store, id)
-        : null
+  // 完了や取りやめの列だけを開いたときに古いものが消えると、無いものと思われるので、その status を選んだときは全て見せる
+  // 画面の切り替えが実際と食い違わないよう、display には当てた値を返す
+  const display: IssueDisplay = {
+    sort: parseIssueSort(url.searchParams.get("sort")),
+    group: parseIssueGroup(url.searchParams.get("group")),
+    completed:
+      status === "done" || status === "canceled"
+        ? "all"
+        : parseCompletedVisibility(url.searchParams.get("completed")),
+  }
+  const awaitingQuestions = listQuestions(store, {}, now).filter(
+    (question) => question.status === "open" || question.status === "expired",
+  )
+  const awaitingByIssue = summarizeAwaiting(awaitingQuestions)
+  const issues = sortIssues(
+    listIssues(store, { query: query || undefined, status, assignee, label }, now).filter(
+      (issue) =>
+        matchesCompletedVisibility(issue, display.completed, now) &&
+        (!awaiting || awaitingByIssue[issue.id] !== undefined),
+    ),
+    display.sort,
+  )
+  const opened = openIssue(store, url, id, status, now)
+  const current = opened.issue
   return {
     issues,
-    all: listIssues(store),
+    all: listIssues(store, {}, now),
     query,
     current,
     comments: current?.id ? listComments(store, { issue: current.id }) : [],
-    questions: current?.id ? listQuestions(store, { issue: current.id }) : [],
+    questions: current?.id ? listQuestions(store, { issue: current.id }, now) : [],
+    events: current?.id ? issueEvents(store, current.id) : [],
+    // 手で付けた数でない名前の issue は、コミットで #<id> と書けないので探さない
+    commits:
+      current?.id && /^\d+$/.test(current.id)
+        ? commitsForIssue(store.root, current.id, current.branch)
+        : [],
     status,
     assignee,
     label,
+    awaiting,
+    awaitingByIssue,
+    display,
     view,
     basePath,
-    awaitingQuestionCount: listQuestions(store).filter(
-      (question) => question.status === "open" || question.status === "expired",
-    ).length,
+    awaitingQuestionCount: awaitingQuestions.length,
+    ...(opened.error !== undefined ? { error: opened.error } : {}),
   }
+}
+
+// 消えた issue へのリンク (古いブックマークや通知) を開いても、板ごと見えなくならないよう、板を出して誤りを添える
+// ファイルが壊れているなどの他の誤りは、隠すと直せなくなるのでそのまま投げる
+function openIssue(
+  store: Store,
+  url: URL,
+  id: string | undefined,
+  status: string | undefined,
+  now: Date,
+): { issue: Issue | null; error?: string } {
+  if (id === undefined) return { issue: null }
+  if (id === "new") {
+    return {
+      issue: {
+        ...BLANK,
+        status: url.searchParams.get("new_status") || status || "todo",
+        parent: url.searchParams.get("new_parent") || null,
+      },
+    }
+  }
+  try {
+    return { issue: getIssue(store, id, now) }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (message === `issue not found: ${id}`) return { issue: null, error: message }
+    throw err
+  }
+}
+
+function summarizeAwaiting(questions: Question[]): Record<string, AwaitingSummary> {
+  const summaries: Record<string, AwaitingSummary> = {}
+  for (const question of questions) {
+    if (question.issue === null) continue
+    const summary = (summaries[question.issue] ??= { count: 0, expired: 0, soonestAnswerBy: null })
+    summary.count++
+    if (question.status === "expired") {
+      summary.expired++
+      continue
+    }
+    if (
+      question.answerBy !== null &&
+      (summary.soonestAnswerBy === null ||
+        Date.parse(question.answerBy) < Date.parse(summary.soonestAnswerBy))
+    ) {
+      summary.soonestAnswerBy = question.answerBy
+    }
+  }
+  return summaries
 }

@@ -1,4 +1,4 @@
-import { Marked, type Token, type Tokens } from "marked"
+import { Marked, Renderer, type Token, type Tokens } from "marked"
 
 // issue・コメント・質問の本文を HTML にする。サーバーの描画とブラウザの両方で同じものを使う
 // 本文はエージェントが外から取ってきた文章を貼ることがあり、画面は tailnet から開けて質問に答えられるので、
@@ -9,8 +9,23 @@ import { Marked, type Token, type Tokens } from "marked"
 const SAFE_LINK_SCHEMES = ["http:", "https:", "mailto:"]
 const SAFE_IMAGE_SCHEMES = ["http:", "https:"]
 
-export function renderMarkdown(source: string): string {
+// 本文の #12 を issue 12 へのリンクにする。エージェントは issue やコミットの中で #<id> と書いて他の issue を指すため
+// 英数字に続く # (C#3、abc#3) や、文字参照 (&#35;) の一部は issue の番号ではないので拾わない
+// 日本語の文では「詳細は#3を見る」のように空けずに書くので、前後が英数字でなければ拾う
+const ISSUE_REFERENCE = /(?<![A-Za-z0-9_&#])#(\d+)(?![A-Za-z0-9_])/g
+
+// 子の token を持たない文字だけを描くので、parser を持たない既定の renderer で足りる
+const PLAIN_TEXT_RENDERER = new Renderer()
+
+export type RenderMarkdownOptions = {
+  // issue の番号から、その issue を開く同じ origin の相対 URL (例: /p/app/?id=12) を返す。無ければ #12 は文字のまま
+  issueHref?: (id: string) => string
+}
+
+export function renderMarkdown(source: string, options: RenderMarkdownOptions = {}): string {
   let taskIndex = 0
+  // リンクの文字の中で issue のリンクを作ると <a> が入れ子になるので、リンクの中を描いている間は数えておく
+  let linkDepth = 0
   const marked = new Marked({
     gfm: true,
     // Linear と同じく、1 回の改行もそのまま改行として見せる。エージェントの本文は 1 行ずつ書かれることが多いため
@@ -19,8 +34,20 @@ export function renderMarkdown(source: string): string {
       html({ text }) {
         return escapeHtml(text)
       },
+      text(token) {
+        if ("tokens" in token && token.tokens) return this.parser.parseInline(token.tokens)
+        // エスケープの仕方は marked の既定のままにし、その結果の上で #<id> を探す
+        const html = PLAIN_TEXT_RENDERER.text(token)
+        if (!options.issueHref || linkDepth > 0) return html
+        // marked は文字参照を展開してから渡すので、&#35;3 と書いて番号を避けたものも #3 になって届く
+        // 本文にそのまま #<id> と書かれている番号だけをリンクにする
+        const written = new Set([...token.raw.matchAll(ISSUE_REFERENCE)].map((match) => match[1]!))
+        return linkIssueReferences(html, options.issueHref, written)
+      },
       link({ href, title, tokens }) {
+        linkDepth++
         const text = this.parser.parseInline(tokens)
+        linkDepth--
         const safe = safeUrl(href, SAFE_LINK_SCHEMES)
         if (safe === null) return text
         const titleAttribute = title ? ` title="${escapeHtml(title)}"` : ""
@@ -88,6 +115,29 @@ function taskMarkers(source: string): (number | null)[] {
   }
   walk(new Marked({ gfm: true }).lexer(source), 0, true)
   return markers
+}
+
+// 描いた後の文字 (エスケープ済み) の中の #<id> をリンクにする。コードやリンクの中の文字はここを通らない
+function linkIssueReferences(
+  html: string,
+  issueHref: (id: string) => string,
+  written: Set<string>,
+): string {
+  return html.replace(ISSUE_REFERENCE, (reference, id: string) => {
+    if (!written.has(id)) return reference
+    const href = sameOriginRelative(issueHref(id))
+    if (href === null) return reference
+    return `<a href="${escapeHtml(href)}" data-issue="${id}">${reference}</a>`
+  })
+}
+
+// issue のリンクは板の中を移る物なので、他の origin へ出る URL (https://…、//…、/\…) やスキームのあるものは使わない
+// ブラウザは / の後の \ を / と読むので、/\ も他の origin へのリンクになる
+// https://url.spec.whatwg.org/#special-authority-slashes-state
+function sameOriginRelative(href: string): string | null {
+  if (href.startsWith("?")) return href
+  if (href.startsWith("/") && href[1] !== "/" && href[1] !== "\\") return href
+  return null
 }
 
 // ブラウザは URL のスキームの中のタブ・改行・制御文字を読み飛ばすので、それらを除いてからスキームを確かめる

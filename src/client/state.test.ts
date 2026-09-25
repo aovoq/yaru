@@ -11,6 +11,11 @@ function page(title: string): PageData {
     current: issue,
     comments: [],
     view: "list",
+    events: [],
+    commits: [],
+    awaiting: false,
+    awaitingByIssue: {},
+    display: { sort: "priority", group: "status", completed: "recent" },
   }
 }
 

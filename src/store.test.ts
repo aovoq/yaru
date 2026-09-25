@@ -199,6 +199,14 @@ x
     expect(listIssues(store, { due: "overdue" }).map((i) => i.title)).toEqual(["past"])
   })
 
+  test("list --due overdue leaves out finished issues whose due date has passed", () => {
+    const store = workspace()
+    saveIssue(store, { title: "late", dueDate: ymd(-1) })
+    saveIssue(store, { title: "shipped", dueDate: ymd(-1), status: "done" })
+    saveIssue(store, { title: "dropped", dueDate: ymd(-1), status: "canceled" })
+    expect(listIssues(store, { due: "overdue" }).map((i) => i.title)).toEqual(["late"])
+  })
+
   test("priority persists, omits, and clears", () => {
     const store = workspace()
     const created = saveIssue(store, { title: "hot", priority: "urgent" })
@@ -635,6 +643,69 @@ x
     )
     expect(() => saveComment(store, { issue: "9", body: "x" })).toThrow("issue not found: 9")
     expect(() => saveComment(store, { parent: "9", body: "x" })).toThrow("comment not found: 9")
+  })
+
+  test("an agent save records where it came from, and a save without provenance keeps it", () => {
+    const store = workspace()
+    const provenance = { session: "session-1", worktree: "/work/feature", branch: "feature/x" }
+    const created = saveIssue(store, { title: "task" }, { provenance })
+    expect(created).toMatchObject(provenance)
+    const text = readFileSync(join(store.dir, "issues", "1.md"), "utf8")
+    expect(text).toContain("\nsession: session-1\n")
+    expect(text).toContain("\nworktree: /work/feature\n")
+    expect(text).toContain("\nbranch: feature/x\n")
+
+    // 画面からの保存は出どころを渡さないので、エージェントが残した出どころを消さない
+    expect(saveIssue(store, { id: "1", status: "done" })).toMatchObject(provenance)
+
+    const human = { session: null, worktree: "/work/main", branch: "main" }
+    expect(saveIssue(store, { id: "1", status: "todo" }, { provenance: human })).toMatchObject(
+      human,
+    )
+    expect(saveIssue(store, { title: "plain" })).toMatchObject({
+      session: null,
+      worktree: null,
+      branch: null,
+    })
+  })
+
+  test("an in progress issue is stale once it has not been updated for staleAfter", () => {
+    const store = workspace()
+    const saved = new Date("2026-09-20T00:00:00.000Z")
+    saveIssue(store, { title: "working", status: "in_progress" }, { now: saved })
+    saveIssue(store, { title: "waiting", status: "todo" }, { now: saved })
+    const beforeDefault = new Date("2026-09-20T23:59:00.000Z")
+    const afterDefault = new Date("2026-09-21T00:01:00.000Z")
+    expect(getIssue(store, "1", beforeDefault).stale).toBe(false)
+    expect(getIssue(store, "1", afterDefault).stale).toBe(true)
+    expect(getIssue(store, "2", afterDefault).stale).toBe(false)
+    expect(listIssues(store, {}, afterDefault).map((issue) => [issue.id, issue.stale])).toEqual([
+      ["2", false],
+      ["1", true],
+    ])
+
+    writeFileSync(join(store.dir, "config.yml"), "staleAfter: 2h\n")
+    expect(getIssue(store, "1", new Date("2026-09-20T02:01:00.000Z")).stale).toBe(true)
+    expect(getIssue(store, "1", new Date("2026-09-20T01:59:00.000Z")).stale).toBe(false)
+    // stale は読むたびに決める値なので、ファイルには書かない
+    expect(readFileSync(join(store.dir, "issues", "1.md"), "utf8")).not.toContain("stale")
+  })
+
+  test("a broken staleAfter fails a save before anything is written", () => {
+    const store = workspace()
+    writeFileSync(join(store.dir, "config.yml"), "staleAfter: nope\n")
+    expect(() => saveIssue(store, { title: "task" })).toThrow("invalid staleAfter")
+    expect(existsSync(join(store.dir, "issues", "1.md"))).toBe(false)
+    expect(existsSync(join(store.dir, "events"))).toBe(false)
+  })
+
+  test("the saved updatedAt comes from the given clock", () => {
+    const store = workspace()
+    const now = new Date("2026-09-20T00:00:00.000Z")
+    expect(saveIssue(store, { title: "task" }, { now })).toMatchObject({
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    })
   })
 
   describe("git worktrees", () => {

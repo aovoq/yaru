@@ -8,6 +8,10 @@ import {
   writeFileSync,
 } from "node:fs"
 import { basename, dirname, join, relative } from "node:path"
+import { isIssueOverdue } from "./issue-dates"
+import { appendIssueEvents, diffIssue } from "./issue-events"
+import { isIssueStale, readStaleAfter } from "./issue-stale"
+import type { Provenance } from "./provenance"
 
 export const PRIORITIES = ["urgent", "high", "medium", "low"] as const
 export type Priority = (typeof PRIORITIES)[number]
@@ -29,7 +33,20 @@ export type Issue = {
   canceledAt: string | null
   createdAt: string
   updatedAt: string
+  // 最後にこの issue を CLI から保存したエージェントのセッション・作業ツリー・ブランチ。画面からの保存では変えない
+  session: string | null
+  worktree: string | null
+  branch: string | null
+  // 進行中のまま staleAfter より長く更新されていないか。読むたびに決め、ファイルには書かない
+  stale: boolean
   body: string
+}
+
+// 保存の出どころと時刻。出どころは CLI が readProvenance で読んで渡す
+// 画面 (yaru serve) の保存は常駐プロセスの作業場所を指してしまうので渡さず、前の出どころを残す
+export type SaveOptions = {
+  provenance?: Provenance
+  now?: Date
 }
 
 export type Comment = {
@@ -171,23 +188,25 @@ function loadRawIssues(store: Store): Issue[] {
   return issues
 }
 
-function withRelations(issues: Issue[]): Issue[] {
+// 他の issue との関係と、止まっているかどうかは、1 つのファイルだけからは決まらないので読むたびに足す
+function withDerived(issues: Issue[], now: Date, staleAfter: number): Issue[] {
   return issues.map((issue) => ({
     ...issue,
     blockedBy: issues.filter((other) => other.blocks.includes(issue.id)).map((other) => other.id),
     children: issues.filter((other) => other.parent === issue.id).map((other) => other.id),
+    stale: isIssueStale(issue, now, staleAfter),
   }))
 }
 
-export function listIssues(store: Store, filter: Filter = {}): Issue[] {
+export function listIssues(store: Store, filter: Filter = {}, now = new Date()): Issue[] {
   const resolved: Filter = { ...filter, assignee: resolveAssignee(filter.assignee) }
   if (resolved.status !== undefined) resolved.status = resolveStatus(resolved.status)
   if (resolved.parent !== undefined && resolved.parent !== null) {
     resolved.parent = resolved.parent === "none" ? null : resolved.parent
   }
-  const issues = withRelations(loadRawIssues(store))
+  const issues = withDerived(loadRawIssues(store), now, readStaleAfter(store))
   issues.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || b.id.localeCompare(a.id))
-  return issues.filter((issue) => match(issue, resolved))
+  return issues.filter((issue) => match(issue, resolved, now))
 }
 
 export function pageIssues(
@@ -213,16 +232,25 @@ export function pageIssues(
   return { issues: page, hasNextPage }
 }
 
-export function getIssue(store: Store, id: string): Issue {
+export function getIssue(store: Store, id: string, now = new Date()): Issue {
+  return readDerivedIssue(store, id, now, readStaleAfter(store))
+}
+
+function readDerivedIssue(store: Store, id: string, now: Date, staleAfter: number): Issue {
   const path = issuePath(store, id)
   if (!existsSync(path)) throw new Error(`issue not found: ${id}`)
   const issue = readIssue(path, id)
   const others = loadRawIssues(store).filter((row) => row.id !== id)
-  return withRelations([...others, issue]).find((row) => row.id === id)!
+  return withDerived([...others, issue], now, staleAfter).find((row) => row.id === id)!
 }
 
-export function saveIssue(store: Store, input: SaveInput): Issue {
-  const now = new Date().toISOString()
+export function saveIssue(store: Store, input: SaveInput, options: SaveOptions = {}): Issue {
+  const clock = options.now ?? new Date()
+  const now = clock.toISOString()
+  const provenance = options.provenance
+  // 設定の誤りで保存の後に読み直せないと、書けたのに失敗と伝わり、エージェントが作り直して issue が重複する。書く前に読む
+  const staleAfter = readStaleAfter(store)
+  const eventContext = { by: gitName(), session: provenance?.session ?? null, at: now }
   const assignee = resolveAssignee(input.assignee)
   const dueDate = resolveDueDate(input.dueDate)
   const priority = resolvePriority(input.priority)
@@ -260,21 +288,25 @@ export function saveIssue(store: Store, input: SaveInput): Issue {
       canceledAt: times.canceledAt,
       body: patch ? applyPatch(current.body, patch) : (input.body ?? current.body),
       updatedAt: now,
+      session: provenance ? provenance.session : current.session,
+      worktree: provenance ? provenance.worktree : current.worktree,
+      branch: provenance ? provenance.branch : current.branch,
     }
     writeReplace(path, formatIssue(issue))
-    writeBlockOwners(store, relations.owners, now)
-    return getIssue(store, issue.id)
+    appendIssueEvents(store, issue.id, diffIssue(current, issue), eventContext)
+    writeBlockOwners(store, relations.owners, now, eventContext)
+    return readDerivedIssue(store, issue.id, clock, staleAfter)
   }
   for (;;) {
     const id = nextId(store)
-    const created = newIssue(id, input, { assignee, dueDate, priority, status }, now)
+    const created = newIssue(id, input, { assignee, dueDate, priority, status }, now, provenance)
     created.parent = input.parent !== undefined ? resolveParent(id, input.parent, all) : null
     const relations = resolveBlocks(id, [], input, all)
     created.blocks = relations.blocks
     try {
       writeCreate(issuePath(store, created.id), formatIssue(created))
-      writeBlockOwners(store, relations.owners, now)
-      return getIssue(store, created.id)
+      writeBlockOwners(store, relations.owners, now, eventContext)
+      return readDerivedIssue(store, created.id, clock, staleAfter)
     } catch (err) {
       if (!isEexist(err)) throw err
     }
@@ -291,6 +323,7 @@ function newIssue(
     status: string | undefined
   },
   now: string,
+  provenance: Provenance | undefined,
 ): Issue {
   if (!input.title?.trim()) throw new Error("title is required when creating an issue")
   const status = resolved.status ?? "todo"
@@ -312,6 +345,10 @@ function newIssue(
     canceledAt: times.canceledAt,
     createdAt: now,
     updatedAt: now,
+    session: provenance?.session ?? null,
+    worktree: provenance?.worktree ?? null,
+    branch: provenance?.branch ?? null,
+    stale: false,
     body: input.body ?? "",
   }
 }
@@ -330,7 +367,7 @@ function nextId(store: Store): string {
   return String(max + 1)
 }
 
-function match(issue: Issue, filter: Filter): boolean {
+function match(issue: Issue, filter: Filter, now: Date): boolean {
   if (filter.status && issue.status !== filter.status) return false
   if (filter.assignee === null && issue.assignee !== null) return false
   if (typeof filter.assignee === "string" && issue.assignee !== filter.assignee) return false
@@ -340,7 +377,7 @@ function match(issue: Issue, filter: Filter): boolean {
     const hay = `${issue.id} ${issue.title} ${issue.body}`.toLowerCase()
     if (!hay.includes(q)) return false
   }
-  if (filter.due === "overdue" && !isOverdue(issue.dueDate)) return false
+  if (filter.due === "overdue" && !isIssueOverdue(issue, now)) return false
   if (filter.parent !== undefined) {
     if (filter.parent === null && issue.parent !== null) return false
     if (typeof filter.parent === "string" && issue.parent !== filter.parent) return false
@@ -591,15 +628,19 @@ function hasPath(graph: Map<string, string[]>, from: string, to: string): boolea
   return false
 }
 
+// blockedBy を変えると相手の issue の blocks が変わるので、その変化は相手の issue の履歴に残す
 function writeBlockOwners(
   store: Store,
   owners: { id: string; blocks: string[] }[],
   now: string,
+  eventContext: { by: string; session: string | null; at: string },
 ): void {
   for (const owner of owners) {
     const path = issuePath(store, owner.id)
     const issue = readIssue(path, owner.id)
-    writeReplace(path, formatIssue({ ...issue, blocks: owner.blocks, updatedAt: now }))
+    const next = { ...issue, blocks: owner.blocks, updatedAt: now }
+    writeReplace(path, formatIssue(next))
+    appendIssueEvents(store, owner.id, diffIssue(issue, next), eventContext)
   }
 }
 
@@ -784,6 +825,10 @@ function parseIssue(text: string): Issue {
     canceledAt: blankToNull(meta.canceledAt ?? "") ?? null,
     createdAt: meta.createdAt || "",
     updatedAt: meta.updatedAt || "",
+    session: blankToNull(meta.session ?? "") ?? null,
+    worktree: blankToNull(meta.worktree ?? "") ?? null,
+    branch: blankToNull(meta.branch ?? "") ?? null,
+    stale: false,
     body,
   }
 }
@@ -805,6 +850,9 @@ function formatIssue(issue: Issue): string {
       ["canceledAt", issue.canceledAt ?? ""],
       ["createdAt", issue.createdAt],
       ["updatedAt", issue.updatedAt],
+      ["session", issue.session ?? ""],
+      ["worktree", issue.worktree ?? ""],
+      ["branch", issue.branch ?? ""],
     ],
     issue.body,
   )
