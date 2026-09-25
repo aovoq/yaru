@@ -607,4 +607,13 @@ describe("web", () => {
     expect(html).toContain("Agent sessions")
     expect(html).toContain("No Claude Code sessions in the last 7 days")
   })
+
+  test("the mobile status bar links to the dashboard since the sidebar is hidden on phones", async () => {
+    const store = workspace()
+    saveQuestion(store, { title: "a" })
+    const html = await (await createApp(store).request("/")).text()
+    expect(html).toMatch(
+      /id="mobile-dashboard-link"[^>]*href="\/dashboard"[\s\S]*?Questions[\s\S]*?1/,
+    )
+  })
 })

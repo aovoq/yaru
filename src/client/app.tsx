@@ -84,7 +84,10 @@ export function BoardPage(props: BoardPageProps) {
             onSearch={onSearch}
             onOpenSidebar={sidebar.openSidebar}
           />
-          <MobileStatusNav filters={filters} />
+          <MobileStatusNav
+            filters={filters}
+            awaitingQuestionCount={state.awaitingQuestionCount ?? 0}
+          />
           <Content
             issues={state.issues}
             filters={filters}
@@ -434,7 +437,13 @@ function ViewToggle({ filters, list }: { filters: PageFilters; list: boolean }) 
   )
 }
 
-function MobileStatusNav({ filters }: { filters: PageFilters }) {
+function MobileStatusNav({
+  filters,
+  awaitingQuestionCount,
+}: {
+  filters: PageFilters
+  awaitingQuestionCount: number
+}) {
   const pill = (active: boolean) =>
     `inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs no-underline transition-colors ${
       active ? "bg-surface-2 text-ink" : "text-ink-subtle hover:text-ink"
@@ -453,6 +462,11 @@ function MobileStatusNav({ filters }: { filters: PageFilters }) {
           {statusLabel(status)}
         </a>
       ))}
+      <a id="mobile-dashboard-link" href="/dashboard" class={pill(false)}>
+        <QuestionIcon />
+        Questions
+        <span class="text-ink-tertiary tabular-nums">{awaitingQuestionCount}</span>
+      </a>
     </div>
   )
 }
