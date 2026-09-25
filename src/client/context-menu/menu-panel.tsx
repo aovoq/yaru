@@ -1,15 +1,19 @@
-import { useLayoutEffect, useRef, useState } from "preact/hooks"
+import { useId, useLayoutEffect, useRef, useState } from "preact/hooks"
 import { clampMenuPosition, type MenuAction, type MenuItem as MenuItemData } from "../issue-menu"
 import { MenuItem } from "./menu-item"
 
 // メニューの 1 枚の面。項目を並べ、キーボードでの移動と子メニューの開閉を受け持つ。子メニューは同じ部品で入れ子に描く
 // ↑↓ で移動、→ と ↵ で子メニューを開くか実行、← で親へ戻る、Esc で親へ戻るか閉じる
+// キーボードで子メニューを開いたときは、その最初の項目を選んだ状態から始める (APG の menu の型)
+// focus は面 (role=menu) に置いたまま、選んでいる項目を aria-activedescendant で伝える。押せない項目 (aria-disabled) は飛ばす
 // https://www.w3.org/WAI/ARIA/apg/patterns/menubar/
 
 export function MenuPanel({
   items,
   anchor,
   side = "right",
+  activateFirst = false,
+  label,
   onAction,
   onEscape,
   onBack,
@@ -17,19 +21,31 @@ export function MenuPanel({
   items: MenuItemData[]
   anchor: { x: number; y: number }
   side?: "right" | "left"
+  // 開いたときに最初の項目を選んでおくか。キーボードで開いた子メニューで使う
+  activateFirst?: boolean
+  // 読み上げの名前。子メニューは開いた項目の名前 (Status など)
+  label?: string
   onAction: (action: MenuAction) => void
   onEscape: () => void
   onBack?: () => void
 }) {
+  const panelId = useId()
   const panel = useRef<HTMLDivElement | null>(null)
   const [position, setPosition] = useState(anchor)
-  const [activeIndex, setActiveIndex] = useState(-1)
+  const selectable = items
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => item.kind !== "separator" && !(item.kind === "action" && item.disabled))
+  const [activeIndex, setActiveIndex] = useState(() =>
+    activateFirst ? (selectable[0]?.index ?? -1) : -1,
+  )
   const [openIndex, setOpenIndex] = useState<number | null>(null)
   const [submenuAnchor, setSubmenuAnchor] = useState<{
     x: number
     y: number
     side: "right" | "left"
+    activateFirst: boolean
   } | null>(null)
+  const itemId = (index: number) => `${panelId}-item-${index}`
 
   // 描いてから大きさを測り、画面からはみ出さない位置に置き直す。子メニューは右に出せなければ左に出す
   useLayoutEffect(() => {
@@ -42,11 +58,7 @@ export function MenuPanel({
     element.focus()
   }, [anchor.x, anchor.y, side])
 
-  const selectable = items
-    .map((item, index) => ({ item, index }))
-    .filter(({ item }) => item.kind !== "separator")
-
-  const openSubmenu = (index: number) => {
+  const openSubmenu = (index: number, byKeyboard: boolean) => {
     const row = panel.current?.querySelector<HTMLElement>(`[data-menu-index="${index}"]`)
     if (!row) return
     const rect = row.getBoundingClientRect()
@@ -56,16 +68,18 @@ export function MenuPanel({
       x: fitsRight ? rect.right - 4 : rect.left + 4,
       y: rect.top - 4,
       side: fitsRight ? "right" : "left",
+      activateFirst: byKeyboard,
     })
   }
 
-  const activate = (index: number) => {
+  const activate = (index: number, byKeyboard: boolean) => {
     const item = items[index]
     if (!item || item.kind === "separator") return
     if (item.kind === "submenu") {
-      openSubmenu(index)
+      openSubmenu(index, byKeyboard)
       return
     }
+    if (item.disabled || !item.action) return
     onAction(item.action)
   }
 
@@ -84,7 +98,7 @@ export function MenuPanel({
       event.preventDefault()
       if (activeIndex < 0) return
       if (event.key === "ArrowRight" && items[activeIndex]?.kind !== "submenu") return
-      activate(activeIndex)
+      activate(activeIndex, true)
       return
     }
     if (event.key === "ArrowLeft" && onBack) {
@@ -105,12 +119,14 @@ export function MenuPanel({
       <div
         ref={panel}
         role="menu"
+        aria-label={label}
+        aria-activedescendant={activeIndex >= 0 ? itemId(activeIndex) : undefined}
         tabindex={-1}
         data-context-menu=""
         onKeyDown={onKeyDown}
         onContextMenu={(event: MouseEvent) => event.preventDefault()}
         style={`left: ${position.x}px; top: ${position.y}px`}
-        class="fixed z-50 min-w-52 rounded-lg border border-hairline-strong bg-surface-3 p-1 text-[13px] shadow-2xl shadow-black/60 outline-none"
+        class="text-body fixed z-50 min-w-52 rounded-lg border border-hairline-strong bg-surface-3 p-1 shadow-2xl shadow-black/60 outline-none"
       >
         {items.map((item, index) =>
           item.kind === "separator" ? (
@@ -118,24 +134,29 @@ export function MenuPanel({
           ) : (
             <MenuItem
               item={item}
+              id={itemId(index)}
               index={index}
               active={activeIndex === index || openIndex === index}
               expanded={openIndex === index}
               onPointerEnter={() => {
+                if (item.kind === "action" && item.disabled) return
                 setActiveIndex(index)
-                if (item.kind === "submenu") openSubmenu(index)
+                if (item.kind === "submenu") openSubmenu(index, false)
                 else setOpenIndex(null)
               }}
-              onClick={() => activate(index)}
+              onClick={() => activate(index, false)}
             />
           ),
         )}
       </div>
       {openItem?.kind === "submenu" && submenuAnchor ? (
         <MenuPanel
+          key={openIndex}
           items={openItem.items}
           anchor={{ x: submenuAnchor.x, y: submenuAnchor.y }}
           side={submenuAnchor.side}
+          activateFirst={submenuAnchor.activateFirst}
+          label={openItem.label}
           onAction={onAction}
           onEscape={onEscape}
           onBack={() => {

@@ -1,7 +1,14 @@
 import { describe, expect, test } from "bun:test"
 import { BLANK } from "../page"
 import type { Issue } from "../store"
-import { clampMenuPosition, dueDateFor, issueMenu, type MenuItem } from "./issue-menu"
+import {
+  clampMenuPosition,
+  dueDateFor,
+  issueMenu,
+  propertyInput,
+  propertyPicker,
+  type MenuItem,
+} from "./issue-menu"
 
 const issue: Issue = {
   ...BLANK,
@@ -12,6 +19,7 @@ const issue: Issue = {
   assignee: "aovoq",
   labels: ["backend"],
   dueDate: "2026-10-24",
+  body: "本文",
 }
 const all: Issue[] = [
   issue,
@@ -105,17 +113,106 @@ describe("issue menu", () => {
     expect(find(menu, "Create sub-issue")).toMatchObject({
       action: { type: "createSubIssue", parentId: "7" },
     })
-    expect(find(menu, "Copy ID")).toMatchObject({ action: { type: "copy", text: "#7" } })
+    expect(find(menu, "Copy ID")).toMatchObject({
+      action: { type: "copy", text: "#7", notice: "Copied ID #7" },
+    })
     expect(find(menu, "Copy link")).toMatchObject({
-      action: { type: "copy", text: "http://host/p/app/?id=7" },
+      action: { type: "copy", text: "http://host/p/app/?id=7", notice: "Copied link to #7" },
     })
     expect(find(menu, "Copy title")).toMatchObject({
-      action: { type: "copy", text: "称号を片付ける" },
+      action: { type: "copy", text: "称号を片付ける", notice: "Copied title of #7" },
     })
+    expect(find(menu, "Copy as Markdown")).toMatchObject({
+      action: {
+        type: "copy",
+        text: "[#7 称号を片付ける](http://host/p/app/?id=7)\n\n本文",
+        notice: "Copied #7 as Markdown",
+      },
+    })
+  })
+
+  test("Copy as Markdown is just the link when the issue has no description", () => {
+    const empty = issueMenu({ ...issue, body: "  " }, all, {
+      now: new Date(2026, 8, 25, 12),
+      boardUrl: "http://host/p/app/",
+    })
+    expect(find(empty, "Copy as Markdown")).toMatchObject({
+      action: { text: "[#7 称号を片付ける](http://host/p/app/?id=7)" },
+    })
+  })
+
+  test("a workspace without labels shows a disabled placeholder instead of an action", () => {
+    const bare = issueMenu({ ...issue, labels: [] }, [{ ...issue, labels: [] }], {
+      now: new Date(2026, 8, 25, 12),
+      boardUrl: "http://host/p/app/",
+    })
+    const labels = find(bare, "Labels")
+    if (labels.kind !== "submenu") throw new Error("labels is not a submenu")
+    expect(labels.items).toEqual([{ kind: "action", label: "No labels yet", disabled: true }])
   })
 
   test("the due date helper crosses month ends", () => {
     expect(dueDateFor(new Date(2026, 9, 31, 23), 1)).toBe("2026-11-01")
+  })
+})
+
+describe("property picker", () => {
+  const now = new Date(2026, 8, 25, 12)
+
+  test("the choices mark the current value of one issue", () => {
+    const status = propertyPicker("status", [issue], all, now)
+    expect(status.multiple).toBe(false)
+    expect(status.selected).toEqual(["todo"])
+    expect(status.choices.map((choice) => choice.label)).toEqual([
+      "Backlog",
+      "Todo",
+      "In Progress",
+      "Done",
+      "Canceled",
+    ])
+    const priority = propertyPicker("priority", [issue], all, now)
+    expect(priority.choices[0]).toMatchObject({ value: "", label: "No priority" })
+    expect(priority.selected).toEqual(["high"])
+    const assignee = propertyPicker("assignee", [issue], all, now)
+    expect(assignee.choices.map((choice) => choice.value)).toEqual(["me", "", "aovoq", "codex"])
+    expect(assignee.selected).toEqual(["aovoq"])
+    const due = propertyPicker("dueDate", [issue], all, now)
+    expect(due.choices.map((choice) => [choice.label, choice.value])).toEqual([
+      ["Today", "2026-09-25"],
+      ["Tomorrow", "2026-09-26"],
+      ["Next week", "2026-10-02"],
+      ["Remove due date", ""],
+    ])
+    expect(due.creatable).toBe(true)
+  })
+
+  test("several issues only mark a value that all of them share", () => {
+    const other = { ...issue, id: "8", status: "done", labels: ["backend", "client"] }
+    expect(propertyPicker("status", [issue, other], all, now).selected).toEqual([])
+    const labels = propertyPicker("labels", [issue, other], all, now)
+    expect(labels.multiple).toBe(true)
+    expect(labels.creatable).toBe(true)
+    expect(labels.selected).toEqual(["backend"])
+  })
+
+  test("a label is removed from every issue when all have it, otherwise added where missing", () => {
+    const other = { ...issue, id: "8", labels: ["client"] }
+    const targets = [issue, other]
+    expect(propertyInput("labels", "client", issue, targets)).toEqual({
+      labels: ["backend", "client"],
+    })
+    expect(propertyInput("labels", "client", other, targets)).toEqual({ labels: ["client"] })
+    expect(propertyInput("labels", "backend", issue, [issue])).toEqual({ labels: [] })
+  })
+
+  test("single values become the matching save input and empty means none", () => {
+    expect(propertyInput("status", "done", issue, [issue])).toEqual({ status: "done" })
+    expect(propertyInput("priority", "", issue, [issue])).toEqual({ priority: null })
+    expect(propertyInput("assignee", "", issue, [issue])).toEqual({ assignee: null })
+    expect(propertyInput("dueDate", "2026-10-01", issue, [issue])).toEqual({
+      dueDate: "2026-10-01",
+    })
+    expect(propertyInput("dueDate", "", issue, [issue])).toEqual({ dueDate: null })
   })
 })
 
