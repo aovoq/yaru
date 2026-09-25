@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from "hono/jsx"
 import { DEFAULT_VIEW } from "../page"
+import { renderMarkdown } from "../markdown"
 import type { Question } from "../questions"
 import { PRIORITIES, type Comment, type Issue } from "../store"
 import { ChevronIcon, CrossIcon } from "./icons"
@@ -203,7 +204,10 @@ export function IssueDrawer({
                       {comment.author}
                       {comment.parent ? ` · reply to ${comment.parent}` : ""}
                     </div>
-                    <p class="mt-1 whitespace-pre-wrap text-[13px] text-ink">{comment.body}</p>
+                    <div
+                      class="markdown markdown-compact mt-1"
+                      dangerouslySetInnerHTML={{ __html: renderMarkdown(comment.body) }}
+                    />
                   </div>
                 ))
               )}
@@ -300,7 +304,10 @@ function DrawerQuestion({ question }: { question: Question }) {
       </div>
       <p class="text-[13px] font-medium text-ink">{question.title}</p>
       {question.body ? (
-        <p class="whitespace-pre-wrap text-[12px] text-ink-muted">{question.body}</p>
+        <div
+          class="markdown markdown-compact"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(question.body) }}
+        />
       ) : null}
       {question.defaultAction ? (
         <p class="text-[12px] text-ink-muted">
@@ -309,9 +316,10 @@ function DrawerQuestion({ question }: { question: Question }) {
         </p>
       ) : null}
       {question.answer !== null ? (
-        <p class="border-l-2 border-primary pl-2 whitespace-pre-wrap text-[13px] text-ink">
-          {question.answer}
-        </p>
+        <div
+          class="markdown markdown-compact border-l-2 border-primary pl-2"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(question.answer) }}
+        />
       ) : null}
       {isAwaiting(question) ? (
         <>

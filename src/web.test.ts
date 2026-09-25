@@ -664,4 +664,21 @@ describe("web", () => {
       expect(res.headers.get("location")).toBe("/dashboard")
     }
   })
+
+  test("question bodies, answers, and comments render as markdown", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "topic" })
+    saveQuestion(store, { title: "q", issue: "1", body: "**強調** と `code`" })
+    saveQuestion(store, { title: "r", issue: "1" })
+    answerQuestion(store, "2", { body: "- 回答の箇条書き" })
+    saveComment(store, { issue: "1", body: "## 見出し\n<script>x</script>" })
+    const dashboard = await (await createApp(store).request("/dashboard")).text()
+    expect(dashboard).toContain("<strong>強調</strong>")
+    expect(dashboard).toContain("<li>回答の箇条書き</li>")
+    const board = await (await createApp(store).request("/?id=1")).text()
+    expect(board).toContain("<strong>強調</strong>")
+    expect(board).toContain("<li>回答の箇条書き</li>")
+    expect(board).toContain("<h2>見出し</h2>")
+    expect(board).not.toContain("<script>x</script>")
+  })
 })

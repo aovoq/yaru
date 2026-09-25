@@ -7,7 +7,7 @@ import type { SessionHealth } from "./sessions"
 import { BLANK, BoardPage, Document, ErrorView } from "./ui"
 
 const INPUT = `@import "tailwindcss";
-@theme {
+@theme static {
   --color-ink: #f7f8f8;
   --color-ink-muted: #d0d6e0;
   --color-ink-subtle: #8a8f98;
@@ -55,6 +55,136 @@ html[data-sidebar="closed"] #sidebar {
   html[data-sidebar="closed"] #sidebar-open {
     display: grid;
   }
+}
+/* 本文の Markdown は描画結果に class を付けられず Tailwind のクラス走査に載らないので、ここでまとめて見た目を付ける */
+.markdown {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-ink-muted);
+  overflow-wrap: anywhere;
+}
+.markdown > * + * {
+  margin-top: 0.65em;
+}
+.markdown :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--color-ink);
+  font-weight: 600;
+  line-height: 1.35;
+}
+.markdown > :is(h1, h2, h3, h4, h5, h6):not(:first-child) {
+  margin-top: 1.3em;
+}
+.markdown h1 {
+  font-size: 1.4em;
+}
+.markdown h2 {
+  font-size: 1.2em;
+}
+.markdown h3 {
+  font-size: 1.05em;
+}
+.markdown :is(h4, h5, h6) {
+  font-size: 1em;
+}
+.markdown strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+.markdown ul {
+  list-style: disc;
+  padding-left: 1.4em;
+}
+.markdown ol {
+  list-style: decimal;
+  padding-left: 1.5em;
+}
+.markdown li > :is(ul, ol) {
+  margin-top: 0.2em;
+}
+.markdown li + li {
+  margin-top: 0.2em;
+}
+.markdown li::marker {
+  color: var(--color-ink-tertiary);
+}
+.markdown li:has(> input[type="checkbox"]) {
+  list-style: none;
+  margin-left: -1.3em;
+}
+.markdown input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0 0.45em 0 0;
+  vertical-align: -2px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+.markdown li:has(> input[type="checkbox"]:checked) {
+  color: var(--color-ink-tertiary);
+  text-decoration: line-through;
+}
+.markdown a {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--color-primary-hover) 40%, transparent);
+  text-underline-offset: 2px;
+}
+.markdown code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  padding: 0.1em 0.35em;
+  border: 1px solid var(--color-hairline);
+  border-radius: 4px;
+  background: var(--color-surface-2);
+  color: var(--color-ink);
+}
+.markdown pre {
+  padding: 10px 12px;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  overflow-x: auto;
+  line-height: 1.55;
+}
+.markdown pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12.5px;
+}
+.markdown blockquote {
+  padding-left: 12px;
+  border-left: 2px solid var(--color-hairline-strong);
+  color: var(--color-ink-subtle);
+}
+.markdown table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.markdown :is(th, td) {
+  padding: 4px 10px;
+  border: 1px solid var(--color-hairline);
+  text-align: left;
+}
+.markdown th {
+  background: var(--color-surface-2);
+  color: var(--color-ink);
+  font-weight: 500;
+}
+.markdown hr {
+  border: 0;
+  border-top: 1px solid var(--color-hairline);
+}
+.markdown img {
+  max-width: 100%;
+  border-radius: var(--radius-md);
+}
+.markdown.markdown-compact {
+  font-size: 13px;
+  line-height: 1.6;
 }
 html[data-resizing],
 html[data-resizing] * {

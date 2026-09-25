@@ -1,3 +1,4 @@
+import { renderMarkdown } from "./markdown"
 import type { Question } from "./questions"
 import type { RepositoryState } from "./repository"
 import type { SessionHealth } from "./sessions"
@@ -145,7 +146,10 @@ export function DashboardPage({
                       {relativeTime(question.answeredAt ?? "", now)}
                     </span>
                   </div>
-                  <p class="whitespace-pre-wrap text-[13px] text-ink">{question.answer}</p>
+                  <div
+                    class="markdown markdown-compact"
+                    dangerouslySetInnerHTML={{ __html: renderMarkdown(question.answer ?? "") }}
+                  />
                 </li>
               ))}
             </ul>
@@ -335,7 +339,10 @@ function QuestionCard({
       </div>
       <h2 class="text-[15px] leading-snug font-medium text-ink">{question.title}</h2>
       {question.body ? (
-        <p class="whitespace-pre-wrap text-[13px] text-ink-muted">{question.body}</p>
+        <div
+          class="markdown markdown-compact"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(question.body) }}
+        />
       ) : null}
       {question.defaultAction ? (
         <p class="rounded-md border border-hairline bg-surface-2 px-2.5 py-2 text-[13px] text-ink-muted">
