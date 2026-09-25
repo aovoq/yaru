@@ -327,7 +327,7 @@ function calendarDate(now: Date): string {
   return `${y}-${m}-${d}`
 }
 
-function blankToNull(value: string | null | undefined): string | null | undefined {
+export function blankToNull(value: string | null | undefined): string | null | undefined {
   if (value === undefined) return undefined
   if (value === null) return null
   const trimmed = value.trim()
@@ -350,7 +350,7 @@ function resolveDueDate(value: string | null | undefined): string | null | undef
   return resolved
 }
 
-function resolvePriority(value: string | null | undefined): Priority | null | undefined {
+export function resolvePriority(value: string | null | undefined): Priority | null | undefined {
   const resolved = blankToNull(value)
   if (resolved === undefined || resolved === null) return resolved
   if (!(PRIORITIES as readonly string[]).includes(resolved)) {
@@ -377,7 +377,7 @@ export function resolveLimit(value: number | undefined): number {
   return limit
 }
 
-function joinOr(items: readonly string[]): string {
+export function joinOr(items: readonly string[]): string {
   if (items.length <= 2) return items.join(" or ")
   return `${items.slice(0, -1).join(", ")}, or ${items[items.length - 1]}`
 }
@@ -391,7 +391,7 @@ function isCalendarDate(value: string): boolean {
   return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d
 }
 
-function gitName(): string {
+export function gitName(): string {
   const out = Bun.spawnSync(["git", "config", "user.name"], { stdout: "pipe", stderr: "pipe" })
   const name = out.stdout.toString().trim()
   return name || "me"
@@ -701,17 +701,17 @@ function readIssue(path: string, stem: string): Issue {
   return issue
 }
 
-function writeCreate(path: string, text: string): void {
+export function writeCreate(path: string, text: string): void {
   writeFileSync(path, text, { flag: "wx" })
 }
 
-function writeReplace(path: string, text: string): void {
+export function writeReplace(path: string, text: string): void {
   const tmp = `${path}.tmp`
   writeFileSync(tmp, text)
   renameSync(tmp, path)
 }
 
-function parseFrontmatter(text: string): { meta: Record<string, string>; body: string } {
+export function parseFrontmatter(text: string): { meta: Record<string, string>; body: string } {
   const normalized = text.replace(/\r\n/g, "\n")
   if (!normalized.startsWith("---\n")) throw new Error("invalid issue file")
   const end = normalized.indexOf("\n---\n", 4)
@@ -779,7 +779,7 @@ function formatIssue(issue: Issue): string {
 }
 
 // 空の値を `key: ` と書くと行末に空白が残り、.yaru を整形ツールにかけたときに差分が出るため `key:` と書く
-function formatDocument(fields: [key: string, value: string][], body: string): string {
+export function formatDocument(fields: [key: string, value: string][], body: string): string {
   const frontmatter = fields
     .map(([key, value]) => (value === "" ? `${key}:` : `${key}: ${value}`))
     .join("\n")
@@ -946,6 +946,6 @@ function actualValue(value: unknown): string {
   return String(value)
 }
 
-function isEexist(err: unknown): boolean {
+export function isEexist(err: unknown): boolean {
   return err instanceof Error && "code" in err && err.code === "EEXIST"
 }

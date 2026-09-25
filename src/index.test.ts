@@ -328,3 +328,111 @@ test("save rejects body and patch together", () => {
   expect(out.exitCode).toBe(1)
   expect(out.stderr.toString()).toContain("cannot pass body and patch together")
 })
+
+test("question save list get answer roundtrip", () => {
+  const root = workspace()
+  run(["issue", "save", "--title", "topic"], root)
+  const created = JSON.parse(
+    run(
+      [
+        "question",
+        "save",
+        "--title",
+        "消すか",
+        "--issue",
+        "1",
+        "--priority",
+        "high",
+        "--default",
+        "残す",
+        "--answerBy",
+        "2h",
+        "--body",
+        "背景",
+      ],
+      root,
+    ).stdout.toString(),
+  )
+  expect(created).toMatchObject({
+    id: "1",
+    title: "消すか",
+    status: "open",
+    issue: "1",
+    priority: "high",
+    defaultAction: "残す",
+    body: "背景",
+  })
+  const listed = JSON.parse(run(["question", "list", "--status", "open"], root).stdout.toString())
+  expect(listed.questions.map((question: { id: string }) => question.id)).toEqual(["1"])
+  const answered = JSON.parse(
+    run(["question", "answer", "1", "--body", "-"], root, "消して\nよい").stdout.toString(),
+  )
+  expect(answered).toMatchObject({ status: "answered", answer: "消して\nよい" })
+  expect(JSON.parse(run(["question", "get", "1"], root).stdout.toString()).status).toBe("answered")
+  const human = run(["question", "list", "-f"], root).stdout.toString()
+  expect(human).toContain("answered")
+  expect(human).toContain("消すか")
+})
+
+test("question save --status canceled withdraws a question", () => {
+  const root = workspace()
+  run(["question", "save", "--title", "q"], root)
+  const canceled = JSON.parse(
+    run(["question", "save", "--id", "1", "--status", "canceled"], root).stdout.toString(),
+  )
+  expect(canceled.status).toBe("canceled")
+  const out = run(["question", "answer", "1", "--body", "x"], root)
+  expect(out.exitCode).toBe(1)
+  expect(out.stderr.toString()).toContain("expected status open or expired, actual canceled")
+})
+
+test("question wait returns the answer once it arrives", async () => {
+  const root = workspace()
+  run(["question", "save", "--title", "q"], root)
+  const waiting = Bun.spawn([cli, "question", "wait", "1", "--interval", "50ms"], {
+    cwd: root,
+    stdout: "pipe",
+    stderr: "pipe",
+  })
+  await Bun.sleep(300)
+  run(["question", "answer", "1", "--body", "yes"], root)
+  expect(await waiting.exited).toBe(0)
+  const result = JSON.parse(await new Response(waiting.stdout).text())
+  expect(result).toMatchObject({ status: "answered", answer: "yes" })
+})
+
+test("question wait returns the default action when answerBy passes", () => {
+  const root = workspace()
+  run(
+    [
+      "question",
+      "save",
+      "--title",
+      "q",
+      "--default",
+      "進める",
+      "--answerBy",
+      "2026-01-01T00:00:00Z",
+    ],
+    root,
+  )
+  const out = run(["question", "wait", "1", "-f"], root)
+  expect(out.exitCode).toBe(0)
+  expect(out.stdout.toString()).toBe("expired: proceed with the default action\n進める\n")
+})
+
+test("question wait exits 2 when the timeout passes first", () => {
+  const root = workspace()
+  run(["question", "save", "--title", "q"], root)
+  const out = run(["question", "wait", "1", "--timeout", "100ms", "--interval", "20ms"], root)
+  expect(out.exitCode).toBe(2)
+  expect(JSON.parse(out.stdout.toString()).status).toBe("open")
+  expect(out.stderr.toString()).toContain("timed out after 100ms waiting for question 1")
+})
+
+test("question help documents wait and the default action", () => {
+  expect(run(["--help"]).stdout.toString()).toContain("yaru question save")
+  const help = run(["question", "wait", "--help"]).stdout.toString()
+  expect(help).toContain("--timeout")
+  expect(help).toContain("defaultAction")
+})

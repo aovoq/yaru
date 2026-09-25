@@ -14,6 +14,13 @@ import {
   type Filter,
   type SaveInput,
 } from "./store"
+import {
+  answerQuestion,
+  getQuestion,
+  listQuestions,
+  saveQuestion,
+  type Question,
+} from "./questions"
 import { DEFAULT_PORT, serve } from "./web"
 
 const GLOBAL_HELP = `yaru — local issues, markdown in .yaru
@@ -25,6 +32,11 @@ const GLOBAL_HELP = `yaru — local issues, markdown in .yaru
   yaru comment list --issue ID
   yaru comment get <id>
   yaru comment save
+  yaru question list
+  yaru question get <id>
+  yaru question save
+  yaru question answer <id>
+  yaru question wait <id>
   yaru serve [-p|--port ${DEFAULT_PORT}]
 
 Output is JSON unless -f / --format. Commands print their contract with --help.
@@ -149,6 +161,79 @@ Usage:
   yaru comment save --id ID --body TEXT|- [-f|--format]
 `
 
+const QUESTION_HELP = `yaru question — ask the human asynchronously and read the answer
+
+  yaru question list
+  yaru question get <id>
+  yaru question save
+  yaru question answer <id>
+  yaru question wait <id>
+
+Ask when a decision is the human's to make. Give a defaultAction and an answerBy
+so work continues with the default when no answer arrives in time.
+Each subcommand documents its flags with --help.
+Output is JSON unless -f / --format.
+`
+
+const QUESTION_LIST_HELP = `yaru question list — list questions in this workspace
+
+Usage:
+  yaru question list [--status NAME] [--issue ID] [-f|--format]
+
+Open and expired questions come first, newest first.
+JSON prints {questions}.
+
+Status: open, expired, answered, canceled
+expired is an open question whose answerBy has passed.
+`
+
+const QUESTION_GET_HELP = `yaru question get — retrieve one question by id
+
+Usage:
+  yaru question get <id> [-f|--format]
+`
+
+const QUESTION_SAVE_HELP = `yaru question save — ask a question or update one
+
+If --id is provided, updates the existing question; otherwise creates a new one.
+Do not pass --id when creating. Title is required when creating: the question itself, one line.
+Omitted fields stay unchanged on update. none clears issue, priority, default, or answerBy.
+
+--default is the action you will take if no answer arrives by answerBy (one line).
+--answerBy is a duration from now (30m, 2h, 1d) or an ISO 8601 datetime.
+--body is Markdown context: options, trade-offs, your recommendation. Use --body - to read stdin.
+--status canceled withdraws a question that no longer needs an answer; open restores it.
+
+Usage:
+  yaru question save --title TEXT [--issue ID] [--priority NAME] [--default TEXT]
+                     [--answerBy WHEN] [--body TEXT|-] [-f|--format]
+  yaru question save --id ID [--title TEXT] [--issue ID] [--priority NAME] [--default TEXT]
+                     [--answerBy WHEN] [--body TEXT|-] [--status open|canceled] [-f|--format]
+
+Priority: urgent, high, medium, low
+`
+
+const QUESTION_ANSWER_HELP = `yaru question answer — answer a question
+
+Usage:
+  yaru question answer <id> --body TEXT|- [-f|--format]
+
+Answering again replaces the answer. An expired question can still be answered.
+`
+
+const QUESTION_WAIT_HELP = `yaru question wait — block until a question is resolved
+
+Usage:
+  yaru question wait <id> [--timeout DURATION] [--interval DURATION] [-f|--format]
+
+Returns when the question is answered, canceled, or expired (answerBy passed).
+On expired, proceed with defaultAction. Prints the question as JSON.
+-f / --format prints the answer, or the defaultAction when expired.
+
+--timeout defaults to 10m, --interval to 1s. Durations: 100ms, 30s, 10m, 1h.
+Exit code 0 when resolved, 2 when the timeout passed first.
+`
+
 const FORMAT_FLAGS = ["format", "f"] as const
 const LIST_FLAGS = new Set([
   "help",
@@ -186,6 +271,23 @@ const SAVE_FLAGS = new Set([
 const COMMENT_LIST_FLAGS = new Set(["help", "h", "issue", ...FORMAT_FLAGS])
 const COMMENT_GET_FLAGS = new Set(["help", "h", "id", ...FORMAT_FLAGS])
 const COMMENT_SAVE_FLAGS = new Set(["help", "h", "id", "issue", "parent", "body", ...FORMAT_FLAGS])
+const QUESTION_LIST_FLAGS = new Set(["help", "h", "status", "issue", ...FORMAT_FLAGS])
+const QUESTION_GET_FLAGS = new Set(["help", "h", "id", ...FORMAT_FLAGS])
+const QUESTION_SAVE_FLAGS = new Set([
+  "help",
+  "h",
+  "id",
+  "title",
+  "issue",
+  "priority",
+  "default",
+  "answerBy",
+  "body",
+  "status",
+  ...FORMAT_FLAGS,
+])
+const QUESTION_ANSWER_FLAGS = new Set(["help", "h", "id", "body", ...FORMAT_FLAGS])
+const QUESTION_WAIT_FLAGS = new Set(["help", "h", "id", "timeout", "interval", ...FORMAT_FLAGS])
 const INIT_FLAGS = new Set(["help", "h"])
 const SERVE_FLAGS = new Set(["help", "h", "port", "p"])
 
@@ -222,6 +324,10 @@ async function main() {
       await comment(rest.slice(1), flag, flags)
       return
     }
+    if (cmd === "question") {
+      await question(rest.slice(1), flag, flags)
+      return
+    }
     throw new Error(`unknown command: ${cmd}`)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -242,6 +348,14 @@ function helpFor(rest: string[]): string {
     if (rest[1] === "get") return COMMENT_GET_HELP
     if (rest[1] === "save") return COMMENT_SAVE_HELP
     return COMMENT_HELP
+  }
+  if (rest[0] === "question") {
+    if (rest[1] === "list") return QUESTION_LIST_HELP
+    if (rest[1] === "get") return QUESTION_GET_HELP
+    if (rest[1] === "save") return QUESTION_SAVE_HELP
+    if (rest[1] === "answer") return QUESTION_ANSWER_HELP
+    if (rest[1] === "wait") return QUESTION_WAIT_HELP
+    return QUESTION_HELP
   }
   return GLOBAL_HELP
 }
@@ -390,6 +504,141 @@ async function comment(
     return
   }
   throw new Error("usage: yaru comment list|get|save")
+}
+
+async function question(
+  rest: string[],
+  flag: (k: string) => string | undefined,
+  flags: Record<string, string[]>,
+) {
+  const sub = rest[0]
+  if (sub === "list") {
+    assertKnownFlags(flags, QUESTION_LIST_FLAGS)
+    assertNoExtra(rest.slice(1))
+    const questions = listQuestions(open(findRoot()), {
+      status: flag("status"),
+      issue: flag("issue"),
+    })
+    if (outputFormat(flag) === "json") {
+      printJson({ questions })
+      return
+    }
+    if (questions.length === 0) {
+      console.log("(none)")
+      return
+    }
+    const width = Math.max(...questions.map((row) => row.id.length))
+    for (const row of questions) {
+      console.log(
+        `${row.id.padEnd(width)}  ${row.status.padEnd(8)}  ${(row.priority ?? "-").padEnd(6)}  ${(row.answerBy ?? "-").padEnd(24)}  ${row.title}`,
+      )
+    }
+    return
+  }
+  if (sub === "get") {
+    assertKnownFlags(flags, QUESTION_GET_FLAGS)
+    const id = flag("id") || rest[1]
+    if (!id) throw new Error("usage: yaru question get <id>")
+    assertNoExtra(rest.slice(flag("id") ? 1 : 2))
+    const found = getQuestion(open(findRoot()), id)
+    if (outputFormat(flag) === "json") printJson(found)
+    else process.stdout.write(formatQuestion(found))
+    return
+  }
+  if (sub === "save") {
+    assertKnownFlags(flags, QUESTION_SAVE_FLAGS)
+    assertNoExtra(rest.slice(1))
+    const saved = saveQuestion(open(findRoot()), {
+      id: flag("id"),
+      title: flag("title"),
+      issue: flag("issue"),
+      priority: flag("priority"),
+      defaultAction: flag("default"),
+      answerBy: flag("answerBy"),
+      status: flag("status"),
+      body: flag("body") === "-" ? readStdin() : flag("body"),
+    })
+    if (outputFormat(flag) === "json") {
+      printJson(saved)
+      return
+    }
+    console.log(saved.id)
+    return
+  }
+  if (sub === "answer") {
+    assertKnownFlags(flags, QUESTION_ANSWER_FLAGS)
+    const id = flag("id") || rest[1]
+    if (!id) throw new Error("usage: yaru question answer <id> --body TEXT|-")
+    assertNoExtra(rest.slice(flag("id") ? 1 : 2))
+    const body = flag("body") === "-" ? readStdin() : flag("body")
+    const saved = answerQuestion(open(findRoot()), id, { body })
+    if (outputFormat(flag) === "json") {
+      printJson(saved)
+      return
+    }
+    console.log(saved.id)
+    return
+  }
+  if (sub === "wait") {
+    assertKnownFlags(flags, QUESTION_WAIT_FLAGS)
+    const id = flag("id") || rest[1]
+    if (!id) throw new Error("usage: yaru question wait <id>")
+    assertNoExtra(rest.slice(flag("id") ? 1 : 2))
+    const timeout = parseDurationFlag("timeout", flag("timeout") ?? "10m")
+    const interval = parseDurationFlag("interval", flag("interval") ?? "1s")
+    const store = open(findRoot())
+    const deadline = Date.now() + timeout
+    let current = getQuestion(store, id)
+    while (current.status === "open" && Date.now() < deadline) {
+      await Bun.sleep(Math.min(interval, Math.max(deadline - Date.now(), 0)))
+      current = getQuestion(store, id)
+    }
+    if (outputFormat(flag) === "json") printJson(current)
+    else process.stdout.write(formatWaitResult(current))
+    if (current.status === "open") {
+      console.error(`timed out after ${flag("timeout") ?? "10m"} waiting for question ${id}`)
+      process.exit(2)
+    }
+    return
+  }
+  throw new Error("usage: yaru question list|get|save|answer|wait")
+}
+
+function formatQuestion(question: Question): string {
+  const lines = [
+    `${question.id}  ${question.status}  ${question.priority ?? "-"}  issue ${question.issue ?? "-"}  answerBy ${question.answerBy ?? "-"}`,
+    question.title,
+  ]
+  if (question.defaultAction) lines.push(`default: ${question.defaultAction}`)
+  if (question.body) lines.push("", question.body)
+  if (question.answer !== null) {
+    lines.push(
+      "",
+      `answer (${question.answeredBy ?? "-"} ${question.answeredAt ?? "-"}):`,
+      question.answer,
+    )
+  }
+  return `${lines.join("\n")}\n`
+}
+
+function formatWaitResult(question: Question): string {
+  if (question.status === "answered") return `answered\n${question.answer}\n`
+  if (question.status === "expired") {
+    return `expired: proceed with the default action\n${question.defaultAction ?? "(no default action)"}\n`
+  }
+  return `${question.status}\n`
+}
+
+const DURATION_MILLISECONDS: Record<string, number> = { ms: 1, s: 1_000, m: 60_000, h: 3_600_000 }
+
+function parseDurationFlag(name: string, raw: string): number {
+  const match = raw.match(/^(\d+)(ms|s|m|h)$/)
+  if (!match) {
+    throw new Error(
+      `invalid ${name}: expected a duration like 100ms, 30s, 10m, or 1h, actual ${raw}`,
+    )
+  }
+  return Number(match[1]) * DURATION_MILLISECONDS[match[2]!]!
 }
 
 async function hintBoard(id: string) {
