@@ -4,7 +4,7 @@ import { Button } from "../../components/button"
 
 // 属性の値を見せておき、押すと入力に切り替える。入力を離れたら値の表示に戻る
 // 表示中は入力がフォームに無いので、JavaScript なしの送信ではその属性を変えない
-// 値の行は Button の text と inline (枠も余白も高さも持たない) で組み、ほかの属性の行 (高さ 28px) と高さをそろえる
+// 値の行は Button の inline (枠も余白も高さも持たない) で組み、ほかの属性の行 (高さ 28px) と高さをそろえる
 
 export function EditableValue({
   empty,
@@ -41,28 +41,26 @@ export function EditableValue({
               {display}
             </a>
           ) : (
-            // Button は中身を真ん中に寄せるので、中身を包む span で行の幅を埋めて左に寄せる
-            // 文字の色も Button の text (薄い色) ではなく値の色にしたいので、この span で決める
             <Button
-              variant="text"
+              variant="plain"
               size="inline"
+              align="start"
               class="min-w-0 flex-1"
               onClick={() => setEditing(true)}
             >
-              <span class="min-w-0 flex-1 text-left text-ink">{display}</span>
+              {display}
             </Button>
           )}
           {link ? (
-            // Button の sm (高さ 28px) を置くと値の行が上下の余白の分だけ高くなり、ほかの属性の行とそろわなくなるので、inline にする
-            // 字の大きさと hover の面は inline の 13px と違うので、中身の span で決める
+            // sm (高さ 28px) だと値の行が高くなり、ほかの属性の行とそろわなくなるので、余白だけの xs にする
             <Button
-              variant="text"
-              size="inline"
+              variant="ghost"
+              size="xs"
               title="Change"
               class="ml-auto shrink-0"
               onClick={() => setEditing(true)}
             >
-              <span class="rounded px-1 text-[11px] hover:bg-surface-2 hover:text-ink">Edit</span>
+              Edit
             </Button>
           ) : null}
         </>

@@ -3,7 +3,7 @@ import { StatusIcon } from "../../components/icons/status-icon"
 import { Avatar } from "../../components/avatar"
 import { EmptyAvatar } from "../../components/empty-avatar"
 import { GroupLabel } from "../../components/group-label"
-import { InlineInput, inlineFieldClass } from "../../components/inline-input"
+import { InlineInput } from "../../components/inline-input"
 import { InlineSelect } from "../../components/inline-select"
 import { LabelChip } from "../../components/label-chip"
 import { RelativeTime } from "../../components/relative-time"
@@ -97,13 +97,12 @@ export function Properties({
         />
       </PropRow>
       <PropRow label="Due date">
-        {/* 日付の欄は InlineInput にしない。InlineInput の既定の blurOnEnter が Enter でのフォームの送信を止めてしまうため */}
-        <input
+        <InlineInput
           type="date"
           name="dueDate"
           value={issue.dueDate ?? ""}
           onChange={commit("dueDate")}
-          class={inlineFieldClass()}
+          onKeyDown={null}
         />
       </PropRow>
       <PropRow label="Parent">

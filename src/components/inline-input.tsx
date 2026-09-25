@@ -20,10 +20,14 @@ export function blurOnEnter(event: KeyboardEvent): void {
   ;(event.currentTarget as HTMLElement).blur()
 }
 
+// onKeyDown を省くと Enter で入力を終える (blurOnEnter)。日付の欄のように Enter をブラウザに任せたいときは null を渡す
 export function InlineInput({
   class: extra = "",
   onKeyDown = blurOnEnter,
   ...props
-}: Omit<JSX.InputHTMLAttributes<HTMLInputElement>, "class"> & { class?: string }) {
-  return <input {...props} onKeyDown={onKeyDown} class={inlineFieldClass(extra)} />
+}: Omit<JSX.InputHTMLAttributes<HTMLInputElement>, "class" | "onKeyDown"> & {
+  class?: string
+  onKeyDown?: ((event: KeyboardEvent) => void) | null
+}) {
+  return <input {...props} onKeyDown={onKeyDown ?? undefined} class={inlineFieldClass(extra)} />
 }

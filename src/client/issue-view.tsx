@@ -95,7 +95,8 @@ export function IssueView({
         />
         {/* スマホ幅では 題名と説明 → 属性 → 残り の 1 列、広い画面では左に本文、右に属性を固定して並べる */}
         <div class="min-h-0 flex-1 overflow-y-auto">
-          <div class="md:grid md:min-h-full md:grid-cols-[minmax(0,1fr)_18rem]">
+          {/* 属性は 2 行にまたがるので、1 行目 (題名と説明) は中身の高さにし、余りは 2 行目に回す。そうしないと説明が短いときに間が空く */}
+          <div class="md:grid md:min-h-full md:grid-cols-[minmax(0,1fr)_18rem] md:grid-rows-[auto_1fr]">
             <div class="md:col-start-1 md:row-start-1">
               <div class="mx-auto flex max-w-[760px] flex-col gap-3 px-4 pt-6 pb-2 md:px-10 md:pt-10">
                 {error ? <Alert>{error}</Alert> : null}

@@ -74,11 +74,17 @@ export function Description({
     )
   }
   if (!issue.body.trim()) {
-    // Button は中身を真ん中に寄せ、字も 13px にするので、中身を包む span で行の幅を埋めて左に寄せ、説明の本文と同じ 14px にする
-    // 押すと文を書き始める場所なので、指の形ではなく文字の入力の形のカーソルを span で出す
+    // 押すと文を書き始める場所なので、指の形ではなく文字の入力の形のカーソルにし、説明の本文と同じ 14px で左に寄せる
     return (
-      <Button variant="text" size="inline" class="w-full" onClick={() => setEditing(true)}>
-        <span class="flex-1 cursor-text py-1 text-left text-[14px]">Add description…</span>
+      <Button
+        variant="text"
+        size="inline"
+        align="start"
+        cursor="text"
+        class="w-full py-1 text-[14px]"
+        onClick={() => setEditing(true)}
+      >
+        Add description…
       </Button>
     )
   }

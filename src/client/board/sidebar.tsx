@@ -63,7 +63,7 @@ export function Sidebar({
           label="Dashboard"
           count={awaitingQuestionCount}
         />
-        <GroupLabel class="mt-4 mb-1">Status</GroupLabel>
+        <GroupLabel class="mt-4 mb-1 px-2">Status</GroupLabel>
         {STATUSES.map((status) => (
           <NavItem
             href={pageHref({ ...filters, status: filters.status === status ? undefined : status })}
@@ -75,7 +75,7 @@ export function Sidebar({
         ))}
         {labels.length > 0 ? (
           <>
-            <GroupLabel class="mt-4 mb-1">Labels</GroupLabel>
+            <GroupLabel class="mt-4 mb-1 px-2">Labels</GroupLabel>
             {labels.map((label) => (
               <NavItem
                 href={pageHref({ ...filters, label: filters.label === label ? undefined : label })}
@@ -89,7 +89,7 @@ export function Sidebar({
         ) : null}
         {people.length > 0 ? (
           <>
-            <GroupLabel class="mt-4 mb-1">People</GroupLabel>
+            <GroupLabel class="mt-4 mb-1 px-2">People</GroupLabel>
             {people.map((person) => (
               <NavItem
                 href={pageHref({
