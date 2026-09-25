@@ -1,23 +1,24 @@
-import { Button } from "../components/button"
-import { ChevronRightIcon } from "../components/icons/chevron-right-icon"
-import { CrossIcon } from "../components/icons/cross-icon"
+import { Alert } from "../components/alert"
+import { AutoGrowTextarea } from "../components/auto-grow-textarea"
 import { QuestionCard } from "../components/question-card"
 import { QuestionAnswerForm } from "../components/question-answer-form"
 import { Section } from "../components/section"
 import type { Question } from "../questions"
 import type { Comment, Issue } from "../store"
 import { Activity } from "./issue/activity"
+import { CommentComposer } from "./issue/comment-composer"
 import { Description } from "./issue/description"
-import { AutoGrowTextarea } from "../components/auto-grow-textarea"
 import { FilterInputs } from "./issue/filter-inputs"
+import { IssueViewHeader } from "./issue/issue-view-header"
 import { Properties } from "./issue/properties"
-import { Relations, SubIssues } from "./issue/relations"
+import { Relations } from "./issue/relations"
+import { SubIssues } from "./issue/sub-issues"
 import type { DraftField, SaveState } from "./state"
 import { pageHref, type PageFilters } from "./view-model"
 
 // Linear の issue 画面にならい、左に題名・説明・子 issue・関係・質問・活動、右に属性を置く
 // スマホ幅では 1 列にし、属性を題名の上に出す
-// ここでは見出し・保存のフォーム・並び・コメントと回答のフォームだけを組み、各欄は ./issue/ に分ける
+// ここでは保存のフォーム・並び・コメントと回答のフォームだけを組み、見出しの帯と各欄は ./issue/ に分ける
 
 export function IssueView({
   issue,
@@ -86,63 +87,18 @@ export function IssueView({
       >
         <FilterInputs filters={filters} />
         {issue.id ? <input type="hidden" name="id" value={issue.id} /> : null}
-        <header class="flex h-12 shrink-0 items-center gap-2 border-b border-hairline px-4">
-          <a
-            href={pageHref(filters)}
-            class="text-[13px] text-ink-subtle no-underline hover:text-ink focus-visible:outline-2 focus-visible:outline-primary-focus/50"
-          >
-            Issues
-          </a>
-          <ChevronRightIcon />
-          <span class="font-mono text-[12px] text-ink">{isNew ? "New issue" : `#${issue.id}`}</span>
-          <div class="ml-auto flex items-center gap-2">
-            {isNew ? (
-              <Button type="submit" variant="primary">
-                Create issue
-                <span class="font-mono text-[10px] text-on-primary/60">⌘⏎</span>
-              </Button>
-            ) : (
-              <>
-                <span aria-live="polite" class="text-[11px] text-ink-tertiary">
-                  {saveState === "saving"
-                    ? "Saving…"
-                    : draftDirty
-                      ? "Unsaved"
-                      : saveState === "saved"
-                        ? "Saved"
-                        : ""}
-                </span>
-                {/* JavaScript が動かないときは自動保存されないので、保存のボタンを出す */}
-                <noscript>
-                  <Button type="submit" variant="primary">
-                    Save
-                  </Button>
-                </noscript>
-              </>
-            )}
-            <a
-              id="drawer-close"
-              href={pageHref(filters)}
-              title="Close (Esc)"
-              class="grid size-7 place-items-center rounded-md text-ink-tertiary no-underline transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-primary-focus/50"
-            >
-              <CrossIcon />
-            </a>
-          </div>
-        </header>
+        <IssueViewHeader
+          issueId={issue.id}
+          boardHref={pageHref(filters)}
+          saveState={saveState}
+          draftDirty={draftDirty}
+        />
         {/* スマホ幅では 題名と説明 → 属性 → 残り の 1 列、広い画面では左に本文、右に属性を固定して並べる */}
         <div class="min-h-0 flex-1 overflow-y-auto">
           <div class="md:grid md:min-h-full md:grid-cols-[minmax(0,1fr)_18rem]">
             <div class="md:col-start-1 md:row-start-1">
               <div class="mx-auto flex max-w-[760px] flex-col gap-3 px-4 pt-6 pb-2 md:px-10 md:pt-10">
-                {error ? (
-                  <p
-                    role="alert"
-                    class="rounded-md border border-semantic-danger/40 bg-semantic-danger/10 px-3 py-2 text-[13px] text-semantic-danger"
-                  >
-                    {error}
-                  </p>
-                ) : null}
+                {error ? <Alert>{error}</Alert> : null}
                 <AutoGrowTextarea
                   name="title"
                   value={issue.title}
@@ -187,19 +143,7 @@ export function IssueView({
                     </Section>
                   ) : null}
                   <Activity issue={issue} comments={comments} />
-                  <div class="flex flex-col gap-2">
-                    <textarea
-                      form="comment-form"
-                      name="body"
-                      placeholder="Leave a comment…"
-                      class="min-h-20 w-full resize-y rounded-lg border border-hairline bg-surface-1 p-3 font-sans text-[14px] text-ink placeholder:text-ink-tertiary focus:border-hairline-strong focus:outline-none"
-                    />
-                    <div class="flex justify-end">
-                      <Button type="submit" form="comment-form">
-                        Comment
-                      </Button>
-                    </div>
-                  </div>
+                  <CommentComposer />
                 </div>
               )}
             </div>

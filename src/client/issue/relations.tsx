@@ -3,42 +3,9 @@ import { Section } from "../../components/section"
 import type { Issue } from "../../store"
 import { pageHref, type PageFilters } from "../view-model"
 
-// issue 画面で、つながりのある issue (子 issue・止めている / 止められている issue) を並べる
+// issue 画面で、この issue を止めている issue と、この issue が止めている issue を並べる
+// どちらも無ければ何も出さない。子 issue の一覧は sub-issues.tsx にある
 
-// 子 issue の一覧。見出しの右に、終わった数の割合を棒で見せる
-export function SubIssues({
-  issue,
-  all,
-  filters,
-}: {
-  issue: Issue
-  all: Issue[]
-  filters: PageFilters
-}) {
-  const children = all.filter((other) => other.parent === issue.id)
-  if (children.length === 0) return null
-  const done = children.filter((child) => child.status === "done").length
-  return (
-    <Section
-      title="Sub-issues"
-      aside={
-        <span class="flex items-center gap-2 text-[11px] text-ink-tertiary tabular-nums">
-          <span class="h-1 w-16 overflow-hidden rounded-full bg-surface-3">
-            <span
-              class="block h-full rounded-full bg-primary"
-              style={`width: ${Math.round((done / children.length) * 100)}%`}
-            />
-          </span>
-          {done}/{children.length}
-        </span>
-      }
-    >
-      <IssueLinkList issues={children} hrefFor={(row) => pageHref(filters, row.id)} />
-    </Section>
-  )
-}
-
-// この issue を止めている issue と、この issue が止めている issue。どちらも無ければ何も出さない
 export function Relations({
   issue,
   all,

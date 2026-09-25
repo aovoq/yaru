@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from "preact/hooks"
-import { Button } from "../../components/button"
-import { renderMarkdown, toggleTask } from "../../markdown"
-import type { Issue } from "../../store"
 import { AutoGrowTextarea } from "../../components/auto-grow-textarea"
+import { Button } from "../../components/button"
+import { FOCUS_RING } from "../../components/focus-ring"
+import { Markdown } from "../../components/markdown"
+import { textareaClass } from "../../components/textarea"
+import { toggleTask } from "../../markdown"
+import type { Issue } from "../../store"
 
 // issue の説明。描画した Markdown を見せ、押すと生の Markdown の編集に切り替える
 // チェックボックスはその場で [ ] と [x] を切り替える
@@ -57,7 +60,7 @@ export function Description({
             setEditing(false)
           }}
           placeholder="Add description… (Markdown)"
-          class="min-h-40 w-full resize-none overflow-hidden rounded-md border border-hairline bg-surface-1 p-3 font-mono text-[13px] leading-relaxed text-ink placeholder:text-ink-tertiary focus:border-hairline-strong focus:outline-none"
+          class={textareaClass({ mono: true }, "min-h-40 resize-none overflow-hidden")}
         />
         {startEditing ? null : (
           <div class="flex items-center gap-2 text-[11px] text-ink-tertiary">
@@ -71,20 +74,18 @@ export function Description({
     )
   }
   if (!issue.body.trim()) {
+    // Button は中身を真ん中に寄せ、字も 13px にするので、中身を包む span で行の幅を埋めて左に寄せ、説明の本文と同じ 14px にする
+    // 押すと文を書き始める場所なので、指の形ではなく文字の入力の形のカーソルを span で出す
     return (
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        class="w-full cursor-text rounded-md border-0 bg-transparent px-0 py-1 text-left font-sans text-[14px] text-ink-tertiary hover:text-ink-subtle"
-      >
-        Add description…
-      </button>
+      <Button variant="text" size="inline" class="w-full" onClick={() => setEditing(true)}>
+        <span class="flex-1 cursor-text py-1 text-left text-[14px]">Add description…</span>
+      </Button>
     )
   }
-  // 押して編集に切り替えるため、Markdown 部品ではなく id と操作を持たせた要素に直接描く
   return (
-    <div
+    <Markdown
       id="issue-description-preview"
+      source={issue.body}
       role="button"
       tabindex={0}
       title="Click to edit"
@@ -92,8 +93,7 @@ export function Description({
       onKeyDown={(event: KeyboardEvent) => {
         if (event.key === "Enter" && event.target === event.currentTarget) setEditing(true)
       }}
-      class="markdown -mx-2 cursor-text rounded-md px-2 py-1 transition-colors hover:bg-surface-1 focus-visible:outline-2 focus-visible:outline-primary-focus/50"
-      dangerouslySetInnerHTML={{ __html: renderMarkdown(issue.body) }}
+      class={`-mx-2 cursor-text rounded-md px-2 py-1 transition-colors hover:bg-surface-1 ${FOCUS_RING}`}
     />
   )
 }
