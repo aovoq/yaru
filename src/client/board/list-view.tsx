@@ -1,37 +1,52 @@
-import type { Issue } from "../../store"
-import { issueColumns, type PageFilters } from "../view-model"
+import type { AwaitingSummary } from "../../page"
+import type { IssueSection, PageFilters } from "../view-model"
+import { GroupHeading } from "./group-heading"
 import { IssueRow } from "./issue-row"
-import { StatusHeading } from "./status-heading"
 
-// 状態ごとの見出しの下に issue を 1 行ずつ並べる一覧の表示。issue の無い状態は見出しごと省く
+// まとまりごとの見出しの下に issue を 1 行ずつ並べる一覧の表示。issue の無いまとまりは見出しごと省く
+// まとまりに分けないとき (group=none) は見出しを出さずに全ての行を続けて並べる
 
 export function ListView({
-  issues,
+  sections,
   filters,
   selectedIssueId,
+  awaitingByIssue,
+  labelColors,
+  now,
 }: {
-  issues: Issue[]
+  sections: IssueSection[]
   filters: PageFilters
   selectedIssueId: string | null
+  awaitingByIssue: Record<string, AwaitingSummary>
+  labelColors: Map<string, string>
+  now: Date
 }) {
   return (
     <main id="board" class="min-h-0 flex-1 overflow-y-auto">
-      {issueColumns(issues).map((status) => {
-        const items = issues.filter((issue) => issue.status === status)
-        if (items.length === 0) return null
+      {sections.map((section) => {
+        if (section.issues.length === 0) return null
         return (
-          <section data-status={status}>
-            <StatusHeading
-              status={status}
-              count={items.length}
-              class="sticky top-0 z-10 h-9 border-b border-hairline bg-surface-1 px-4"
-            />
-            {items.map((issue) => (
+          <section
+            key={section.key}
+            data-status={section.group === "status" ? (section.value ?? undefined) : undefined}
+            data-group={section.key}
+          >
+            {section.group === "none" ? null : (
+              <GroupHeading
+                section={section}
+                labelColors={labelColors}
+                class="sticky top-0 z-10 h-9 border-b border-hairline/60 bg-surface-1 px-4"
+              />
+            )}
+            {section.issues.map((issue) => (
               <IssueRow
                 key={issue.id}
                 issue={issue}
                 filters={filters}
                 selected={selectedIssueId === issue.id}
+                awaiting={awaitingByIssue[issue.id]}
+                labelColors={labelColors}
+                now={now}
               />
             ))}
           </section>

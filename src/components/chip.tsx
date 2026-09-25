@@ -5,6 +5,7 @@ import { CrossIcon } from "./icons/cross-icon"
 // 押して絞り込みを切り替える札
 // pill はスマホ幅の状態の切り替え (mobile-status-nav.tsx) で、選んでいるものだけ面を塗る
 // outline は見出しに並べる、いま掛かっている絞り込み (board/filter-chips.tsx) で、removable なら押すと外れることを × で示す
+// 選んでいる札 (active) は塗りでしか分からないので、リンクなら aria-current で読み上げにも伝える https://www.w3.org/TR/wai-aria-1.2/#aria-current
 // id はスマホ幅のダッシュボードへの入口 (#mobile-dashboard-link) のように、テストや CSS から 1 つを指したいときに渡す
 
 export type ChipVariant = "pill" | "outline"
@@ -60,7 +61,7 @@ export function Chip({
   )
   if (href !== undefined) {
     return (
-      <a id={id} href={href} class={className}>
+      <a id={id} href={href} aria-current={active ? "page" : undefined} class={className}>
         {content}
       </a>
     )
