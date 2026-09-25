@@ -1,3 +1,4 @@
+import { listQuestions } from "./questions"
 import { getIssue, listComments, listIssues, type Comment, type Issue, type Store } from "./store"
 
 export const BLANK: Issue = {
@@ -38,6 +39,7 @@ export type PageData = {
   assignee?: string
   label?: string
   view: ViewMode
+  awaitingQuestionCount?: number
   error?: string
 }
 
@@ -70,5 +72,8 @@ export function getPageData(store: Store, url: URL): PageData {
     assignee,
     label,
     view,
+    awaitingQuestionCount: listQuestions(store).filter(
+      (question) => question.status === "open" || question.status === "expired",
+    ).length,
   }
 }

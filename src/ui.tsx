@@ -11,7 +11,12 @@ const SIDEBAR_MAX = 280
 
 const SIDEBAR_BOOT = `try{if(localStorage.getItem("yaru.sidebar.open")==="0")document.documentElement.setAttribute("data-sidebar","closed");var w=+localStorage.getItem("yaru.sidebar.width");if(w>=${SIDEBAR_MIN})document.documentElement.style.setProperty("--sidebar-width",Math.min(${SIDEBAR_MAX},w)+"px")}catch(e){}`
 
-export function Document({ css, children }: PropsWithChildren<{ css: string }>) {
+// script を渡すとその inline script を使い、板のクライアント (app.js) を読まない
+export function Document({
+  css,
+  script,
+  children,
+}: PropsWithChildren<{ css: string; script?: string }>) {
   return (
     <html lang="en">
       <head>
@@ -27,7 +32,11 @@ export function Document({ css, children }: PropsWithChildren<{ css: string }>) 
       </head>
       <body class="h-screen overflow-hidden bg-canvas font-sans text-[13px] leading-normal text-ink antialiased scheme-dark">
         <div id="root">{children}</div>
-        <script type="module" src="/assets/app.js" />
+        {script !== undefined ? (
+          <script dangerouslySetInnerHTML={{ __html: script }} />
+        ) : (
+          <script type="module" src="/assets/app.js" />
+        )}
       </body>
     </html>
   )

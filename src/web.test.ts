@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test"
 import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { answerQuestion, getQuestion, saveQuestion } from "./questions"
 import { init, saveComment, saveIssue } from "./store"
 import { createApp, serve } from "./web"
 
@@ -480,5 +481,124 @@ describe("web", () => {
     expect(html).toContain("Blocks")
     expect(html).toContain("Comments")
     expect(html).toContain("note")
+  })
+
+  test("GET /dashboard shows open questions with the default action and answer form", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "topic" })
+    saveQuestion(store, {
+      title: "称号を消すか",
+      issue: "1",
+      priority: "high",
+      defaultAction: "残す",
+      answerBy: "2h",
+      body: "背景の説明",
+    })
+    saveQuestion(store, { title: "答え済み" })
+    answerQuestion(store, "2", { body: "はい" })
+    const res = await createApp(store).request("/dashboard")
+    expect(res.status).toBe(200)
+    const html = await res.text()
+    expect(html).toContain('<meta name="viewport"')
+    expect(html).toContain("称号を消すか")
+    expect(html).toContain("残す")
+    expect(html).toContain("背景の説明")
+    expect(html).toContain('action="/questions/1/answer"')
+    expect(html).toContain('name="useDefault"')
+    expect(html).toContain('href="/?id=1"')
+    expect(html).toContain("答え済み")
+    expect(html).toContain("はい")
+    expect(html).not.toContain('action="/questions/2/answer"')
+  })
+
+  test("GET /dashboard marks expired questions and lists in-progress and overdue issues", async () => {
+    const store = workspace()
+    saveQuestion(store, {
+      title: "過ぎた",
+      answerBy: "2020-01-01T00:00:00Z",
+      defaultAction: "進める",
+    })
+    saveIssue(store, { title: "作業中", status: "in_progress" })
+    saveIssue(store, { title: "期限切れ", dueDate: "2020-01-01" })
+    const html = await (await createApp(store).request("/dashboard")).text()
+    expect(html).toContain('data-question-status="expired"')
+    expect(html).toContain("作業中")
+    expect(html).toContain("期限切れ")
+  })
+
+  test("POST /questions/:id/answer saves the answer and redirects to the dashboard", async () => {
+    const store = workspace()
+    saveQuestion(store, { title: "q" })
+    const res = await createApp(store).request("/questions/1/answer", {
+      method: "POST",
+      body: new URLSearchParams({ body: "消してよい" }),
+    })
+    expect(res.status).toBe(302)
+    expect(res.headers.get("location")).toBe("/dashboard")
+    expect(getQuestion(store, "1")).toMatchObject({ status: "answered", answer: "消してよい" })
+  })
+
+  test("POST /questions/:id/answer with useDefault answers with the default action", async () => {
+    const store = workspace()
+    saveQuestion(store, { title: "q", defaultAction: "残す" })
+    await createApp(store).request("/questions/1/answer", {
+      method: "POST",
+      body: new URLSearchParams({ useDefault: "1" }),
+    })
+    expect(getQuestion(store, "1").answer).toBe("Go with the default action: 残す")
+  })
+
+  test("POST /questions/:id/answer with an empty body shows the error on the dashboard", async () => {
+    const store = workspace()
+    saveQuestion(store, { title: "q" })
+    const res = await createApp(store).request("/questions/1/answer", {
+      method: "POST",
+      body: new URLSearchParams({ body: "" }),
+    })
+    expect(res.status).toBe(400)
+    expect(await res.text()).toContain("invalid answer: expected a non-empty string")
+  })
+
+  test("questions API lists and answers", async () => {
+    const store = workspace()
+    const app = createApp(store)
+    saveQuestion(store, { title: "q" })
+    const listed = await (await app.request("/api/questions?status=open")).json()
+    expect(listed.questions.map((question: { id: string }) => question.id)).toEqual(["1"])
+    const answered = await (
+      await app.request("/api/questions/1/answer", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ body: "yes" }),
+      })
+    ).json()
+    expect(answered.status).toBe("answered")
+  })
+
+  test("GET /events emits change after a question is asked", async () => {
+    const store = workspace()
+    const ac = new AbortController()
+    const res = await createApp(store).request("/events", { signal: ac.signal })
+    const reader = res.body!.getReader()
+    const events = sseEvents(reader)
+    expect(await events.until((text) => text.includes("\n\n"), 500)).toBe(true)
+    // 監視の立ち上がりの取りこぼしは issue の change テストと同じ理由で繰り返して吸収する
+    let received = false
+    for (let attempt = 0; attempt < 20 && !received; attempt++) {
+      saveQuestion(store, { title: `from agent ${attempt}` })
+      received = await events.until((text) => text.includes("data: change"), 100)
+    }
+    expect(received).toBe(true)
+    ac.abort()
+    await reader.cancel()
+  })
+
+  test("board sidebar links to the dashboard with the count of questions awaiting an answer", async () => {
+    const store = workspace()
+    saveQuestion(store, { title: "a" })
+    saveQuestion(store, { title: "b", answerBy: "2020-01-01T00:00:00Z" })
+    saveQuestion(store, { title: "c", status: "canceled" })
+    const html = await (await createApp(store).request("/")).text()
+    expect(html).toMatch(/href="\/dashboard"[\s\S]*?Questions[\s\S]*?>2</)
   })
 })

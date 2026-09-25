@@ -1,5 +1,7 @@
 import { compile } from "tailwindcss"
 import tw from "tailwindcss/index.css" with { type: "text" }
+import { DashboardPage } from "./dashboard"
+import type { Question } from "./questions"
 import { BLANK, BoardPage, Document, ErrorView } from "./ui"
 
 const INPUT = `@import "tailwindcss";
@@ -98,6 +100,43 @@ async function sampleHtml(): Promise<string> {
     { ...issue, id: "4", status: "done", dueDate: null, priority: "low" as const },
     { ...issue, id: "5", status: "canceled", assignee: null, priority: null, labels: [] },
   ]
+  const question: Question = {
+    id: "1",
+    title: "q",
+    status: "open",
+    issue: "1",
+    priority: "urgent",
+    defaultAction: "d",
+    answerBy: "2026-01-01T01:00:00.000Z",
+    author: "me",
+    answer: null,
+    answeredBy: null,
+    answeredAt: null,
+    canceledAt: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    body: "b",
+  }
+  const sampleQuestions: Question[] = [
+    question,
+    {
+      ...question,
+      id: "2",
+      status: "expired",
+      priority: "high",
+      answerBy: "2025-12-31T00:00:00.000Z",
+    },
+    { ...question, id: "3", priority: "medium", answerBy: null, defaultAction: null, body: "" },
+    { ...question, id: "4", priority: "low" },
+    {
+      ...question,
+      id: "5",
+      status: "answered",
+      priority: null,
+      answer: "a",
+      answeredAt: "2026-01-01T00:00:00.000Z",
+    },
+  ]
   const node = (
     <Document css="">
       <BoardPage
@@ -116,6 +155,13 @@ async function sampleHtml(): Promise<string> {
       <BoardPage issues={[]} all={[]} query="" current={null} comments={[]} />
       <BoardPage issues={[]} all={[]} query="none" current={null} comments={[]} />
       <ErrorView message="x" />
+      <DashboardPage
+        questions={sampleQuestions}
+        issues={issues}
+        now={new Date("2026-01-01T00:00:00Z")}
+        error="x"
+      />
+      <DashboardPage questions={[]} issues={[]} now={new Date("2026-01-01T00:00:00Z")} />
     </Document>
   )
   return String(await node)

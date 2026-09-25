@@ -1,10 +1,12 @@
-import { existsSync, watch } from "node:fs"
+import { existsSync, mkdirSync, watch } from "node:fs"
 import { join } from "node:path"
 import { Hono } from "hono"
 import { jsxRenderer } from "hono/jsx-renderer"
 import { clientScript } from "./client-script"
 import { styles } from "./css"
+import { DashboardPage, DASHBOARD_LIVE_RELOAD, USE_DEFAULT_ANSWER_PREFIX } from "./dashboard"
 import { getPageData } from "./page"
+import { answerQuestion, getQuestion, listQuestions } from "./questions"
 import {
   getIssue,
   listComments,
@@ -46,6 +48,44 @@ export function createApp(store: Store) {
 
   app.get("/", (c) => {
     return c.render(<BoardPage {...getPageData(store, new URL(c.req.url))} />)
+  })
+
+  app.get("/dashboard", async (c) => {
+    return c.html(await renderDashboard(store))
+  })
+
+  app.post("/questions/:id/answer", async (c) => {
+    const body = await c.req.parseBody()
+    const id = c.req.param("id")
+    try {
+      const answer =
+        str(body.useDefault) === "1"
+          ? `${USE_DEFAULT_ANSWER_PREFIX}${getQuestion(store, id).defaultAction ?? ""}`
+          : str(body.body)
+      answerQuestion(store, id, { body: answer })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return c.html(await renderDashboard(store, message), 400)
+    }
+    return c.redirect("/dashboard")
+  })
+
+  app.get("/api/questions", (c) => {
+    return c.json({
+      questions: listQuestions(store, {
+        status: c.req.query("status") || undefined,
+        issue: c.req.query("issue") || undefined,
+      }),
+    })
+  })
+
+  app.get("/api/questions/:id", (c) => {
+    return c.json(getQuestion(store, c.req.param("id")))
+  })
+
+  app.post("/api/questions/:id/answer", async (c) => {
+    const input = await c.req.json<{ body?: string }>()
+    return c.json(answerQuestion(store, c.req.param("id"), { body: input.body }))
   })
 
   app.get("/assets/app.js", async (c) => {
@@ -123,6 +163,12 @@ export function createApp(store: Store) {
         } catch {
           watchers.push(watch(store.dir, { recursive: true }, sendChange))
         }
+        // 質問はエージェントが初めて聞いたときに作られるので、監視の前に用意しておく
+        const questionsDir = join(store.dir, "questions")
+        try {
+          mkdirSync(questionsDir, { recursive: true })
+          watchers.push(watch(questionsDir, sendChange))
+        } catch {}
         const commentsDir = join(store.dir, "comments")
         if (existsSync(commentsDir)) {
           try {
@@ -208,6 +254,21 @@ export function createApp(store: Store) {
   })
 
   return app
+}
+
+async function renderDashboard(store: Store, error?: string): Promise<string> {
+  const now = new Date()
+  const page = (
+    <Document css={await styles()} script={DASHBOARD_LIVE_RELOAD}>
+      <DashboardPage
+        questions={listQuestions(store, {}, now)}
+        issues={listIssues(store)}
+        now={now}
+        error={error}
+      />
+    </Document>
+  )
+  return `<!DOCTYPE html>${await page}`
 }
 
 export function serve(store: Store, port = DEFAULT_PORT) {

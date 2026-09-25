@@ -8,6 +8,7 @@ import {
   ListIcon,
   PlusIcon,
   PriorityIcon,
+  QuestionIcon,
   SearchIcon,
   SearchIconLarge,
   SidebarIcon,
@@ -70,7 +71,12 @@ export function BoardPage(props: BoardPageProps) {
   return (
     <div class="h-screen" onClick={onNavigate}>
       <div class="flex h-full">
-        <Sidebar all={state.all} filters={filters} sidebar={sidebar} />
+        <Sidebar
+          all={state.all}
+          filters={filters}
+          sidebar={sidebar}
+          awaitingQuestionCount={state.awaitingQuestionCount ?? 0}
+        />
         <div class="flex min-w-0 flex-1 flex-col">
           <Header
             filters={filters}
@@ -140,10 +146,12 @@ function Sidebar({
   all,
   filters,
   sidebar,
+  awaitingQuestionCount,
 }: {
   all: Issue[]
   filters: PageFilters
   sidebar: SidebarPreference
+  awaitingQuestionCount: number
 }) {
   const labels = distinct(all.flatMap((issue) => issue.labels))
   const people = distinct(all.map((issue) => issue.assignee ?? ""))
@@ -178,6 +186,13 @@ function Sidebar({
           icon={<AllIcon />}
           label="All issues"
           count={all.length}
+        />
+        <NavItem
+          href="/dashboard"
+          active={false}
+          icon={<QuestionIcon />}
+          label="Questions"
+          count={awaitingQuestionCount}
         />
         <div class="mt-4 mb-1 px-2 text-[11px] font-medium text-ink-tertiary">Status</div>
         {STATUSES.map((status) => (
