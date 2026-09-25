@@ -69,7 +69,7 @@ export function createApp(store: Store) {
       const message = err instanceof Error ? err.message : String(err)
       return c.html(await renderDashboard(store, message), 400)
     }
-    return c.redirect("/dashboard")
+    return c.redirect(boardReturnPath(str(body.returnTo)))
   })
 
   app.get("/api/questions", (c) => {
@@ -309,6 +309,11 @@ function hrefFrom(source: Record<string, unknown>): string {
   }
   const qs = params.toString()
   return qs ? `/?${qs}` : "/"
+}
+
+// 回答後の戻り先は板の中だけに限る。外部の URL へ飛ばされないよう、/? で始まる板の URL 以外は dashboard に戻す
+function boardReturnPath(returnTo: string): string {
+  return returnTo.startsWith("/?") ? returnTo : "/dashboard"
 }
 
 function str(value: unknown): string {

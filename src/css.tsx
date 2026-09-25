@@ -187,6 +187,7 @@ async function sampleHtml(): Promise<string> {
         label="a"
         error="title is required"
         comments={[]}
+        questions={sampleQuestions}
       />
       <BoardPage issues={issues} all={issues} query="q" current={BLANK} view="list" comments={[]} />
       <BoardPage issues={[]} all={[]} query="" current={null} comments={[]} />

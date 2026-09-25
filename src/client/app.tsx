@@ -105,6 +105,7 @@ export function BoardPage(props: BoardPageProps) {
           labelInput={state.labelInput}
           blockInput={state.blockInput}
           comments={state.comments}
+          questions={state.questions ?? []}
           onChange={controller.changeDraft}
           onSave={controller.saveCurrent}
         />
@@ -194,7 +195,7 @@ function Sidebar({
           href="/dashboard"
           active={false}
           icon={<QuestionIcon />}
-          label="Questions"
+          label="Dashboard"
           count={awaitingQuestionCount}
         />
         <div class="mt-4 mb-1 px-2 text-[11px] font-medium text-ink-tertiary">Status</div>
@@ -464,7 +465,7 @@ function MobileStatusNav({
       ))}
       <a id="mobile-dashboard-link" href="/dashboard" class={pill(false)}>
         <QuestionIcon />
-        Questions
+        Dashboard
         <span class="text-ink-tertiary tabular-nums">{awaitingQuestionCount}</span>
       </a>
     </div>

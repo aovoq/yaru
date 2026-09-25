@@ -90,7 +90,7 @@ Ask the human asynchronously when a decision is theirs to make (product, cost, r
 - Withdraw a question that no longer matters with `question save --id ID --status canceled`.
 - status: `open`, `expired` (open past answerBy), `answered`, `canceled`.
 
-The human answers at `/dashboard` on the board.
+The human answers at `/dashboard` on the board, or in the drawer of the linked issue.
 
 ## Fields
 

@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from "hono/jsx"
 import { DEFAULT_VIEW } from "../page"
+import type { Question } from "../questions"
 import { PRIORITIES, type Comment, type Issue } from "../store"
 import { ChevronIcon, CrossIcon } from "./icons"
 import type { DraftField } from "./state"
@@ -12,6 +13,7 @@ export function IssueDrawer({
   labelInput,
   blockInput,
   comments,
+  questions,
   onChange,
   onSave,
 }: {
@@ -21,6 +23,7 @@ export function IssueDrawer({
   labelInput: string
   blockInput: string
   comments: Comment[]
+  questions: Question[]
   onChange: (field: DraftField, value: string) => void
   onSave: () => Promise<void>
 }) {
@@ -170,7 +173,7 @@ export function IssueDrawer({
               </PropRow>
             ) : null}
           </div>
-          <div class="flex min-h-0 flex-1 flex-col gap-1.5 border-t border-hairline pt-4">
+          <div class="flex flex-1 flex-col gap-1.5 border-t border-hairline pt-4">
             <span class="text-xs text-ink-tertiary">Description</span>
             <textarea
               name="body"
@@ -180,6 +183,14 @@ export function IssueDrawer({
               class="min-h-40 w-full flex-1 resize-none border-0 bg-transparent p-0 font-sans text-[13px] leading-relaxed text-ink placeholder:text-ink-tertiary focus-visible:outline-none"
             />
           </div>
+          {questions.length > 0 ? (
+            <div class="flex flex-col gap-2 border-t border-hairline pt-4">
+              <span class="text-xs text-ink-tertiary">Questions</span>
+              {questions.map((question) => (
+                <DrawerQuestion question={question} />
+              ))}
+            </div>
+          ) : null}
           {issue.id ? (
             <div class="flex flex-col gap-2 border-t border-hairline pt-4">
               <span class="text-xs text-ink-tertiary">Comments</span>
@@ -215,6 +226,18 @@ export function IssueDrawer({
           </button>
         </div>
       </form>
+      {questions
+        .filter((question) => isAwaiting(question))
+        .map((question) => (
+          <form
+            id={answerFormId(question)}
+            method="post"
+            action={`/questions/${encodeURIComponent(question.id)}/answer`}
+            hidden
+          >
+            <input type="hidden" name="returnTo" value={pageHref(filters, issue.id)} />
+          </form>
+        ))}
       {issue.id ? (
         <form method="post" action="/comments" class="shrink-0 border-t border-hairline px-4 py-3">
           {filters.query ? <input type="hidden" name="query" value={filters.query} /> : null}
@@ -241,6 +264,82 @@ export function IssueDrawer({
         </form>
       ) : null}
     </aside>
+  )
+}
+
+function isAwaiting(question: Question): boolean {
+  return question.status === "open" || question.status === "expired"
+}
+
+// 回答のフォームは issue を保存するフォームの外に置き、入力欄とボタンは form 属性でそこへ結びつける
+// フォームは入れ子にできないため
+// https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fae-form
+function answerFormId(question: Question): string {
+  return `answer-question-${question.id}`
+}
+
+function DrawerQuestion({ question }: { question: Question }) {
+  const formId = answerFormId(question)
+  return (
+    <div
+      data-question-status={question.status}
+      class={`flex flex-col gap-2 rounded-md border px-3 py-2 ${
+        question.status === "expired" ? "border-semantic-danger/40" : "border-hairline"
+      }`}
+    >
+      <div class="flex items-center gap-2 text-[11px] text-ink-tertiary">
+        <span class="font-mono">Q{question.id}</span>
+        <span class={question.status === "expired" ? "text-semantic-danger" : ""}>
+          {question.status}
+        </span>
+        {question.priority ? <span>{question.priority}</span> : null}
+      </div>
+      <p class="text-[13px] font-medium text-ink">{question.title}</p>
+      {question.body ? (
+        <p class="whitespace-pre-wrap text-[12px] text-ink-muted">{question.body}</p>
+      ) : null}
+      {question.defaultAction ? (
+        <p class="text-[12px] text-ink-muted">
+          <span class="mr-1.5 text-[11px] text-ink-tertiary">Default</span>
+          {question.defaultAction}
+        </p>
+      ) : null}
+      {question.answer !== null ? (
+        <p class="border-l-2 border-primary pl-2 whitespace-pre-wrap text-[13px] text-ink">
+          {question.answer}
+        </p>
+      ) : null}
+      {isAwaiting(question) ? (
+        <>
+          <textarea
+            form={formId}
+            name="body"
+            placeholder="Answer"
+            class="h-14 w-full resize-none rounded-md border border-hairline bg-transparent p-2 font-sans text-[13px] text-ink placeholder:text-ink-tertiary focus-visible:outline-none"
+          />
+          <div class="flex gap-2">
+            <button
+              type="submit"
+              form={formId}
+              class="inline-flex h-7 cursor-pointer items-center rounded-md border-0 bg-primary px-3 font-sans text-xs font-medium text-on-primary hover:bg-primary-hover"
+            >
+              Answer
+            </button>
+            {question.defaultAction ? (
+              <button
+                type="submit"
+                form={formId}
+                name="useDefault"
+                value="1"
+                class="inline-flex h-7 cursor-pointer items-center rounded-md border border-hairline bg-transparent px-3 font-sans text-xs text-ink-muted hover:bg-surface-2"
+              >
+                Use default
+              </button>
+            ) : null}
+          </div>
+        </>
+      ) : null}
+    </div>
   )
 }
 

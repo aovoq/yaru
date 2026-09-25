@@ -599,7 +599,7 @@ describe("web", () => {
     saveQuestion(store, { title: "b", answerBy: "2020-01-01T00:00:00Z" })
     saveQuestion(store, { title: "c", status: "canceled" })
     const html = await (await createApp(store).request("/")).text()
-    expect(html).toMatch(/href="\/dashboard"[\s\S]*?Questions[\s\S]*?>2</)
+    expect(html).toMatch(/href="\/dashboard"[\s\S]*?Dashboard[\s\S]*?>2</)
   })
 
   test("GET /dashboard says so when this workspace has no Claude Code sessions", async () => {
@@ -613,7 +613,55 @@ describe("web", () => {
     saveQuestion(store, { title: "a" })
     const html = await (await createApp(store).request("/")).text()
     expect(html).toMatch(
-      /id="mobile-dashboard-link"[^>]*href="\/dashboard"[\s\S]*?Questions[\s\S]*?1/,
+      /id="mobile-dashboard-link"[^>]*href="\/dashboard"[\s\S]*?Dashboard[\s\S]*?1/,
     )
+  })
+
+  test("the issue drawer shows its questions with an answer form for the open ones", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "topic" })
+    saveQuestion(store, { title: "消すか", issue: "1", defaultAction: "残す", body: "背景" })
+    saveQuestion(store, { title: "答え済み", issue: "1" })
+    answerQuestion(store, "2", { body: "はい" })
+    saveQuestion(store, { title: "別の issue の質問" })
+    const html = await (await createApp(store).request("/?id=1&status=todo")).text()
+    expect(html).toContain("Questions")
+    expect(html).toContain("消すか")
+    expect(html).toContain("残す")
+    expect(html).toContain("背景")
+    expect(html).toContain('action="/questions/1/answer"')
+    expect(html).toContain('name="returnTo" value="/?status=todo&amp;id=1"')
+    expect(html).toContain("答え済み")
+    expect(html).toContain("はい")
+    expect(html).not.toContain('action="/questions/2/answer"')
+    expect(html).not.toContain("別の issue の質問")
+  })
+
+  test("answering from the drawer returns to the issue", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "topic" })
+    saveQuestion(store, { title: "q", issue: "1" })
+    const res = await createApp(store).request("/questions/1/answer", {
+      method: "POST",
+      body: new URLSearchParams({ body: "yes", returnTo: "/?status=todo&id=1" }),
+    })
+    expect(res.headers.get("location")).toBe("/?status=todo&id=1")
+  })
+
+  test("answering ignores a returnTo outside the board", async () => {
+    const store = workspace()
+    saveQuestion(store, { title: "a" })
+    saveQuestion(store, { title: "b" })
+    const app = createApp(store)
+    for (const [id, returnTo] of [
+      ["1", "//evil.example/"],
+      ["2", "https://evil.example/"],
+    ] as const) {
+      const res = await app.request(`/questions/${id}/answer`, {
+        method: "POST",
+        body: new URLSearchParams({ body: "yes", returnTo }),
+      })
+      expect(res.headers.get("location")).toBe("/dashboard")
+    }
   })
 })

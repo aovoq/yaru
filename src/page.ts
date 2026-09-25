@@ -1,4 +1,4 @@
-import { listQuestions } from "./questions"
+import { listQuestions, type Question } from "./questions"
 import { getIssue, listComments, listIssues, type Comment, type Issue, type Store } from "./store"
 
 export const BLANK: Issue = {
@@ -35,6 +35,7 @@ export type PageData = {
   query: string
   current: Issue | null
   comments: Comment[]
+  questions?: Question[]
   status?: string
   assignee?: string
   label?: string
@@ -68,6 +69,7 @@ export function getPageData(store: Store, url: URL): PageData {
     query,
     current,
     comments: current?.id ? listComments(store, { issue: current.id }) : [],
+    questions: current?.id ? listQuestions(store, { issue: current.id }) : [],
     status,
     assignee,
     label,
