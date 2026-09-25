@@ -9,7 +9,9 @@ description: >
 
 # yaru
 
-Local Linear. Each issue is `.yaru/issues/<id>.md`. Comments are `.yaru/comments/<id>.md`. Mutate issues and comments only through the CLI; never write those files by hand.
+Local Linear. Each issue is `.yaru/issues/<id>.md`. Comments are `.yaru/comments/<id>.md`. Questions are `.yaru/questions/<id>.md` (ignored by git). Mutate issues, comments, and questions only through the CLI; never write those files by hand.
+
+Inside a git worktree, yaru reads and writes the `.yaru` of the original folder (the main worktree), not the worktree's own copy. Issue changes and questions from every worktree land in one place. Do not commit `.yaru` changes from a worktree branch.
 
 ## CLI
 
@@ -109,4 +111,4 @@ Invalid values fail with expected vs actual. Do not retry the same invalid value
 2. `issue list` (and `get`) before creating, to avoid duplicates.
 3. Claim work with `--assignee me --status in_progress` before editing code. Skip issues assigned to someone else.
 4. Finish with `--status done`. Cancel with `--status canceled`.
-5. Start `serve` only if the user asked for the board and it is not already running. One `serve` shows every workspace yaru has been used in: `http://127.0.0.1:47800/` lists them, and each lives at `/p/<name>/` (dashboard at `/p/<name>/dashboard`).
+5. `serve` usually runs already (the user keeps one running for all workspaces). Start it only if the user asked for the board and it is not running. One `serve` shows every workspace yaru has been used in: `http://127.0.0.1:47800/` lists them, and each lives at `/p/<name>/` (dashboard at `/p/<name>/dashboard`).
