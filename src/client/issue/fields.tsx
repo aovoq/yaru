@@ -1,7 +1,8 @@
 import type { ComponentChildren } from "preact"
-import { ChevronIcon } from "../../components/icons"
+import { ChevronIcon } from "../../components/icons/chevron-icon"
 
-// issue 画面の入力欄の部品。題名や説明の伸びる textarea と、属性欄の行・select・入力の見た目をまとめる
+// issue 画面の属性欄の部品。行・select・入力の見た目をまとめる
+// 題名や説明の伸びる textarea は components/auto-grow-textarea.tsx、担当者なしの丸は components/empty-avatar.tsx にある
 
 // 属性欄の入力と select に共通の見た目
 export const FIELD =
@@ -13,52 +14,6 @@ export function blurOnEnter(event: KeyboardEvent): void {
   if (event.key !== "Enter" || event.isComposing) return
   event.preventDefault()
   ;(event.currentTarget as HTMLElement).blur()
-}
-
-// 中身に合わせて高さを伸ばす textarea。題名は改行を入れず 1 行の文として扱う
-export function AutoGrowTextarea({
-  singleLine = false,
-  onInput,
-  ...props
-}: {
-  singleLine?: boolean
-  onInput: (event: Event) => void
-  [attribute: string]: unknown
-}) {
-  const resize = (element: HTMLTextAreaElement) => {
-    element.style.height = "auto"
-    element.style.height = `${element.scrollHeight}px`
-  }
-  return (
-    <textarea
-      {...props}
-      rows={1}
-      ref={(element: HTMLTextAreaElement | null) => {
-        if (element) requestAnimationFrame(() => resize(element))
-      }}
-      onInput={(event: Event) => {
-        const element = event.currentTarget as HTMLTextAreaElement
-        if (singleLine && element.value.includes("\n"))
-          element.value = element.value.replace(/\n/g, " ")
-        resize(element)
-        onInput(event)
-      }}
-      onKeyDown={(event: KeyboardEvent) => {
-        if (
-          singleLine &&
-          event.key === "Enter" &&
-          !event.metaKey &&
-          !event.ctrlKey &&
-          !event.isComposing
-        ) {
-          event.preventDefault()
-          ;(event.currentTarget as HTMLElement).blur()
-        }
-        const handler = props.onKeyDown as ((event: KeyboardEvent) => void) | undefined
-        handler?.(event)
-      }}
-    />
-  )
 }
 
 // 属性欄の 1 行。左に項目名、右に値の入力を置き、値の前にアイコンを添えられる
@@ -103,12 +58,5 @@ export function SelectBox({
         <ChevronIcon />
       </span>
     </div>
-  )
-}
-
-// 担当者がいないときに、アバターの場所を点線の丸で示す
-export function EmptyAvatar() {
-  return (
-    <span class="grid size-[18px] shrink-0 place-items-center rounded-full border border-dashed border-hairline-strong" />
   )
 }

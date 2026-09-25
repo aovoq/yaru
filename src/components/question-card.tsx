@@ -1,21 +1,14 @@
 import type { Question } from "../questions"
-import { localDateTime, relativeTime } from "../time"
 import { Button } from "./button"
 import { Markdown } from "./markdown"
 import { PriorityBadge } from "./priority-badge"
+import { answerFormId, isAwaitingAnswer } from "./question-answer"
+import { QuestionTiming } from "./question-timing"
 
 // エージェントの質問を 1 枚のカードで見せ、答え待ちならその場で答えられるようにする。dashboard と issue 画面の両方で使う
-// 回答のフォームはカードの外に QuestionAnswerForm で置き、入力欄とボタンを form 属性で結びつける
+// 回答のフォームはカードの外に QuestionAnswerForm (question-answer-form.tsx) で置き、入力欄とボタンを form 属性で結びつける
 // issue 画面ではカードが issue を保存するフォームの中にあり、フォームは入れ子にできないため
 // https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#attr-fae-form
-
-export function isAwaitingAnswer(question: Question): boolean {
-  return question.status === "open" || question.status === "expired"
-}
-
-export function answerFormId(question: Question): string {
-  return `answer-question-${question.id}`
-}
 
 export function QuestionCard({
   question,
@@ -98,49 +91,5 @@ export function QuestionCard({
         </div>
       ) : null}
     </article>
-  )
-}
-
-// カードの入力欄が送る先のフォーム。答え待ちの質問ごとに、フォームの入れ子にならない場所へ置く
-// returnTo は回答後に戻る板の URL。無ければ dashboard に戻る
-export function QuestionAnswerForm({
-  question,
-  basePath,
-  returnTo,
-}: {
-  question: Question
-  basePath: string
-  returnTo?: string
-}) {
-  if (!isAwaitingAnswer(question)) return null
-  return (
-    <form
-      id={answerFormId(question)}
-      method="post"
-      action={`${basePath}/questions/${encodeURIComponent(question.id)}/answer`}
-      hidden
-    >
-      {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
-    </form>
-  )
-}
-
-function QuestionTiming({ question, now }: { question: Question; now: Date }) {
-  if (question.status === "answered") {
-    return (
-      <span class="text-ink-subtle">
-        Answered {question.answeredAt ? relativeTime(question.answeredAt, now) : ""}
-      </span>
-    )
-  }
-  if (question.status === "canceled") return <span class="text-ink-tertiary">Canceled</span>
-  if (!question.answerBy) return <span class="text-ink-tertiary">No deadline</span>
-  if (question.status === "expired") {
-    return <span class="text-semantic-danger">Expired {relativeTime(question.answerBy, now)}</span>
-  }
-  return (
-    <span class="text-ink-subtle">
-      Answer by {localDateTime(question.answerBy)} ({relativeTime(question.answerBy, now)})
-    </span>
   )
 }

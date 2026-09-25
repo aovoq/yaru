@@ -1,12 +1,15 @@
 import type { ComponentChildren } from "preact"
 import { useEffect, useState } from "preact/hooks"
-import { PriorityIcon, StatusIcon } from "../../components/icons"
-import { Avatar, LabelChip } from "../../components/issue-metadata"
+import { PriorityIcon } from "../../components/icons/priority-icon"
+import { StatusIcon } from "../../components/icons/status-icon"
+import { Avatar } from "../../components/avatar"
+import { LabelChip } from "../../components/label-chip"
 import { PRIORITIES, type Issue } from "../../store"
 import { relativeTime } from "../../time"
 import type { DraftField } from "../state"
 import { issueColumns, pageHref, priorityLabel, statusLabel, type PageFilters } from "../view-model"
-import { blurOnEnter, EmptyAvatar, FIELD, PropRow, SelectBox } from "./fields"
+import { blurOnEnter, FIELD, PropRow, SelectBox } from "./fields"
+import { EmptyAvatar } from "../../components/empty-avatar"
 
 // issue 画面の属性欄 (状態・優先度・担当者・ラベル・期限・親・止めている issue)
 // 属性は変えたとき、文字の欄は離れたときに、その項目だけを保存する

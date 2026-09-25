@@ -1,6 +1,8 @@
 import type { Issue } from "../store"
-import { PriorityIcon, StatusIcon } from "./icons"
-import { Avatar, DueStamp } from "./issue-metadata"
+import { PriorityIcon } from "./icons/priority-icon"
+import { StatusIcon } from "./icons/status-icon"
+import { Avatar } from "./avatar"
+import { DueStamp } from "./due-stamp"
 
 // issue の行を並べた一覧。行を押すとその issue を開き、右クリックのメニューも開ける (data-id)
 // 子 issue・関係・dashboard の作業中や期限切れなど、issue を数件並べる場所で共通に使う

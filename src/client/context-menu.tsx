@@ -1,7 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks"
-import { CheckIcon, ChevronRightIcon, PriorityIcon, StatusIcon } from "../components/icons"
+import { CheckIcon } from "../components/icons/check-icon"
+import { ChevronRightIcon } from "../components/icons/chevron-right-icon"
+import { PriorityIcon } from "../components/icons/priority-icon"
+import { StatusIcon } from "../components/icons/status-icon"
 import { clampMenuPosition, type MenuAction, type MenuIcon, type MenuItem } from "./issue-menu"
-import { Avatar, LabelDot } from "../components/issue-metadata"
+import { Avatar } from "../components/avatar"
+import { LabelDot } from "../components/label-dot"
 
 // 右クリックで開くメニュー。子メニューはマウスを載せるか → で開き、↑↓ で移動、↵ で実行、← と Esc で戻る
 // 外を押す・画面を動かす・ウィンドウを離れると閉じる
@@ -209,18 +213,6 @@ function MenuPanel({
         />
       ) : null}
     </>
-  )
-}
-
-// コピーなど、結果が画面に出ない操作を終えたことを短く知らせる
-export function Notice({ text }: { text: string }) {
-  return (
-    <p
-      role="status"
-      class="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-md border border-hairline-strong bg-surface-3 px-3 py-1.5 text-[12px] text-ink shadow-lg shadow-black/50"
-    >
-      {text}
-    </p>
   )
 }
 

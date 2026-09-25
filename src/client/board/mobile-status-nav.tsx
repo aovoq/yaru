@@ -1,5 +1,6 @@
 import { STATUSES } from "../../store"
-import { QuestionIcon, StatusIcon } from "../../components/icons"
+import { QuestionIcon } from "../../components/icons/question-icon"
+import { StatusIcon } from "../../components/icons/status-icon"
 import { pageHref, statusLabel, type PageFilters } from "../view-model"
 
 // スマホ幅で左の絞り込みの代わりに出す、横に流れる状態の切り替えとダッシュボードへの入口

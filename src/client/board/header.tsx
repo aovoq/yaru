@@ -1,14 +1,13 @@
 import type { ComponentChildren } from "preact"
 import { buttonClass } from "../../components/button"
-import {
-  BoardIcon,
-  CrossIcon,
-  ListIcon,
-  LogoLink,
-  PlusIcon,
-  SidebarIcon,
-} from "../../components/icons"
-import { Avatar, LabelDot } from "../../components/issue-metadata"
+import { BoardIcon } from "../../components/icons/board-icon"
+import { CrossIcon } from "../../components/icons/cross-icon"
+import { ListIcon } from "../../components/icons/list-icon"
+import { LogoLink } from "../../components/logo-link"
+import { PlusIcon } from "../../components/icons/plus-icon"
+import { SidebarIcon } from "../../components/icons/sidebar-icon"
+import { Avatar } from "../../components/avatar"
+import { LabelDot } from "../../components/label-dot"
 import { newIssueHref, pageHref, statusLabel, type PageFilters } from "../view-model"
 import { SearchBox } from "./search-box"
 

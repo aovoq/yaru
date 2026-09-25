@@ -1,5 +1,5 @@
-import { StatusIcon } from "../../components/icons"
-import { Avatar } from "../../components/issue-metadata"
+import { StatusIcon } from "../../components/icons/status-icon"
+import { Avatar } from "../../components/avatar"
 import { Markdown } from "../../components/markdown"
 import { Section } from "../../components/section"
 import type { Comment, Issue } from "../../store"

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks"
-import { SearchIcon } from "../../components/icons"
-import { Kbd } from "../../components/issue-metadata"
+import { SearchIcon } from "../../components/icons/search-icon"
+import { Kbd } from "../../components/kbd"
 import { pageHref, type PageFilters } from "../view-model"
 
 // 見出しの検索欄。打つたびに少し待ってから onSearch を呼び、URL の検索語を置き換える

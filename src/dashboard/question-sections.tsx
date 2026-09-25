@@ -1,5 +1,6 @@
 import { EmptyState } from "../components/empty-state"
-import { QuestionAnswerForm, QuestionCard } from "../components/question-card"
+import { QuestionCard } from "../components/question-card"
+import { QuestionAnswerForm } from "../components/question-answer-form"
 import { Section } from "../components/section"
 import type { Question } from "../questions"
 

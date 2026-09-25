@@ -1,7 +1,11 @@
 import { useState } from "preact/hooks"
 import type { Issue } from "../../store"
-import { PlusIcon, PriorityIcon, StatusIcon } from "../../components/icons"
-import { Avatar, DueStamp, LabelChip } from "../../components/issue-metadata"
+import { PlusIcon } from "../../components/icons/plus-icon"
+import { PriorityIcon } from "../../components/icons/priority-icon"
+import { StatusIcon } from "../../components/icons/status-icon"
+import { Avatar } from "../../components/avatar"
+import { DueStamp } from "../../components/due-stamp"
+import { LabelChip } from "../../components/label-chip"
 import { issueColumns, newIssueHref, pageHref, statusLabel, type PageFilters } from "../view-model"
 
 // 状態ごとの列にカードを並べる板の表示。カードを別の列へ引きずって落とすと状態を変える

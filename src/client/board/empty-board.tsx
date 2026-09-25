@@ -1,5 +1,6 @@
-import { AllIcon, SearchIconLarge } from "../../components/icons"
-import { Kbd } from "../../components/issue-metadata"
+import { AllIcon } from "../../components/icons/all-icon"
+import { SearchIconLarge } from "../../components/icons/search-icon-large"
+import { Kbd } from "../../components/kbd"
 import { pageHref, type PageFilters } from "../view-model"
 
 // 表示する issue が 1 件も無いときに板の場所へ出す案内

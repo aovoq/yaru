@@ -1,7 +1,8 @@
 import { compile } from "tailwindcss"
 import tw from "tailwindcss/index.css" with { type: "text" }
 import { renderToString } from "preact-render-to-string"
-import { ContextMenu, Notice } from "./client/context-menu"
+import { ContextMenu } from "./client/context-menu"
+import { Notice } from "./components/notice"
 import { issueMenu } from "./client/issue-menu"
 import { DashboardPage } from "./dashboard"
 import { ProjectsPage } from "./projects"

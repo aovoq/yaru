@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "preact/hooks"
 import { Button } from "../../components/button"
 import { renderMarkdown, toggleTask } from "../../markdown"
 import type { Issue } from "../../store"
-import { AutoGrowTextarea } from "./fields"
+import { AutoGrowTextarea } from "../../components/auto-grow-textarea"
 
 // issue の説明。描画した Markdown を見せ、押すと生の Markdown の編集に切り替える
 // チェックボックスはその場で [ ] と [x] を切り替える
