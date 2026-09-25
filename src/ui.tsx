@@ -29,9 +29,10 @@ export function Document({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="theme-color" content={THEME_COLOR} />
         {/* ホーム画面から開いたときに iOS でも単独の画面にする https://developer.apple.com/documentation/webkit/configuring-web-applications */}
-        {/* 状態バーを透過させると上端の固定ヘッダーが隠れるので、透過しない既定のままにする */}
+        {/* 状態バーを透過させると上端の固定ヘッダーが隠れるので、透過しない黒にして画面の地の色に揃える */}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="yaru" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
         <style dangerouslySetInnerHTML={{ __html: css }} />
         <script dangerouslySetInnerHTML={{ __html: SIDEBAR_BOOT }} />
       </head>

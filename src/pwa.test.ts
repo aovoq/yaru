@@ -95,6 +95,7 @@ describe("pwa", () => {
       expect(html).toContain('<meta name="theme-color" content="#010102"')
       expect(html).toContain('<meta name="apple-mobile-web-app-title" content="yaru"')
       expect(html).toContain('<meta name="mobile-web-app-capable" content="yes"')
+      expect(html).toContain('<meta name="apple-mobile-web-app-status-bar-style" content="black"')
     }
   })
 
