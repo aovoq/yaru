@@ -1,19 +1,15 @@
 import type { Priority } from "../store"
-import { Pill } from "./pill"
+import { PriorityIcon } from "./icons/priority-icon"
 
-const PRIORITY_CLASS: Record<Priority, string> = {
-  urgent: "border-priority-urgent/40 text-priority-urgent",
-  high: "border-priority-high/40 text-priority-high",
-  medium: "border-priority-medium/40 text-priority-medium",
-  low: "border-hairline text-priority-low",
-}
-
-// 優先度を色つきの小さな札で見せる
+// 優先度をアイコンと文字で見せる。質問のカードの見出しの行で使う
+// 色つきの札にすると、期限切れや危険の赤と並んだときにどれが警告か分からなくなるので、色は urgent のアイコンだけに残す
+// アイコンは隣の文字と同じことを言うので読み上げから外す
 
 export function PriorityBadge({ priority }: { priority: Priority }) {
   return (
-    <Pill tone={null} class={PRIORITY_CLASS[priority]}>
-      {priority}
-    </Pill>
+    <span class="inline-flex items-center gap-1 text-ink-subtle">
+      <PriorityIcon priority={priority} decorative />
+      {priority.replace(/^\w/, (character) => character.toUpperCase())}
+    </span>
   )
 }

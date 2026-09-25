@@ -158,6 +158,12 @@ const baseQuestion: Question = {
   createdAt: "2026-09-25T10:00:00.000Z",
   updatedAt: "2026-09-25T10:00:00.000Z",
   body: "背景の説明",
+  options: [],
+  session: null,
+  worktree: null,
+  branch: null,
+  acknowledgedAt: null,
+  notifiedExpiringAt: null,
 }
 
 const baseIssue: Issue = {
@@ -178,6 +184,10 @@ const baseIssue: Issue = {
   createdAt: "2026-09-20T00:00:00.000Z",
   updatedAt: "2026-09-20T00:00:00.000Z",
   body: "",
+  session: null,
+  worktree: null,
+  branch: null,
+  stale: false,
 }
 
 test("an awaiting question links its inputs to an answer form outside the card", () => {
@@ -195,7 +205,9 @@ test("an awaiting question links its inputs to an answer form outside the card",
   expect(html).toContain('action="/p/app/questions/1/answer"')
   expect(html).toContain('form="answer-question-1"')
   expect(html).toContain('href="/p/app/?id=4"')
-  expect(html).toContain("#4 称号の整理")
+  // IssueId は番号を別の要素に分けて描く
+  expect(html).toContain(">#4</span>")
+  expect(html).toContain("称号の整理")
   expect(html).toContain("Use default")
   expect(html).not.toContain('name="returnTo"')
 })

@@ -1,35 +1,10 @@
-import { afterAll, beforeAll, expect, test } from "bun:test"
-import { Window } from "happy-dom"
+import { expect, test } from "bun:test"
+import { installTestDom } from "../test-dom"
 import { BLANK } from "../page"
 import type { Question } from "../questions"
 
 // 描き直しで DOM がどう使い回されるかは、実際の DOM に描かないと確かめられないので happy-dom を使う
-const window = new Window()
-const globals = globalThis as Record<string, unknown>
-const saved: Record<string, unknown> = {}
-const names = [
-  "window",
-  "document",
-  "Node",
-  "Element",
-  "HTMLElement",
-  "Event",
-  "KeyboardEvent",
-  "MouseEvent",
-  "requestAnimationFrame",
-]
-
-beforeAll(() => {
-  for (const name of names) {
-    saved[name] = globals[name]
-    globals[name] =
-      name === "window" ? window : (window as unknown as Record<string, unknown>)[name]
-  }
-})
-
-afterAll(() => {
-  for (const name of names) globals[name] = saved[name]
-})
+const window = installTestDom()
 
 function question(id: string, title: string): Question {
   return {
@@ -48,6 +23,12 @@ function question(id: string, title: string): Question {
     createdAt: "2026-09-26T00:00:00.000Z",
     updatedAt: "2026-09-26T00:00:00.000Z",
     body: "",
+    options: [],
+    session: null,
+    worktree: null,
+    branch: null,
+    acknowledgedAt: null,
+    notifiedExpiringAt: null,
   }
 }
 
