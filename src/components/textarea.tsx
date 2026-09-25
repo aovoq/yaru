@@ -5,11 +5,16 @@ import type { JSX } from "preact"
 // focus したら枠を primary にする。primary は地 (canvas から surface-4) に対して 3.7:1 以上あり、
 // WCAG 2.2 の "at least 3:1 against adjacent colors" を満たす https://www.w3.org/TR/WCAG22/#non-text-contrast
 // sm の幅より狭い画面では 16px にする。iOS の Safari は 16px 未満の欄に focus すると画面を拡大してしまうため
+// prose は issue の説明の編集。描いた説明 (.markdown) と同じ 14px (text-prose) にし、編集に移っても字の大きさが変わらないようにする
 // 高さの下限と伸ばし方 (resize) は置く場所ごとに違うので extra で渡す
 
-export function textareaClass({ mono = false }: { mono?: boolean } = {}, extra = ""): string {
+export function textareaClass(
+  { mono = false, prose = false }: { mono?: boolean; prose?: boolean } = {},
+  extra = "",
+): string {
   return [
-    "w-full rounded-md border border-hairline bg-surface-1 px-3 py-2 text-base text-ink placeholder:text-ink-tertiary focus:border-primary focus:outline-none sm:text-body",
+    "w-full rounded-md border border-hairline bg-surface-1 px-3 py-2 text-base text-ink placeholder:text-ink-tertiary focus:border-primary focus:outline-none",
+    prose ? "sm:text-prose" : "sm:text-body",
     mono ? "font-mono sm:leading-relaxed" : "font-sans",
     extra,
   ]
