@@ -7,6 +7,7 @@ export type PageFilters = {
   assignee?: string
   label?: string
   view?: ViewMode
+  basePath?: string
 }
 
 export function pageHref(filters: PageFilters, id?: string): string {
@@ -18,7 +19,8 @@ export function pageHref(filters: PageFilters, id?: string): string {
   if (filters.view && filters.view !== DEFAULT_VIEW) parameters.set("view", filters.view)
   if (id) parameters.set("id", id)
   const query = parameters.toString()
-  return query ? `/?${query}` : "/"
+  const base = filters.basePath ?? ""
+  return query ? `${base}/?${query}` : `${base}/`
 }
 
 export function newIssueHref(filters: PageFilters, status?: string): string {

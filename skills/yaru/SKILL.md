@@ -90,7 +90,7 @@ Ask the human asynchronously when a decision is theirs to make (product, cost, r
 - Withdraw a question that no longer matters with `question save --id ID --status canceled`.
 - status: `open`, `expired` (open past answerBy), `answered`, `canceled`.
 
-The human answers at `/dashboard` on the board, or in the drawer of the linked issue.
+The human answers on the workspace dashboard (`/p/<name>/dashboard`), or in the drawer of the linked issue.
 
 ## Fields
 
@@ -109,4 +109,4 @@ Invalid values fail with expected vs actual. Do not retry the same invalid value
 2. `issue list` (and `get`) before creating, to avoid duplicates.
 3. Claim work with `--assignee me --status in_progress` before editing code. Skip issues assigned to someone else.
 4. Finish with `--status done`. Cancel with `--status canceled`.
-5. Start `serve` only if the user asked for the board. Default `http://127.0.0.1:47800`, dashboard at `/dashboard`.
+5. Start `serve` only if the user asked for the board and it is not already running. One `serve` shows every workspace yaru has been used in: `http://127.0.0.1:47800/` lists them, and each lives at `/p/<name>/` (dashboard at `/p/<name>/dashboard`).

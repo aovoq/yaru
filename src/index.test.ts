@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, expect, test } from "bun:test"
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { buildDistribution } from "./build"
@@ -9,6 +9,9 @@ import { buildDistribution } from "./build"
 const distributionDirectory = mkdtempSync(join(tmpdir(), "yaru-cli-bin-"))
 const cli = join(distributionDirectory, "yaru.js")
 const dirs: string[] = []
+// CLI はワークスペースを開くたびに登録するので、テストの登録が本物の一覧に混ざらないよう置き場所を分ける
+const stateDirectory = mkdtempSync(join(tmpdir(), "yaru-cli-state-"))
+const environment = { ...process.env, YARU_STATE_DIR: stateDirectory }
 
 beforeAll(async () => {
   await buildDistribution(cli)
@@ -16,11 +19,13 @@ beforeAll(async () => {
 
 afterAll(() => {
   rmSync(distributionDirectory, { recursive: true, force: true })
+  rmSync(stateDirectory, { recursive: true, force: true })
 })
 
 function run(args: string[], cwd?: string, stdin?: string) {
   return Bun.spawnSync([cli, ...args], {
     cwd,
+    env: environment,
     stdin: stdin !== undefined ? Buffer.from(stdin) : undefined,
     stdout: "pipe",
     stderr: "pipe",
@@ -60,6 +65,7 @@ test("bun run yaru forwards issue args", () => {
   const root = join(import.meta.dir, "..")
   const out = Bun.spawnSync(["bun", "run", "yaru", "issue", "list"], {
     cwd: root,
+    env: environment,
     stdout: "pipe",
     stderr: "pipe",
   })
@@ -391,6 +397,7 @@ test("question wait returns the answer once it arrives", async () => {
   run(["question", "save", "--title", "q"], root)
   const waiting = Bun.spawn([cli, "question", "wait", "1", "--interval", "50ms"], {
     cwd: root,
+    env: environment,
     stdout: "pipe",
     stderr: "pipe",
   })
@@ -468,4 +475,13 @@ test("updating a question does not notify", () => {
   writeFileSync(join(root, ".yaru", "config.yml"), `notify: cat > ${JSON.stringify(received)}\n`)
   run(["question", "save", "--id", "1", "--priority", "high"], root)
   expect(existsSync(received)).toBe(false)
+})
+
+test("using yaru in a workspace registers it for yaru serve", () => {
+  const root = workspace()
+  run(["issue", "list"], root)
+  const registry = JSON.parse(readFileSync(join(stateDirectory, "workspaces.json"), "utf8"))
+  expect(registry.workspaces.map((entry: { root: string }) => entry.root)).toContain(
+    realpathSync(root),
+  )
 })

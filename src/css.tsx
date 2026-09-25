@@ -1,6 +1,7 @@
 import { compile } from "tailwindcss"
 import tw from "tailwindcss/index.css" with { type: "text" }
 import { DashboardPage } from "./dashboard"
+import { ProjectsPage } from "./projects"
 import type { Question } from "./questions"
 import type { SessionHealth } from "./sessions"
 import { BLANK, BoardPage, Document, ErrorView } from "./ui"
@@ -194,6 +195,13 @@ async function sampleHtml(): Promise<string> {
       <BoardPage issues={[]} all={[]} query="" current={null} comments={[]} />
       <BoardPage issues={[]} all={[]} query="none" current={null} comments={[]} />
       <ErrorView message="x" />
+      <ProjectsPage
+        projects={[
+          { slug: "a", root: "/a", awaiting: sampleQuestions.slice(0, 2), inProgress: 1 },
+          { slug: "b", root: "/b", awaiting: [], inProgress: 0 },
+        ]}
+      />
+      <ProjectsPage projects={[]} />
       <DashboardPage
         questions={sampleQuestions}
         issues={issues}

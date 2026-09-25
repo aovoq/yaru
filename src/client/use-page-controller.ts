@@ -18,13 +18,14 @@ export function usePageController(initialPage: PageData): PageController {
   // hono/jsx の useReducer は init が初期値と同じ型を返す前提のため、PageData から ClientState への変換を init に渡せない
   const [state, dispatch] = useReducer(reduceClientState, createClientState(initialPage))
   const requestSequence = useRef(0)
+  const basePath = initialPage.basePath ?? ""
 
   const navigate = useCallback(
     async (href: string, historyMode: HistoryMode = "push", preserveDraft = false) => {
       const sequence = ++requestSequence.current
       const pageUrl = new URL(href, window.location.href)
       try {
-        const response = await fetch(`/api/page${pageUrl.search}`, { cache: "no-store" })
+        const response = await fetch(`${basePath}/api/page${pageUrl.search}`, { cache: "no-store" })
         if (!response.ok) throw new Error(await responseError(response))
         const page = (await response.json()) as PageData
         if (sequence !== requestSequence.current) return
@@ -35,7 +36,7 @@ export function usePageController(initialPage: PageData): PageController {
         dispatch({ type: "requestFailed", message: errorMessage(error) })
       }
     },
-    [],
+    [basePath],
   )
 
   useEffect(() => {
@@ -45,7 +46,7 @@ export function usePageController(initialPage: PageData): PageController {
   }, [navigate])
 
   useEffect(() => {
-    const events = new EventSource("/events")
+    const events = new EventSource(`${basePath}/events`)
     let refreshTimer: ReturnType<typeof setTimeout> | undefined
     events.onmessage = () => {
       clearTimeout(refreshTimer)
@@ -55,7 +56,7 @@ export function usePageController(initialPage: PageData): PageController {
       clearTimeout(refreshTimer)
       events.close()
     }
-  }, [navigate])
+  }, [basePath, navigate])
 
   const changeDraft = useCallback((field: DraftField, value: string) => {
     dispatch({ type: "draftChanged", field, value })
@@ -69,7 +70,7 @@ export function usePageController(initialPage: PageData): PageController {
     if (!state.current) return
     const input: SaveInput = issueInput(state.current)
     try {
-      const response = await fetch("/api/issues", {
+      const response = await fetch(`${basePath}/api/issues`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(input),
@@ -82,12 +83,12 @@ export function usePageController(initialPage: PageData): PageController {
     } catch (error) {
       dispatch({ type: "requestFailed", message: errorMessage(error) })
     }
-  }, [navigate, state.current])
+  }, [basePath, navigate, state.current])
 
   const moveIssue = useCallback(
     async (issueId: string, status: string) => {
       try {
-        const response = await fetch("/api/issues", {
+        const response = await fetch(`${basePath}/api/issues`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ id: issueId, status }),
@@ -98,7 +99,7 @@ export function usePageController(initialPage: PageData): PageController {
         dispatch({ type: "requestFailed", message: errorMessage(error) })
       }
     },
-    [navigate],
+    [basePath, navigate],
   )
 
   return { state, navigate, changeDraft, selectIssue, saveCurrent, moveIssue }

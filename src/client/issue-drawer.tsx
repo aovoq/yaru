@@ -41,7 +41,7 @@ export function IssueDrawer({
     <aside class="fixed inset-y-0 right-0 z-20 flex w-full max-w-[440px] flex-col border-l border-hairline bg-surface-1 shadow-2xl shadow-black/50">
       <form
         method="post"
-        action="/issues"
+        action={`${filters.basePath ?? ""}/issues`}
         class="flex min-h-0 flex-1 flex-col"
         onSubmit={(event: Event) => {
           event.preventDefault()
@@ -232,14 +232,18 @@ export function IssueDrawer({
           <form
             id={answerFormId(question)}
             method="post"
-            action={`/questions/${encodeURIComponent(question.id)}/answer`}
+            action={`${filters.basePath ?? ""}/questions/${encodeURIComponent(question.id)}/answer`}
             hidden
           >
             <input type="hidden" name="returnTo" value={pageHref(filters, issue.id)} />
           </form>
         ))}
       {issue.id ? (
-        <form method="post" action="/comments" class="shrink-0 border-t border-hairline px-4 py-3">
+        <form
+          method="post"
+          action={`${filters.basePath ?? ""}/comments`}
+          class="shrink-0 border-t border-hairline px-4 py-3"
+        >
           {filters.query ? <input type="hidden" name="query" value={filters.query} /> : null}
           {filters.view && filters.view !== DEFAULT_VIEW ? (
             <input type="hidden" name="view" value={filters.view} />

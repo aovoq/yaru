@@ -312,7 +312,7 @@ describe("web", () => {
       logs.push(args.map(String).join(" "))
     }
     try {
-      serve(workspace(), first.port)
+      serve(first.port)
       expect(logs.some((line) => line.includes("already running"))).toBe(true)
       expect(logs.some((line) => line.includes(`127.0.0.1:${first.port}`))).toBe(true)
     } finally {

@@ -12,6 +12,10 @@ export type DashboardData = {
   now: Date
   sessionHealth: SessionHealth
   repository: RepositoryState | null
+  // 1 つの yaru serve で複数のワークスペースを配るときの、このワークスペースの URL の接頭辞。単独なら ""
+  basePath?: string
+  // 一覧 (/) に戻るときに見せるワークスペースの名前
+  workspaceName?: string
   error?: string
 }
 
@@ -27,6 +31,8 @@ export function DashboardPage({
   now,
   sessionHealth,
   repository,
+  basePath = "",
+  workspaceName,
   error,
 }: DashboardData) {
   const awaiting = questions.filter(
@@ -49,6 +55,14 @@ export function DashboardPage({
         <span class="grid size-5 shrink-0 place-items-center rounded-[5px] bg-primary text-[11px] font-semibold text-on-primary">
           y
         </span>
+        {workspaceName ? (
+          <a
+            href="/"
+            class="text-[13px] text-ink-subtle no-underline hover:text-ink focus-visible:outline-2 focus-visible:outline-primary-focus/50"
+          >
+            {workspaceName}
+          </a>
+        ) : null}
         <h1 class="text-[13px] font-medium text-ink">Dashboard</h1>
         <p
           id="dashboard-stale"
@@ -58,7 +72,7 @@ export function DashboardPage({
           Updated. Reload after answering.
         </p>
         <a
-          href="/"
+          href={`${basePath}/`}
           class="ml-auto text-xs text-ink-subtle no-underline hover:text-ink focus-visible:outline-2 focus-visible:outline-primary-focus/50"
         >
           Issues
@@ -95,6 +109,7 @@ export function DashboardPage({
             awaiting.map((question) => (
               <QuestionCard
                 question={question}
+                basePath={basePath}
                 issueTitle={question.issue ? issueTitles.get(question.issue) : undefined}
                 now={now}
               />
@@ -106,13 +121,13 @@ export function DashboardPage({
           {inProgress.length === 0 ? (
             <Empty text="Nothing in progress" />
           ) : (
-            <IssueRows issues={inProgress} />
+            <IssueRows issues={inProgress} basePath={basePath} />
           )}
         </section>
         {overdue.length > 0 ? (
           <section class="flex flex-col gap-3">
             <SectionTitle title="Overdue" count={overdue.length} />
-            <IssueRows issues={overdue} />
+            <IssueRows issues={overdue} basePath={basePath} />
           </section>
         ) : null}
         {repository ? <RepositorySection repository={repository} now={now} /> : null}
@@ -280,10 +295,12 @@ function percent(ratio: number | null): string {
 
 function QuestionCard({
   question,
+  basePath,
   issueTitle,
   now,
 }: {
   question: Question
+  basePath: string
   issueTitle: string | undefined
   now: Date
 }) {
@@ -309,7 +326,7 @@ function QuestionCard({
         )}
         {question.issue ? (
           <a
-            href={`/?id=${encodeURIComponent(question.issue)}`}
+            href={`${basePath}/?id=${encodeURIComponent(question.issue)}`}
             class="min-w-0 truncate text-ink-subtle no-underline hover:text-ink"
           >
             #{question.issue} {issueTitle ?? ""}
@@ -330,7 +347,7 @@ function QuestionCard({
       ) : null}
       <form
         method="post"
-        action={`/questions/${encodeURIComponent(question.id)}/answer`}
+        action={`${basePath}/questions/${encodeURIComponent(question.id)}/answer`}
         class="flex flex-col gap-2"
       >
         <textarea
@@ -363,13 +380,13 @@ function QuestionCard({
   )
 }
 
-function IssueRows({ issues }: { issues: Issue[] }) {
+function IssueRows({ issues, basePath }: { issues: Issue[]; basePath: string }) {
   return (
     <ul class="flex flex-col divide-y divide-hairline rounded-lg border border-hairline bg-surface-1">
       {issues.map((issue) => (
         <li>
           <a
-            href={`/?id=${encodeURIComponent(issue.id)}`}
+            href={`${basePath}/?id=${encodeURIComponent(issue.id)}`}
             class="flex items-baseline gap-2 px-3 py-2.5 no-underline hover:bg-surface-2"
           >
             <span class="font-mono text-[11px] text-ink-tertiary">#{issue.id}</span>
@@ -440,7 +457,9 @@ function PriorityBadge({ priority }: { priority: Priority }) {
 }
 
 // 答えを書きかけているときにリロードで消さないよう、入力中は再読み込みせず表示だけ出す
-export const DASHBOARD_LIVE_RELOAD = `(()=>{const source=new EventSource("/events");source.onmessage=()=>{const editing=[...document.querySelectorAll("textarea")].some((element)=>element.value.trim()!==""||element===document.activeElement);if(editing){document.getElementById("dashboard-stale")?.removeAttribute("hidden");return}location.reload()}})()`
+export function dashboardLiveReload(basePath: string): string {
+  return `(()=>{const source=new EventSource(${JSON.stringify(`${basePath}/events`)});source.onmessage=()=>{const editing=[...document.querySelectorAll("textarea")].some((element)=>element.value.trim()!==""||element===document.activeElement);if(editing){document.getElementById("dashboard-stale")?.removeAttribute("hidden");return}location.reload()}})()`
+}
 
 export function relativeTime(iso: string, now: Date): string {
   const target = Date.parse(iso)

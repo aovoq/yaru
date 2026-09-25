@@ -13,6 +13,7 @@ import {
   saveIssue,
   type Filter,
   type SaveInput,
+  type Store,
 } from "./store"
 import {
   answerQuestion,
@@ -24,6 +25,7 @@ import {
 } from "./questions"
 import { notify } from "./notify"
 import { DEFAULT_PORT, serve } from "./web"
+import { registerWorkspace } from "./workspaces"
 
 const GLOBAL_HELP = `yaru — local issues, markdown in .yaru
 
@@ -42,6 +44,8 @@ const GLOBAL_HELP = `yaru — local issues, markdown in .yaru
   yaru serve [-p|--port ${DEFAULT_PORT}]
 
 Output is JSON unless -f / --format. Commands print their contract with --help.
+
+yaru serve shows every workspace yaru has been used in: / lists them, /p/<name>/ is one board.
 `
 
 const ISSUE_HELP = `yaru issue — list, get, or save issues
@@ -314,12 +318,17 @@ async function main() {
       assertKnownFlags(flags, INIT_FLAGS)
       const store = init(process.cwd())
       ensureQuestionsDirectory(store)
+      registerWorkspace(store.root)
       console.log(`initialized ${store.dir}`)
       return
     }
     if (cmd === "serve") {
       assertKnownFlags(flags, SERVE_FLAGS)
-      serve(open(findRoot()), parsePort(flag("port") || flag("p")))
+      // yaru serve は登録された全ワークスペースを配る。起動した場所がワークスペースならそこも登録しておく
+      try {
+        openWorkspace()
+      } catch {}
+      serve(parsePort(flag("port") || flag("p")))
       return
     }
     if (cmd === "issue") {
@@ -375,7 +384,7 @@ async function issue(
   if (sub === "list") {
     assertKnownFlags(flags, LIST_FLAGS)
     assertNoExtra(rest.slice(1))
-    const store = open(findRoot())
+    const store = openWorkspace()
     const filter: Filter = {}
     if (flag("status")) filter.status = flag("status")
     if (flag("query")) filter.query = flag("query")
@@ -418,7 +427,7 @@ async function issue(
     const id = flag("id") || rest[1]
     if (!id) throw new Error("usage: yaru issue get <id>")
     assertNoExtra(rest.slice(flag("id") ? 1 : 2))
-    const found = getIssue(open(findRoot()), id)
+    const found = getIssue(openWorkspace(), id)
     if (outputFormat(flag) === "json") printJson(found)
     else process.stdout.write(formatGet(found))
     return
@@ -445,7 +454,7 @@ async function issue(
     if (flags.blockedBy) input.addBlockedBy = flags.blockedBy
     if (flags.removeBlock) input.removeBlocks = flags.removeBlock
     if (flags.removeBlockedBy) input.removeBlockedBy = flags.removeBlockedBy
-    const saved = saveIssue(open(findRoot()), input)
+    const saved = saveIssue(openWorkspace(), input)
     if (outputFormat(flag) === "json") {
       printJson(saved)
       return
@@ -468,7 +477,7 @@ async function comment(
     assertNoExtra(rest.slice(1))
     const issue = flag("issue")
     if (!issue) throw new Error("usage: yaru comment list --issue ID")
-    const comments = listComments(open(findRoot()), { issue })
+    const comments = listComments(openWorkspace(), { issue })
     if (outputFormat(flag) === "json") {
       printJson({ comments })
       return
@@ -487,7 +496,7 @@ async function comment(
     const id = flag("id") || rest[1]
     if (!id) throw new Error("usage: yaru comment get <id>")
     assertNoExtra(rest.slice(flag("id") ? 1 : 2))
-    const found = getComment(open(findRoot()), id)
+    const found = getComment(openWorkspace(), id)
     if (outputFormat(flag) === "json") printJson(found)
     else process.stdout.write(formatComment(found))
     return
@@ -496,7 +505,7 @@ async function comment(
     assertKnownFlags(flags, COMMENT_SAVE_FLAGS)
     assertNoExtra(rest.slice(1))
     const body = flag("body") === "-" ? readStdin() : flag("body")
-    const saved = saveComment(open(findRoot()), {
+    const saved = saveComment(openWorkspace(), {
       id: flag("id"),
       issue: flag("issue"),
       parent: flag("parent"),
@@ -521,7 +530,7 @@ async function question(
   if (sub === "list") {
     assertKnownFlags(flags, QUESTION_LIST_FLAGS)
     assertNoExtra(rest.slice(1))
-    const questions = listQuestions(open(findRoot()), {
+    const questions = listQuestions(openWorkspace(), {
       status: flag("status"),
       issue: flag("issue"),
     })
@@ -546,7 +555,7 @@ async function question(
     const id = flag("id") || rest[1]
     if (!id) throw new Error("usage: yaru question get <id>")
     assertNoExtra(rest.slice(flag("id") ? 1 : 2))
-    const found = getQuestion(open(findRoot()), id)
+    const found = getQuestion(openWorkspace(), id)
     if (outputFormat(flag) === "json") printJson(found)
     else process.stdout.write(formatQuestion(found))
     return
@@ -554,7 +563,7 @@ async function question(
   if (sub === "save") {
     assertKnownFlags(flags, QUESTION_SAVE_FLAGS)
     assertNoExtra(rest.slice(1))
-    const store = open(findRoot())
+    const store = openWorkspace()
     const saved = saveQuestion(store, {
       id: flag("id"),
       title: flag("title"),
@@ -582,7 +591,7 @@ async function question(
     if (!id) throw new Error("usage: yaru question answer <id> --body TEXT|-")
     assertNoExtra(rest.slice(flag("id") ? 1 : 2))
     const body = flag("body") === "-" ? readStdin() : flag("body")
-    const saved = answerQuestion(open(findRoot()), id, { body })
+    const saved = answerQuestion(openWorkspace(), id, { body })
     if (outputFormat(flag) === "json") {
       printJson(saved)
       return
@@ -597,7 +606,7 @@ async function question(
     assertNoExtra(rest.slice(flag("id") ? 1 : 2))
     const timeout = parseDurationFlag("timeout", flag("timeout") ?? "10m")
     const interval = parseDurationFlag("interval", flag("interval") ?? "1s")
-    const store = open(findRoot())
+    const store = openWorkspace()
     const deadline = Date.now() + timeout
     let current = getQuestion(store, id)
     while (current.status === "open" && Date.now() < deadline) {
@@ -652,9 +661,17 @@ function parseDurationFlag(name: string, raw: string): number {
   return Number(match[1]) * DURATION_MILLISECONDS[match[2]!]!
 }
 
+// CLI がワークスペースを開くたびに登録し、1 つの yaru serve から全ワークスペースを見られるようにする
+function openWorkspace(): Store {
+  const store = open(findRoot())
+  registerWorkspace(store.root)
+  return store
+}
+
 async function hintBoard(id: string) {
   try {
-    const base = `http://127.0.0.1:${DEFAULT_PORT}`
+    const workspace = registerWorkspace(findRoot())
+    const base = `http://127.0.0.1:${DEFAULT_PORT}/p/${encodeURIComponent(workspace.slug)}`
     const res = await fetch(`${base}/api/issues/${encodeURIComponent(id)}`, {
       signal: AbortSignal.timeout(200),
     })

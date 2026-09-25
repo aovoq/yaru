@@ -22,8 +22,12 @@ test("distribution script serves the embedded browser UI outside the repository"
   await buildDistribution(executable)
 
   const port = availablePort()
+  // serve は起動した場所のワークスペースを登録するので、本物の登録に混ざらないよう置き場所を分ける
+  const stateDirectory = mkdtempSync(join(tmpdir(), "yaru-build-state-"))
+  directories.push(stateDirectory)
   const process = Bun.spawn([executable, "serve", "--port", String(port)], {
     cwd: directory,
+    env: { ...Bun.env, YARU_STATE_DIR: stateDirectory },
     stdout: "pipe",
     stderr: "pipe",
   })

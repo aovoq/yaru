@@ -40,11 +40,13 @@ export type PageData = {
   assignee?: string
   label?: string
   view: ViewMode
+  // 1 つの yaru serve で複数のワークスペースを配るときの、このワークスペースの URL の接頭辞 (例: /p/app)。単独なら ""
+  basePath?: string
   awaitingQuestionCount?: number
   error?: string
 }
 
-export function getPageData(store: Store, url: URL): PageData {
+export function getPageData(store: Store, url: URL, basePath = ""): PageData {
   const query = url.searchParams.get("query") || ""
   const id = url.searchParams.get("id") || undefined
   const status = url.searchParams.get("status") || undefined
@@ -74,6 +76,7 @@ export function getPageData(store: Store, url: URL): PageData {
     assignee,
     label,
     view,
+    basePath,
     awaitingQuestionCount: listQuestions(store).filter(
       (question) => question.status === "open" || question.status === "expired",
     ).length,

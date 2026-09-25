@@ -1,11 +1,12 @@
 import { existsSync, watch } from "node:fs"
 import { join } from "node:path"
-import { Hono } from "hono"
+import { Hono, type Context } from "hono"
 import { jsxRenderer } from "hono/jsx-renderer"
 import { clientScript } from "./client-script"
 import { styles } from "./css"
-import { DashboardPage, DASHBOARD_LIVE_RELOAD, USE_DEFAULT_ANSWER_PREFIX } from "./dashboard"
+import { DashboardPage, dashboardLiveReload, USE_DEFAULT_ANSWER_PREFIX } from "./dashboard"
 import { getPageData } from "./page"
+import { PROJECTS_AUTO_RELOAD, ProjectsPage, type ProjectSummary } from "./projects"
 import { answerQuestion, ensureQuestionsDirectory, getQuestion, listQuestions } from "./questions"
 import { readRepositoryState } from "./repository"
 import { readSessionHealth } from "./sessions"
@@ -17,16 +18,27 @@ import {
   saveIssue,
   type Issue,
   type SaveInput,
+  open,
   type Store,
 } from "./store"
 import { BLANK, BoardPage, Document, ErrorView, parseView } from "./ui"
+import { findWorkspace, listWorkspaces, stateDirectory, type Workspace } from "./workspaces"
 
 export const DEFAULT_PORT = 47800
 
 const FILTER_KEYS = ["query", "status", "assignee", "label", "view"] as const
 
-export function createApp(store: Store) {
+export type WorkspaceAppOptions = {
+  // 1 つの yaru serve で複数のワークスペースを配るときの URL の接頭辞 (例: /p/app)。単独なら ""
+  basePath?: string
+  workspaceName?: string
+}
+
+export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
   const app = new Hono()
+  const basePath = options.basePath ?? ""
+  const renderDashboardFor = (error?: string) =>
+    renderDashboard(store, { basePath, workspaceName: options.workspaceName }, error)
 
   app.use(
     jsxRenderer(async ({ children }) => <Document css={await styles()}>{children}</Document>, {
@@ -49,11 +61,11 @@ export function createApp(store: Store) {
   })
 
   app.get("/", (c) => {
-    return c.render(<BoardPage {...getPageData(store, new URL(c.req.url))} />)
+    return c.render(<BoardPage {...getPageData(store, new URL(c.req.url), basePath)} />)
   })
 
   app.get("/dashboard", async (c) => {
-    return c.html(await renderDashboard(store))
+    return c.html(await renderDashboardFor())
   })
 
   app.post("/questions/:id/answer", async (c) => {
@@ -67,9 +79,9 @@ export function createApp(store: Store) {
       answerQuestion(store, id, { body: answer })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      return c.html(await renderDashboard(store, message), 400)
+      return c.html(await renderDashboardFor(message), 400)
     }
-    return c.redirect(boardReturnPath(str(body.returnTo)))
+    return c.redirect(boardReturnPath(str(body.returnTo), basePath))
   })
 
   app.get("/api/questions", (c) => {
@@ -90,12 +102,7 @@ export function createApp(store: Store) {
     return c.json(answerQuestion(store, c.req.param("id"), { body: input.body }))
   })
 
-  app.get("/assets/app.js", async (c) => {
-    return c.body(await clientScript(), 200, {
-      "content-type": "text/javascript; charset=utf-8",
-      "cache-control": "no-cache",
-    })
-  })
+  app.get("/assets/app.js", serveClientScript)
 
   app.post("/issues", async (c) => {
     const body = await c.req.parseBody()
@@ -139,11 +146,12 @@ export function createApp(store: Store) {
           label={filters.label || undefined}
           view={parseView(filters.view)}
           comments={draft.id ? listComments(store, { issue: draft.id }) : []}
+          basePath={basePath}
           error={message}
         />,
       )
     }
-    return c.redirect(hrefFrom(filters))
+    return c.redirect(hrefFrom(filters, basePath))
   })
 
   app.get("/events", (c) => {
@@ -214,7 +222,7 @@ export function createApp(store: Store) {
   })
 
   app.get("/api/page", (c) => {
-    return c.json(getPageData(store, new URL(c.req.url)))
+    return c.json(getPageData(store, new URL(c.req.url), basePath))
   })
 
   app.get("/api/issues/:id", (c) => {
@@ -250,22 +258,30 @@ export function createApp(store: Store) {
     }
     params.set("id", saved.issue)
     const qs = params.toString()
-    return c.redirect(qs ? `/?${qs}` : `/?id=${encodeURIComponent(saved.issue)}`)
+    return c.redirect(
+      qs ? `${basePath}/?${qs}` : `${basePath}/?id=${encodeURIComponent(saved.issue)}`,
+    )
   })
 
   return app
 }
 
-async function renderDashboard(store: Store, error?: string): Promise<string> {
+async function renderDashboard(
+  store: Store,
+  options: { basePath: string; workspaceName?: string },
+  error?: string,
+): Promise<string> {
   const now = new Date()
   const page = (
-    <Document css={await styles()} script={DASHBOARD_LIVE_RELOAD}>
+    <Document css={await styles()} script={dashboardLiveReload(options.basePath)}>
       <DashboardPage
         questions={listQuestions(store, {}, now)}
         issues={listIssues(store)}
         now={now}
         sessionHealth={readSessionHealth(store.root, { now })}
         repository={readRepositoryState(store.root)}
+        basePath={options.basePath}
+        workspaceName={options.workspaceName}
         error={error}
       />
     </Document>
@@ -273,8 +289,98 @@ async function renderDashboard(store: Store, error?: string): Promise<string> {
   return `<!DOCTYPE html>${await page}`
 }
 
-export function serve(store: Store, port = DEFAULT_PORT) {
-  const app = createApp(store)
+async function serveClientScript(c: Context) {
+  return c.body(await clientScript(), 200, {
+    "content-type": "text/javascript; charset=utf-8",
+    "cache-control": "no-cache",
+  })
+}
+
+// 1 つの yaru serve で、登録された全ワークスペースを /p/<slug>/ の下に配る
+// 各ワークスペースのアプリは接頭辞を知らないまま動くよう、接頭辞を外した URL で呼ぶ。リンクを作るときだけ basePath を使う
+export function createServerApp(directory = stateDirectory()) {
+  const app = new Hono()
+  const workspaceApps = new Map<string, { root: string; app: Hono }>()
+  const appFor = (workspace: Workspace): Hono => {
+    const cached = workspaceApps.get(workspace.slug)
+    if (cached && cached.root === workspace.root) return cached.app
+    const created = createApp(open(workspace.root), {
+      basePath: workspaceBasePath(workspace.slug),
+      workspaceName: workspace.slug,
+    })
+    workspaceApps.set(workspace.slug, { root: workspace.root, app: created })
+    return created
+  }
+
+  app.use(
+    jsxRenderer(async ({ children }) => <Document css={await styles()}>{children}</Document>, {
+      docType: true,
+    }),
+  )
+
+  app.notFound((c) => {
+    c.status(404)
+    return c.render(<ErrorView message="not found" />)
+  })
+
+  app.get("/", async (c) => {
+    return c.html(await renderProjects(directory))
+  })
+
+  app.get("/assets/app.js", serveClientScript)
+
+  app.get("/p/:slug", (c) => c.redirect(`${workspaceBasePath(c.req.param("slug"))}/`))
+
+  app.all("/p/:slug/*", (c) => {
+    const workspace = findWorkspace(c.req.param("slug"), directory)
+    if (!workspace) {
+      c.status(404)
+      return c.render(<ErrorView message={`workspace not found: ${c.req.param("slug")}`} />)
+    }
+    const url = new URL(c.req.url)
+    url.pathname = url.pathname.slice(workspaceBasePath(workspace.slug).length) || "/"
+    const raw = c.req.raw
+    // SSE の監視を切断で止められるよう、signal も引き継ぐ
+    const forwarded = new Request(url, {
+      method: raw.method,
+      headers: raw.headers,
+      body: raw.method === "GET" || raw.method === "HEAD" ? undefined : raw.body,
+      signal: raw.signal,
+      duplex: "half",
+    } as RequestInit)
+    return appFor(workspace).fetch(forwarded)
+  })
+
+  return app
+}
+
+function workspaceBasePath(slug: string): string {
+  return `/p/${encodeURIComponent(slug)}`
+}
+
+async function renderProjects(directory: string): Promise<string> {
+  const now = new Date()
+  const projects: ProjectSummary[] = listWorkspaces(directory).map((workspace) => {
+    const store = open(workspace.root)
+    return {
+      slug: workspace.slug,
+      root: workspace.root,
+      awaiting: listQuestions(store, {}, now).filter(
+        (question) => question.status === "open" || question.status === "expired",
+      ),
+      inProgress: listIssues(store, { status: "in_progress" }).length,
+    }
+  })
+  const page = (
+    <Document css={await styles()} script={PROJECTS_AUTO_RELOAD}>
+      <ProjectsPage projects={projects} />
+    </Document>
+  )
+  return `<!DOCTYPE html>${await page}`
+}
+
+export function serve(port = DEFAULT_PORT) {
+  const app = createServerApp()
   try {
     const server = Bun.serve({
       port,
@@ -299,19 +405,20 @@ function isAddrInUse(err: unknown): boolean {
   return err instanceof Error && "code" in err && err.code === "EADDRINUSE"
 }
 
-function hrefFrom(source: Record<string, unknown>): string {
+function hrefFrom(source: Record<string, unknown>, basePath: string): string {
   const params = new URLSearchParams()
   for (const key of FILTER_KEYS) {
     const value = str(source[key])
     if (value) params.set(key, value)
   }
   const qs = params.toString()
-  return qs ? `/?${qs}` : "/"
+  return qs ? `${basePath}/?${qs}` : `${basePath}/`
 }
 
-// 回答後の戻り先は板の中だけに限る。外部の URL へ飛ばされないよう、/? で始まる板の URL 以外は dashboard に戻す
-function boardReturnPath(returnTo: string): string {
-  return returnTo.startsWith("/?") ? returnTo : "/dashboard"
+// 回答後の戻り先はこのワークスペースの板の中だけに限る
+// 外部の URL へ飛ばされないよう、<basePath>/? で始まる板の URL 以外は dashboard に戻す
+function boardReturnPath(returnTo: string, basePath: string): string {
+  return returnTo.startsWith(`${basePath}/?`) ? returnTo : `${basePath}/dashboard`
 }
 
 function str(value: unknown): string {

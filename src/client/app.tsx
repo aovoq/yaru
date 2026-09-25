@@ -34,6 +34,7 @@ export function BoardPage(props: BoardPageProps) {
     assignee: state.assignee,
     label: state.label,
     view: state.view,
+    basePath: state.basePath ?? "",
   }
   const sidebar = useSidebarPreference()
   useKeyboardShortcuts(controller, filters)
@@ -54,11 +55,11 @@ export function BoardPage(props: BoardPageProps) {
       const link = target.closest("a")
       if (!link || link.target || link.download) return
       const url = new URL(link.href, window.location.href)
-      if (url.origin !== window.location.origin || url.pathname !== "/") return
+      if (url.origin !== window.location.origin || url.pathname !== `${filters.basePath}/`) return
       event.preventDefault()
       void controller.navigate(url.href)
     },
-    [controller.navigate],
+    [controller.navigate, filters.basePath],
   )
 
   const onSearch = useCallback(
@@ -192,7 +193,7 @@ function Sidebar({
           count={all.length}
         />
         <NavItem
-          href="/dashboard"
+          href={`${filters.basePath ?? ""}/dashboard`}
           active={false}
           icon={<QuestionIcon />}
           label="Dashboard"
@@ -388,7 +389,7 @@ function SearchBox({
   return (
     <form
       method="get"
-      action="/"
+      action={pageHref({ basePath: filters.basePath })}
       class="relative hidden sm:block"
       onSubmit={(event: Event) => {
         event.preventDefault()
@@ -463,7 +464,11 @@ function MobileStatusNav({
           {statusLabel(status)}
         </a>
       ))}
-      <a id="mobile-dashboard-link" href="/dashboard" class={pill(false)}>
+      <a
+        id="mobile-dashboard-link"
+        href={`${filters.basePath ?? ""}/dashboard`}
+        class={pill(false)}
+      >
         <QuestionIcon />
         Dashboard
         <span class="text-ink-tertiary tabular-nums">{awaitingQuestionCount}</span>
