@@ -197,12 +197,43 @@ async function sampleHtml(): Promise<string> {
         issues={issues}
         now={new Date("2026-01-01T00:00:00Z")}
         sessionHealth={sampleSessionHealth}
+        repository={{
+          branch: "b",
+          upstream: "u",
+          ahead: 1,
+          behind: 1,
+          uncommittedFiles: 1,
+          commits: [
+            {
+              hash: "h",
+              subject: "s",
+              author: "a",
+              committedAt: "2026-01-01T00:00:00Z",
+              pushed: false,
+            },
+            {
+              hash: "i",
+              subject: "s",
+              author: "a",
+              committedAt: "2026-01-01T00:00:00Z",
+              pushed: true,
+            },
+          ],
+        }}
         error="x"
       />
       <DashboardPage
         questions={[]}
         issues={[]}
         now={new Date("2026-01-01T00:00:00Z")}
+        repository={{
+          branch: null,
+          upstream: null,
+          ahead: null,
+          behind: null,
+          uncommittedFiles: 0,
+          commits: [],
+        }}
         sessionHealth={{
           ...sampleSessionHealth,
           sessions: [],
