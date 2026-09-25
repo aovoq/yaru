@@ -2,6 +2,7 @@ import { chmodSync } from "node:fs"
 import { basename, dirname, resolve } from "node:path"
 import type { BunPlugin } from "bun"
 import { clientScript } from "./client-script"
+import { interFontFile } from "./font-file"
 import { iconImage } from "./icon-images"
 import { ICON_IMAGES } from "./pwa"
 
@@ -17,6 +18,7 @@ export async function buildDistribution(
   for (const image of ICON_IMAGES) {
     embeddedIcons[image.file] = Buffer.from(await iconImage(image.file)).toString("base64")
   }
+  const embeddedFont = Buffer.from(await interFontFile()).toString("base64")
   // 実行時にリポジトリのファイルを読むモジュールを、ビルド時に読んだ中身を返すものに差し替える
   const embeddedModules = new Map([
     [
@@ -32,11 +34,18 @@ export function iconImage(file) {
   return Promise.resolve(Uint8Array.from(Buffer.from(image, "base64")))
 }`,
     ],
+    [
+      resolve(import.meta.dir, "font-file.ts"),
+      `const font = ${JSON.stringify(embeddedFont)}
+export function interFontFile() {
+  return Promise.resolve(Uint8Array.from(Buffer.from(font, "base64")))
+}`,
+    ],
   ])
   const plugin: BunPlugin = {
     name: "embed-runtime-files",
     setup(builder) {
-      builder.onLoad({ filter: /(client-script|icon-images)\.ts$/ }, ({ path }) => {
+      builder.onLoad({ filter: /(client-script|icon-images|font-file)\.ts$/ }, ({ path }) => {
         const contents = embeddedModules.get(resolve(path))
         if (contents === undefined) return undefined
         return { contents, loader: "ts" }

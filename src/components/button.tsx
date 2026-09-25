@@ -1,17 +1,20 @@
 import type { JSX } from "preact"
+import { HIT_AREA } from "./hit-area"
 
 // 画面のボタンの見た目をそろえる。種類 (variant)・大きさ (size)・寄せ方 (align)・カーソル (cursor) だけを選び、クラスを直接並べない
-// size は md がスマホで押しやすい高さ (36px)、sm が一覧や見出しに置く小さい高さ (28px)、
+// size は md が画面の主な操作に使う高さ (sm の幅より狭い画面では指で押しやすい 44px、広い画面では 36px)、sm が一覧や見出しに置く小さい高さ (28px)、
 // xs が属性の行の中に置く小さな文字のボタン、inline が枠も余白も高さも持たず、字の大きさも周りに合わせるボタン
 // variant の text (薄い色) と plain (本文の色) は、「Add description…」や属性の値のように文字だけで押せるボタンに使う
+// 44px は Apple の Human Interface Guidelines の押せる大きさ https://developer.apple.com/design/human-interface-guidelines/accessibility#Buttons-and-controls
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "text" | "plain"
 export type ButtonSize = "sm" | "md" | "xs" | "inline"
 export type ButtonAlign = "center" | "start"
 export type ButtonCursor = "pointer" | "text"
 
+// focus の枠は地に対して 6:1 以上ある primary-hover を不透明のまま使う (focus-ring.ts と同じ理由)
 const BASE =
-  "inline-flex items-center gap-1.5 rounded-md font-sans no-underline transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary-focus/50 disabled:cursor-default disabled:opacity-50"
+  "inline-flex items-center gap-1.5 font-sans no-underline transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary-hover disabled:cursor-default disabled:opacity-50"
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary:
@@ -23,11 +26,17 @@ const VARIANTS: Record<ButtonVariant, string> = {
   plain: "border-0 bg-transparent p-0 text-ink",
 }
 
+// 角の丸みは大きさで決める。字だけの小さいボタンに md の丸みを付けると、focus の枠が楕円に見えてしまう
 const SIZES: Record<ButtonSize, string> = {
-  sm: "h-7 px-3 text-xs",
-  md: "h-9 px-3 text-[13px]",
-  xs: "px-1 text-[11px]",
-  inline: "",
+  sm: "h-7 rounded-md px-3 text-small",
+  md: "h-11 rounded-md px-3 text-body sm:h-9",
+  xs: "rounded-xs px-1 text-micro",
+  inline: "rounded-xs",
+}
+
+// 字だけのボタンは字の高さ (16px 前後) しかなく押しそこねやすいので、押せる範囲だけを広げる (hit-area.ts)
+function needsHitArea(variant: ButtonVariant, size: ButtonSize): boolean {
+  return size === "xs" || size === "inline" || variant === "text" || variant === "plain"
 }
 
 const ALIGNS: Record<ButtonAlign, string> = {
@@ -50,6 +59,7 @@ export function buttonClass(
     BASE,
     VARIANTS[variant],
     SIZES[size],
+    needsHitArea(variant, size) ? HIT_AREA : "",
     ALIGNS[options.align ?? "center"],
     CURSORS[options.cursor ?? "pointer"],
     extra,

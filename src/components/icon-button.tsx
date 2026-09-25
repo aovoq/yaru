@@ -1,16 +1,17 @@
 import type { ComponentChildren, JSX } from "preact"
 import { FOCUS_RING } from "./focus-ring"
+import { HIT_AREA_ICON, HIT_AREA_ICON_TOUCH } from "./hit-area"
 
 // 文字を持たずアイコンだけで押させる四角いボタン。サイドバーの開閉、issue 画面を閉じる、板の列の新規作成で使う
-// sm は見出しの帯に置く 28px、xs は板の列の見出しに置く 20px
+// sm は見出しの帯に置く 28px、xs は板の列の見出しに置く 20px。どちらも押せる範囲は見た目より広げる (hit-area.ts)
 // 見た目を直接使う場所 (header.tsx の最初は隠しておくサイドバーを開くボタン) のためにクラスの関数も出す
 
 export type IconButtonSize = "sm" | "xs"
 
 const SIZES: Record<IconButtonSize, string> = {
-  sm: "size-7 shrink-0 rounded-md transition-colors",
+  sm: `size-7 shrink-0 rounded-md transition-colors ${HIT_AREA_ICON_TOUCH}`,
   // 板の列の + は見出しに hover したときだけ opacity で現れるので、色と opacity の両方を動かす transition にする
-  xs: "size-5 rounded transition",
+  xs: `size-5 rounded-xs transition ${HIT_AREA_ICON}`,
 }
 
 export function iconButtonClass(size: IconButtonSize = "sm", extra = ""): string {

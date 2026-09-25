@@ -2,10 +2,12 @@ import type { JSX } from "preact"
 
 // 枠を見せずに値を並べておき、hover と focus で初めて面が出る入力欄。issue 画面の属性欄 (担当者・ラベル・期限・親・止めている issue) で使う
 // select の InlineSelect も同じ見た目にそろえる
+// focus したら枠を primary にし、どの欄を打っているかを示す (textarea.tsx と同じ理由)
+// sm の幅より狭い画面では 16px にする。iOS の Safari は 16px 未満の欄に focus すると画面を拡大してしまうため
 
 export function inlineFieldClass(extra = ""): string {
   return [
-    "h-7 w-full min-w-0 rounded-md border border-transparent bg-transparent px-2 font-sans text-[13px] text-ink transition-colors placeholder:text-ink-tertiary hover:bg-surface-2 focus-visible:border-hairline-strong focus-visible:bg-surface-2 focus-visible:outline-none",
+    "h-7 w-full min-w-0 rounded-md border border-transparent bg-transparent px-2 font-sans text-base text-ink transition-colors placeholder:text-ink-tertiary hover:bg-surface-2 focus-visible:border-primary focus-visible:bg-surface-2 focus-visible:outline-none sm:text-body",
     extra,
   ]
     .filter(Boolean)
