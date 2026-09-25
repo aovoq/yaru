@@ -14,11 +14,11 @@ import {
   SearchIconLarge,
   SidebarIcon,
   StatusIcon,
-} from "./icons"
+} from "../components/icons"
 import { ContextMenu, Notice, type OpenMenu } from "./context-menu"
 import { issueMenu, type MenuAction } from "./issue-menu"
 import { IssueView } from "./issue-view"
-import { Avatar, DueStamp, Kbd, LabelChip, LabelDot } from "./issue-metadata"
+import { Avatar, DueStamp, Kbd, LabelChip, LabelDot } from "../components/issue-metadata"
 import { usePageController, type PageController } from "./use-page-controller"
 import { useSidebarPreference, type SidebarPreference } from "./use-sidebar-preference"
 import { issueColumns, newIssueHref, pageHref, statusLabel, type PageFilters } from "./view-model"

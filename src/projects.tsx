@@ -1,4 +1,4 @@
-import { LogoMark } from "./client/icons"
+import { LogoMark } from "./components/icons"
 import type { Question } from "./questions"
 
 // 1 つの yaru serve で配っている全ワークスペースの一覧。スマホで最初に開く画面

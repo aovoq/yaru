@@ -292,3 +292,33 @@ export function LogoLink({ class: className = "" }: { class?: string }) {
     </a>
   )
 }
+
+export function ChevronRightIcon({ class: extra = "text-ink-tertiary" }: { class?: string }) {
+  return (
+    <svg class={`size-3 shrink-0 ${extra}`} viewBox="0 0 12 12" aria-hidden="true">
+      <path
+        d="M4.5 2.5 8 6l-3.5 3.5"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.4"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  )
+}
+
+export function CheckIcon() {
+  return (
+    <svg class="size-3.5 shrink-0 text-ink" viewBox="0 0 14 14" aria-hidden="true">
+      <path
+        d="M3 7.4l2.6 2.6L11 4.4"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  )
+}

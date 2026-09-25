@@ -1,4 +1,4 @@
-import { LogoLink } from "./client/icons"
+import { LogoLink } from "./components/icons"
 import { renderMarkdown } from "./markdown"
 import { relativeTime } from "./time"
 import type { Question } from "./questions"

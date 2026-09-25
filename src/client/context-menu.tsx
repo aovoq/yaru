@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks"
-import { PriorityIcon, StatusIcon } from "./icons"
+import { CheckIcon, ChevronRightIcon, PriorityIcon, StatusIcon } from "../components/icons"
 import { clampMenuPosition, type MenuAction, type MenuIcon, type MenuItem } from "./issue-menu"
-import { Avatar, LabelDot } from "./issue-metadata"
+import { Avatar, LabelDot } from "../components/issue-metadata"
 
 // 右クリックで開くメニュー。子メニューはマウスを載せるか → で開き、↑↓ で移動、↵ で実行、← と Esc で戻る
 // 外を押す・画面を動かす・ウィンドウを離れると閉じる
@@ -229,34 +229,4 @@ function MenuIconView({ icon }: { icon: MenuIcon }) {
   if (icon.kind === "priority") return <PriorityIcon priority={icon.priority} />
   if (icon.kind === "avatar") return <Avatar name={icon.name} />
   return <LabelDot label={icon.label} />
-}
-
-function CheckIcon() {
-  return (
-    <svg class="size-3.5 shrink-0 text-ink" viewBox="0 0 14 14" aria-hidden="true">
-      <path
-        d="M3 7.4l2.6 2.6L11 4.4"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.6"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-    </svg>
-  )
-}
-
-function ChevronRightIcon() {
-  return (
-    <svg class="size-3 shrink-0 text-ink-tertiary" viewBox="0 0 12 12" aria-hidden="true">
-      <path
-        d="M4.5 2.5 8 6l-3.5 3.5"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.4"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-    </svg>
-  )
 }
