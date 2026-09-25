@@ -2,6 +2,7 @@ import { compile } from "tailwindcss"
 import tw from "tailwindcss/index.css" with { type: "text" }
 import { DashboardPage } from "./dashboard"
 import type { Question } from "./questions"
+import type { SessionHealth } from "./sessions"
 import { BLANK, BoardPage, Document, ErrorView } from "./ui"
 
 const INPUT = `@import "tailwindcss";
@@ -137,6 +138,42 @@ async function sampleHtml(): Promise<string> {
       answeredAt: "2026-01-01T00:00:00.000Z",
     },
   ]
+  const sampleSessionHealth: SessionHealth = {
+    directory: "d",
+    windowDays: 7,
+    sessions: [
+      {
+        id: "s",
+        title: "t",
+        startedAt: "2026-01-01T00:00:00.000Z",
+        lastActivityAt: "2026-01-01T00:00:00.000Z",
+        models: ["m"],
+        assistantMessages: 1,
+        inputTokens: 1,
+        cacheCreationTokens: 1,
+        cacheReadTokens: 1,
+        outputTokens: 1,
+        costUsd: 1,
+        unpricedMessages: 0,
+        toolUses: 1,
+        toolResults: 1,
+        toolErrors: 1,
+        interruptions: 1,
+        subagents: 1,
+      },
+    ],
+    totals: {
+      sessions: 1,
+      costUsd: 1,
+      unpricedMessages: 1,
+      assistantMessages: 1,
+      cacheReadRatio: 1,
+      toolResults: 1,
+      toolErrors: 1,
+      toolErrorRatio: 1,
+      interruptions: 1,
+    },
+  }
   const node = (
     <Document css="">
       <BoardPage
@@ -159,9 +196,19 @@ async function sampleHtml(): Promise<string> {
         questions={sampleQuestions}
         issues={issues}
         now={new Date("2026-01-01T00:00:00Z")}
+        sessionHealth={sampleSessionHealth}
         error="x"
       />
-      <DashboardPage questions={[]} issues={[]} now={new Date("2026-01-01T00:00:00Z")} />
+      <DashboardPage
+        questions={[]}
+        issues={[]}
+        now={new Date("2026-01-01T00:00:00Z")}
+        sessionHealth={{
+          ...sampleSessionHealth,
+          sessions: [],
+          totals: { ...sampleSessionHealth.totals, sessions: 0 },
+        }}
+      />
     </Document>
   )
   return String(await node)

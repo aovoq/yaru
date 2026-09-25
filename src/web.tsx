@@ -7,6 +7,7 @@ import { styles } from "./css"
 import { DashboardPage, DASHBOARD_LIVE_RELOAD, USE_DEFAULT_ANSWER_PREFIX } from "./dashboard"
 import { getPageData } from "./page"
 import { answerQuestion, getQuestion, listQuestions } from "./questions"
+import { readSessionHealth } from "./sessions"
 import {
   getIssue,
   listComments,
@@ -264,6 +265,7 @@ async function renderDashboard(store: Store, error?: string): Promise<string> {
         questions={listQuestions(store, {}, now)}
         issues={listIssues(store)}
         now={now}
+        sessionHealth={readSessionHealth(store.root, { now })}
         error={error}
       />
     </Document>

@@ -601,4 +601,10 @@ describe("web", () => {
     const html = await (await createApp(store).request("/")).text()
     expect(html).toMatch(/href="\/dashboard"[\s\S]*?Questions[\s\S]*?>2</)
   })
+
+  test("GET /dashboard says so when this workspace has no Claude Code sessions", async () => {
+    const html = await (await createApp(workspace()).request("/dashboard")).text()
+    expect(html).toContain("Agent sessions")
+    expect(html).toContain("No Claude Code sessions in the last 7 days")
+  })
 })
