@@ -1,9 +1,13 @@
 import { EmptyState } from "../components/empty-state"
+import { ListBox } from "../components/list-box"
+import { Pill } from "../components/pill"
 import type { RepositoryState } from "../repository"
-import { relativeTime } from "../time"
+import { CommitRow } from "./commit-row"
 
 // dashboard のコミットのまとまり。ブランチ、まだ送っていないコミット、書きかけのファイルを見出しの行にまとめて出す
-// 見出しに状態の札を折り返して並べるため、components/section.tsx の Section ではなく専用の見出しを持つ
+// components/section.tsx の Section は使わず、専用の見出しを持つ
+// Section の見出し (h2) は題名と件数しか入らず折り返さない。右端の aside も h2 の外に ml-auto で離して置くため、
+// 状態の札を題名に続けて h2 の中で折り返して並べられない
 
 export function RepositorySection({ repository, now }: { repository: RepositoryState; now: Date }) {
   return (
@@ -16,9 +20,9 @@ export function RepositorySection({ repository, now }: { repository: RepositoryS
         {repository.upstream === null ? (
           <span class="text-[11px] font-normal text-ink-tertiary">no upstream</span>
         ) : repository.ahead ? (
-          <span class="rounded-full border border-primary/50 px-1.5 text-[11px] leading-4 font-normal text-primary-hover">
+          <Pill tone="primary" class="font-normal">
             {repository.ahead} not pushed
-          </span>
+          </Pill>
         ) : null}
         {repository.behind ? (
           <span class="text-[11px] font-normal text-ink-tertiary">{repository.behind} behind</span>
@@ -32,24 +36,11 @@ export function RepositorySection({ repository, now }: { repository: RepositoryS
       {repository.commits.length === 0 ? (
         <EmptyState>No commits yet</EmptyState>
       ) : (
-        <ul class="flex flex-col divide-y divide-hairline rounded-lg border border-hairline bg-surface-1">
+        <ListBox>
           {repository.commits.map((commit) => (
-            <li
-              data-pushed={commit.pushed === null ? undefined : String(commit.pushed)}
-              class="flex items-baseline gap-2 px-3 py-2"
-            >
-              <span
-                class={`size-1.5 shrink-0 self-center rounded-full ${
-                  commit.pushed === false ? "bg-primary-hover" : "bg-hairline-strong"
-                }`}
-              />
-              <span class="min-w-0 flex-1 text-[13px] text-ink">{commit.subject}</span>
-              <span class="shrink-0 text-[11px] text-ink-tertiary">
-                {relativeTime(commit.committedAt, now)}
-              </span>
-            </li>
+            <CommitRow commit={commit} now={now} />
           ))}
-        </ul>
+        </ListBox>
       )}
     </section>
   )

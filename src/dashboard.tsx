@@ -1,12 +1,18 @@
+import { Alert } from "./components/alert"
 import { EmptyState } from "./components/empty-state"
-import { LogoLink } from "./components/logo-link"
+import { HeaderBar } from "./components/header-bar"
 import { IssueLinkList } from "./components/issue-link-list"
+import { LogoLink } from "./components/logo-link"
+import { Pill } from "./components/pill"
 import { isAwaitingAnswer } from "./components/question-answer"
 import { Section } from "./components/section"
-import { AwaitingQuestionsSection, RecentlyAnsweredSection } from "./dashboard/question-sections"
+import { StatGrid } from "./components/stat-grid"
+import { StatTile } from "./components/stat-tile"
+import { TextLink } from "./components/text-link"
+import { AwaitingQuestionsSection } from "./dashboard/awaiting-questions-section"
+import { RecentlyAnsweredSection } from "./dashboard/recently-answered-section"
 import { RepositorySection } from "./dashboard/repository-section"
 import { SessionsSection } from "./dashboard/sessions-section"
-import { Stat } from "./dashboard/stat"
 import type { Question } from "./questions"
 import type { RepositoryState } from "./repository"
 import type { SessionHealth } from "./sessions"
@@ -57,54 +63,37 @@ export function DashboardPage({
   const issueHref = (issue: Issue) => `${basePath}/?id=${encodeURIComponent(issue.id)}`
   return (
     <div class="h-screen overflow-y-auto">
-      <header class="sticky top-0 z-10 flex h-12 items-center gap-2 border-b border-hairline bg-canvas/90 px-4 backdrop-blur">
+      <HeaderBar sticky>
         <LogoLink />
-        {workspaceName ? (
-          <a
-            href="/"
-            class="text-[13px] text-ink-subtle no-underline hover:text-ink focus-visible:outline-2 focus-visible:outline-primary-focus/50"
-          >
-            {workspaceName}
-          </a>
-        ) : null}
+        {workspaceName ? <TextLink href="/">{workspaceName}</TextLink> : null}
         <h1 class="text-[13px] font-medium text-ink">Dashboard</h1>
-        <p
-          id="dashboard-stale"
-          hidden
-          class="ml-2 rounded-full border border-hairline px-2 py-px text-[11px] text-ink-subtle"
-        >
+        <Pill id="dashboard-stale" hidden class="ml-2">
           Updated. Reload after answering.
-        </p>
-        <a
-          href={`${basePath}/`}
-          class="ml-auto text-xs text-ink-subtle no-underline hover:text-ink focus-visible:outline-2 focus-visible:outline-primary-focus/50"
-        >
+        </Pill>
+        <TextLink href={`${basePath}/`} size="xs" class="ml-auto">
           Issues
-        </a>
-      </header>
+        </TextLink>
+      </HeaderBar>
       <main class="mx-auto flex max-w-2xl flex-col gap-8 px-4 pt-4 pb-16">
-        {error ? (
-          <p
-            role="alert"
-            class="rounded-md border border-semantic-danger/40 bg-surface-1 px-3 py-2 text-semantic-danger"
-          >
-            {error}
-          </p>
-        ) : null}
-        <section class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Stat
+        {error ? <Alert>{error}</Alert> : null}
+        <StatGrid>
+          <StatTile
             label="Awaiting answer"
             value={awaiting.length}
             tone={awaiting.length > 0 ? "attention" : "plain"}
           />
-          <Stat label="Expired" value={expiredCount} tone={expiredCount > 0 ? "danger" : "plain"} />
-          <Stat label="In progress" value={inProgress.length} tone="plain" />
-          <Stat
+          <StatTile
+            label="Expired"
+            value={expiredCount}
+            tone={expiredCount > 0 ? "danger" : "plain"}
+          />
+          <StatTile label="In progress" value={inProgress.length} tone="plain" />
+          <StatTile
             label="Overdue"
             value={overdue.length}
             tone={overdue.length > 0 ? "danger" : "plain"}
           />
-        </section>
+        </StatGrid>
         <AwaitingQuestionsSection
           questions={awaiting}
           issueTitles={issueTitles}
@@ -138,7 +127,5 @@ export function DashboardPage({
   )
 }
 
-// 答えを書きかけているときにリロードで消さないよう、入力中は再読み込みせず表示だけ出す
-export function dashboardLiveReload(basePath: string): string {
-  return `(()=>{const source=new EventSource(${JSON.stringify(`${basePath}/events`)});source.onmessage=()=>{const editing=[...document.querySelectorAll("textarea")].some((element)=>element.value.trim()!==""||element===document.activeElement);if(editing){document.getElementById("dashboard-stale")?.removeAttribute("hidden");return}location.reload()}})()`
-}
+// web.tsx は dashboard の入口からまとめて読み込むので、ここから出し直す
+export { dashboardLiveReload } from "./dashboard/live-reload"
