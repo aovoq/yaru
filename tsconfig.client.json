@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "jsxImportSource": "hono/jsx/dom",
+    "jsxImportSource": "preact",
     "lib": ["ESNext", "DOM", "DOM.Iterable"]
   },
   "include": ["src/client"]

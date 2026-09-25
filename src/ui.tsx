@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "hono/jsx"
-import { renderToString } from "hono/jsx/dom/server"
-import { BoardPage as ClientBoardPage, type BoardPageProps } from "./client/app"
+import type { BoardPageProps } from "./client/app"
+import { renderBoardPage } from "./client/server-render"
 import { BLANK, DEFAULT_VIEW, parseView, type ViewMode } from "./page"
 import { THEME_COLOR } from "./pwa"
 
@@ -52,9 +52,7 @@ export function BoardPage(props: BoardPageProps) {
   const initialState = { ...props, view: props.view ?? DEFAULT_VIEW }
   return (
     <>
-      <div
-        dangerouslySetInnerHTML={{ __html: renderToString(<ClientBoardPage {...initialState} />) }}
-      />
+      <div dangerouslySetInnerHTML={{ __html: renderBoardPage(initialState) }} />
       <script
         id="yaru-initial-state"
         type="application/json"

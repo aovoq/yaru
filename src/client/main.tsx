@@ -1,6 +1,6 @@
-/** @jsxImportSource hono/jsx/dom */
+/** @jsxImportSource preact */
 
-import { render } from "hono/jsx/dom"
+import { render } from "preact"
 import { BoardPage, type BoardPageProps } from "./app"
 
 const initialState = document.getElementById("yaru-initial-state")

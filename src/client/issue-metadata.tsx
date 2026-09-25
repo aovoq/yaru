@@ -1,4 +1,6 @@
-import type { PropsWithChildren } from "hono/jsx"
+/** @jsxImportSource preact */
+
+import type { ComponentChildren } from "preact"
 import { isOverdue } from "../store"
 
 export function DueStamp({ date }: { date: string | null }) {
@@ -58,7 +60,7 @@ export function tint(text: string): string {
   return PALETTE[hash % PALETTE.length]!
 }
 
-export function Kbd({ children }: PropsWithChildren) {
+export function Kbd({ children }: { children?: ComponentChildren }) {
   return (
     <kbd class="rounded-sm border border-hairline bg-surface-1 px-1 font-mono text-[10px] text-ink-tertiary">
       {children}

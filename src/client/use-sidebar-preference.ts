@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "hono/jsx"
+import { useCallback, useEffect, useState } from "preact/hooks"
 
 const SIDEBAR_MIN = 160
 const SIDEBAR_MAX = 280

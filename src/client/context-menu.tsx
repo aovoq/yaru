@@ -1,4 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "hono/jsx"
+/** @jsxImportSource preact */
+
+import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks"
 import { PriorityIcon, StatusIcon } from "./icons"
 import { clampMenuPosition, type MenuAction, type MenuIcon, type MenuItem } from "./issue-menu"
 import { Avatar, LabelDot } from "./issue-metadata"
@@ -168,11 +170,9 @@ function MenuPanel({
                     : "menuitemcheckbox"
               }
               aria-haspopup={item.kind === "submenu" ? "menu" : undefined}
-              aria-expanded={item.kind === "submenu" ? String(openIndex === index) : undefined}
+              aria-expanded={item.kind === "submenu" ? openIndex === index : undefined}
               aria-checked={
-                item.kind === "action" && item.checked !== undefined
-                  ? String(item.checked)
-                  : undefined
+                item.kind === "action" && item.checked !== undefined ? item.checked : undefined
               }
               data-menu-index={index}
               data-active={activeIndex === index || openIndex === index ? "" : undefined}

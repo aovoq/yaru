@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "hono/jsx"
+/** @jsxImportSource preact */
+
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "preact/hooks"
 import { BLANK, DEFAULT_VIEW, parseView, type PageData, type ViewMode } from "../page"
 import { STATUSES, type Issue } from "../store"
 import {

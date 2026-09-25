@@ -1,5 +1,7 @@
-import type { PropsWithChildren } from "hono/jsx"
-import { useCallback, useEffect, useState } from "hono/jsx"
+/** @jsxImportSource preact */
+
+import type { ComponentChildren, RenderableProps as PropsWithChildren } from "preact"
+import { useCallback, useEffect, useState } from "preact/hooks"
 import { renderMarkdown, toggleTask } from "../markdown"
 import { DEFAULT_VIEW } from "../page"
 import type { Question } from "../questions"
@@ -549,7 +551,7 @@ function Properties({
     <div class="flex flex-col gap-0.5">
       <div class="mb-2 hidden text-[11px] font-medium text-ink-tertiary md:block">Properties</div>
       <PropRow label="Status" icon={<StatusIcon status={issue.status} />}>
-        <SelectBox name="status" value={issue.status} onInput={commit("status")}>
+        <SelectBox name="status" value={issue.status} onChange={commit("status")}>
           {statuses.map((status) => (
             <option value={status} selected={status === issue.status}>
               {statusLabel(status)}
@@ -558,7 +560,7 @@ function Properties({
         </SelectBox>
       </PropRow>
       <PropRow label="Priority" icon={<PriorityIcon priority={issue.priority} />}>
-        <SelectBox name="priority" value={issue.priority ?? ""} onInput={commit("priority")}>
+        <SelectBox name="priority" value={issue.priority ?? ""} onChange={commit("priority")}>
           <option value="" selected={!issue.priority}>
             No priority
           </option>
@@ -697,9 +699,9 @@ function EditableValue({
 }: {
   empty: boolean
   emptyText: string
-  display: unknown
+  display: ComponentChildren
   link?: string
-  input: (onDone: () => void) => unknown
+  input: (onDone: () => void) => ComponentChildren
 }) {
   const [editing, setEditing] = useState(false)
   // 切り替えた直後に入力へ focus を当てる。入力には data-editing を付けておく
@@ -850,7 +852,7 @@ function Section({
   title,
   aside,
   children,
-}: PropsWithChildren<{ title: string; aside?: unknown }>) {
+}: PropsWithChildren<{ title: string; aside?: ComponentChildren }>) {
   return (
     <section class="flex flex-col gap-2.5">
       <div class="flex items-center gap-2">
@@ -932,7 +934,11 @@ function EmptyAvatar() {
 const FIELD =
   "h-7 w-full min-w-0 rounded-md border border-transparent bg-transparent px-2 font-sans text-[13px] text-ink transition-colors placeholder:text-ink-tertiary hover:bg-surface-2 focus-visible:border-hairline-strong focus-visible:bg-surface-2 focus-visible:outline-none"
 
-function PropRow({ label, icon, children }: PropsWithChildren<{ label: string; icon?: unknown }>) {
+function PropRow({
+  label,
+  icon,
+  children,
+}: PropsWithChildren<{ label: string; icon?: ComponentChildren }>) {
   return (
     <label class="flex min-h-8 items-start gap-2">
       <span class="flex h-7 w-20 shrink-0 items-center text-[12px] text-ink-tertiary">{label}</span>
@@ -944,26 +950,16 @@ function PropRow({ label, icon, children }: PropsWithChildren<{ label: string; i
   )
 }
 
+// 選んだ値は change で受ける。select は 1 回の変更で input と change の両方を出すので、片方だけにする
 function SelectBox({
   name,
   value,
-  onInput,
+  onChange,
   children,
-}: PropsWithChildren<{ name: string; value: string; onInput: (event: Event) => void }>) {
+}: PropsWithChildren<{ name: string; value: string; onChange: (event: Event) => void }>) {
   return (
     <div class="relative w-full min-w-0">
-      <select
-        name={name}
-        value={value}
-        onInput={onInput}
-        ref={(select: HTMLSelectElement | null) => {
-          if (!select) return
-          const onChange = (event: Event) => onInput(event)
-          select.addEventListener("change", onChange)
-          return () => select.removeEventListener("change", onChange)
-        }}
-        class={`${FIELD} appearance-none pr-7`}
-      >
+      <select name={name} value={value} onChange={onChange} class={`${FIELD} appearance-none pr-7`}>
         {children}
       </select>
       <span class="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-ink-tertiary">

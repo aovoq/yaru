@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef } from "hono/jsx"
+import { useCallback, useEffect, useReducer, useRef } from "preact/hooks"
 import type { PageData } from "../page"
 import type { Issue, SaveInput } from "../store"
 import {
@@ -23,8 +23,7 @@ export type PageController = {
 }
 
 export function usePageController(initialPage: PageData): PageController {
-  // hono/jsx の useReducer は init が初期値と同じ型を返す前提のため、PageData から ClientState への変換を init に渡せない
-  const [state, dispatch] = useReducer(reduceClientState, createClientState(initialPage))
+  const [state, dispatch] = useReducer(reduceClientState, initialPage, createClientState)
   const requestSequence = useRef(0)
   // select は 1 回の変更で input と change の両方を出すので、同じ項目・同じ値の保存が重ならないよう、送っている最中のものを覚えておく
   const pendingCommits = useRef(new Set<string>())
