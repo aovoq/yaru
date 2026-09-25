@@ -92,6 +92,14 @@
 
 ## 画面の決まり
 
+- 部品の置き場所
+  - 複数の画面で使う部品は `src/components/` に置く (Button・Markdown・Section・EmptyState・QuestionCard・IssueLinkList・アイコンなど)
+  - 1 つの画面だけの部品は、その画面のフォルダに置く (`src/client/board/`、`src/client/issue/`、`src/dashboard/`)
+  - 画面の入口のファイル (`src/client/app.tsx`、`src/client/issue-view.tsx`、`src/dashboard.tsx`) は、状態と部品をつなぐ組み立てだけにする
+  - barrel (index) のファイルは作らず、定義しているファイルから直接読み込む
+- ボタンは `Button` か `buttonClass` を使い、クラスを直接並べない。本文は `Markdown` を通す
+- 同じ役割の部品を画面ごとに作らない。見た目が少し違うだけなら、共通の部品に props を足す
+
 - Tailwind のクラスは `src/css.tsx` の見本を描いた HTML から拾う。新しい画面や、操作したあとにしか出ない部品 (メニュー、知らせ、編集中の欄など) を足したら、見本にも描き足すこと
 - Markdown の描画結果にはクラスを付けられないので、見た目は `src/css.tsx` の `.markdown` に書く
 - 本文は必ず `renderMarkdown` を通して描くこと。生の HTML を通さず、リンクと画像は安全なスキームだけに限っている。本文はエージェントが外から取ってきた文章を含み、画面から質問に答えられるため
