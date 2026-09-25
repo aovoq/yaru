@@ -26,6 +26,8 @@ export function usePageController(initialPage: PageData): PageController {
   // hono/jsx の useReducer は init が初期値と同じ型を返す前提のため、PageData から ClientState への変換を init に渡せない
   const [state, dispatch] = useReducer(reduceClientState, createClientState(initialPage))
   const requestSequence = useRef(0)
+  // select は 1 回の変更で input と change の両方を出すので、同じ項目・同じ値の保存が重ならないよう、送っている最中のものを覚えておく
+  const pendingCommits = useRef(new Set<string>())
   const basePath = initialPage.basePath ?? ""
 
   const navigate = useCallback(
@@ -89,7 +91,7 @@ export function usePageController(initialPage: PageData): PageController {
       const saved = (await response.json()) as Issue
       dispatch({ type: "saveFinished" })
       if (state.current.id) {
-        await navigate(window.location.href, "none")
+        await navigate(window.location.href, "none", true)
         return
       }
       const pageUrl = new URL(window.location.href)
@@ -113,6 +115,9 @@ export function usePageController(initialPage: PageData): PageController {
       }
       const change = fieldChange(saved, field, value)
       if (!change) return
+      const commitKey = `${saved.id}\u0000${field}\u0000${JSON.stringify(change)}`
+      if (pendingCommits.current.has(commitKey)) return
+      pendingCommits.current.add(commitKey)
       dispatch({ type: "draftChanged", field, value })
       dispatch({ type: "saveStarted" })
       try {
@@ -123,9 +128,11 @@ export function usePageController(initialPage: PageData): PageController {
         })
         if (!response.ok) throw new Error(await responseError(response))
         dispatch({ type: "saveFinished" })
-        await navigate(window.location.href, "none")
+        await navigate(window.location.href, "none", true)
       } catch (error) {
         dispatch({ type: "requestFailed", message: errorMessage(error) })
+      } finally {
+        pendingCommits.current.delete(commitKey)
       }
     },
     [basePath, navigate, state.current, state.saved],

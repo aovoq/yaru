@@ -90,6 +90,34 @@ describe("client state", () => {
   })
 })
 
+describe("autosave refresh", () => {
+  test("typing in another field while a save is in flight survives the refresh", () => {
+    let state = createClientState(page("before"))
+    state = reduceClientState(state, { type: "draftChanged", field: "title", value: "after" })
+    state = reduceClientState(state, { type: "saveStarted" })
+    state = reduceClientState(state, { type: "draftChanged", field: "body", value: "typing" })
+    state = reduceClientState(state, { type: "saveFinished" })
+    const server = page("after")
+    state = reduceClientState(state, { type: "pageLoaded", page: server, preserveDraft: true })
+    expect(state.current?.body).toBe("typing")
+    expect(state.current?.title).toBe("after")
+    expect(state.draftDirty).toBe(true)
+  })
+
+  test("a refresh that matches the draft clears the unsaved mark", () => {
+    let state = createClientState(page("before"))
+    state = reduceClientState(state, { type: "draftChanged", field: "title", value: "after " })
+    state = reduceClientState(state, { type: "saveFinished" })
+    state = reduceClientState(state, {
+      type: "pageLoaded",
+      page: page("after"),
+      preserveDraft: true,
+    })
+    expect(state.draftDirty).toBe(false)
+    expect(state.current?.title).toBe("after")
+  })
+})
+
 describe("field change", () => {
   const saved = {
     ...BLANK,

@@ -52,13 +52,24 @@ export function createClientState(
 
 export function reduceClientState(state: ClientState, action: ClientAction): ClientState {
   if (action.type === "pageLoaded") {
-    const preserveCurrent = action.preserveDraft && state.draftDirty
+    const server = action.page.current
+    // 自動保存や他の人の書き込みで読み直したとき、手元で変えた項目は手元の値を、それ以外は読み直した値を使う
+    // 保存の途中で別の欄に打ち始めた文字を、読み直しで消さないため
+    const merged =
+      action.preserveDraft &&
+      state.current &&
+      state.saved &&
+      server &&
+      state.current.id === server.id
+        ? mergeDraft(state.current, state.saved, server)
+        : null
+    const preserveCurrent = merged !== null && isDirty(merged, server!)
     const selectedIssueId = action.page.issues.some((issue) => issue.id === state.selectedIssueId)
       ? state.selectedIssueId
       : null
     return {
       ...action.page,
-      current: preserveCurrent ? state.current : action.page.current,
+      current: preserveCurrent ? merged : server,
       saved: action.page.current,
       saveState: state.saveState,
       error: preserveCurrent ? state.error : action.page.error,
@@ -70,7 +81,7 @@ export function reduceClientState(state: ClientState, action: ClientAction): Cli
       blockInput: preserveCurrent
         ? state.blockInput
         : (action.page.current?.blocks.join(", ") ?? ""),
-      comments: preserveCurrent ? state.comments : (action.page.comments ?? []),
+      comments: action.page.comments ?? [],
       requestError: undefined,
     }
   }
@@ -90,7 +101,8 @@ export function reduceClientState(state: ClientState, action: ClientAction): Cli
     return { ...state, selectedIssueId: action.issueId }
   }
   if (action.type === "saveStarted") return { ...state, saveState: "saving" }
-  if (action.type === "saveFinished") return { ...state, saveState: "saved", draftDirty: false }
+  // 保存が終わっても、手元にまだ保存していない変更があるかは読み直したときに比べて決める
+  if (action.type === "saveFinished") return { ...state, saveState: "saved" }
   return { ...state, saveState: "idle", requestError: action.message }
 }
 
@@ -125,4 +137,42 @@ export function fieldChange(
       : before === after
   if (same) return null
   return { [field]: after } as Partial<SaveInput>
+}
+
+const EDITABLE_FIELDS: DraftField[] = [
+  "title",
+  "status",
+  "assignee",
+  "labels",
+  "dueDate",
+  "priority",
+  "parent",
+  "blocks",
+  "body",
+]
+
+// 手元の下書き・前に読んだ版・読み直した版の 3 つを比べ、手元で変えた項目だけ手元の値を残す
+function mergeDraft(draft: Issue, previous: Issue, server: Issue): Issue {
+  const merged: Issue = { ...server }
+  for (const field of EDITABLE_FIELDS) {
+    if (!sameValue(field, draft[field], previous[field])) {
+      ;(merged as Record<DraftField, unknown>)[field] = draft[field]
+    }
+  }
+  return merged
+}
+
+function isDirty(draft: Issue, server: Issue): boolean {
+  return EDITABLE_FIELDS.some((field) => !sameValue(field, draft[field], server[field]))
+}
+
+// 題名はサーバーが前後の空白を落として保存するので、空白の違いは変更と見なさない
+function sameValue(field: DraftField, left: unknown, right: unknown): boolean {
+  if (field === "title" && typeof left === "string" && typeof right === "string") {
+    return left.trim() === right.trim()
+  }
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return left.length === right.length && left.every((item, index) => item === right[index])
+  }
+  return left === right
 }
