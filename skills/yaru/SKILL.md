@@ -36,6 +36,13 @@ yaru comment get <id> [-f|--format]
 yaru comment save --issue ID --body TEXT|-
 yaru comment save --parent ID --body TEXT|-
 yaru comment save --id ID --body TEXT|-
+yaru question list [--status NAME] [--issue ID] [-f|--format]
+yaru question get <id> [-f|--format]
+yaru question save --title TEXT [--issue ID] [--priority NAME] [--default TEXT]
+                   [--answerBy WHEN] [--body TEXT|-] [-f|--format]
+yaru question save --id ID [--status open|canceled] [...same fields]
+yaru question answer <id> --body TEXT|-
+yaru question wait <id> [--timeout DURATION] [--interval DURATION] [-f|--format]
 yaru serve [-p|--port 47800]
 ```
 
@@ -69,6 +76,22 @@ Without `--id` creates. With `--id` updates. Do not pass `--id` when creating. T
 
 `comment list --issue ID` prints `{comments}` in createdAt order.
 
+### questions
+
+Ask the human asynchronously when a decision is theirs to make (product, cost, risk, anything irreversible or outward-facing). Do not ask what you can decide from the code or a sensible default.
+
+- `--title` is the question itself, one line, answerable without opening anything.
+- `--body` holds the context: options, trade-offs, and your recommendation. Keep it short enough to read on a phone.
+- Always give `--default` (the action you will take without an answer) and `--answerBy` (`30m`, `2h`, `1d`, or an ISO 8601 datetime), so the work never stalls on the human. Omit them only when there is no safe default; then say so in the body.
+- Link `--issue` when the question belongs to one.
+- Keep working on other things. Use `question wait <id>` (run it in the background) or check `question list --status answered` later.
+- `wait` exits 0 when answered, canceled, or expired, and 2 on `--timeout` (default 10m). On `expired`, proceed with the default action and record that in the issue.
+- An answer of `Go with the default action: ...` means the human approved the default.
+- Withdraw a question that no longer matters with `question save --id ID --status canceled`.
+- status: `open`, `expired` (open past answerBy), `answered`, `canceled`.
+
+The human answers at `/dashboard` on the board.
+
 ## Fields
 
 - status: `backlog`, `todo`, `in_progress`, `done`, `canceled`
@@ -86,4 +109,4 @@ Invalid values fail with expected vs actual. Do not retry the same invalid value
 2. `issue list` (and `get`) before creating, to avoid duplicates.
 3. Claim work with `--assignee me --status in_progress` before editing code. Skip issues assigned to someone else.
 4. Finish with `--status done`. Cancel with `--status canceled`.
-5. Start `serve` only if the user asked for the board. Default `http://127.0.0.1:47800`.
+5. Start `serve` only if the user asked for the board. Default `http://127.0.0.1:47800`, dashboard at `/dashboard`.
