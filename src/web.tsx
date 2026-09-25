@@ -6,6 +6,7 @@ import { clientScript } from "./client-script"
 import { styles } from "./css"
 import { DashboardPage, dashboardLiveReload, USE_DEFAULT_ANSWER_PREFIX } from "./dashboard"
 import { getPageData } from "./page"
+import { registerPwaRoutes } from "./pwa"
 import { PROJECTS_AUTO_RELOAD, ProjectsPage, type ProjectSummary } from "./projects"
 import { answerQuestion, ensureQuestionsDirectory, getQuestion, listQuestions } from "./questions"
 import { readRepositoryState } from "./repository"
@@ -103,6 +104,7 @@ export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
   })
 
   app.get("/assets/app.js", serveClientScript)
+  registerPwaRoutes(app)
 
   app.post("/issues", async (c) => {
     const body = await c.req.parseBody()
@@ -328,6 +330,7 @@ export function createServerApp(directory = stateDirectory()) {
   })
 
   app.get("/assets/app.js", serveClientScript)
+  registerPwaRoutes(app)
 
   app.get("/p/:slug", (c) => c.redirect(`${workspaceBasePath(c.req.param("slug"))}/`))
 

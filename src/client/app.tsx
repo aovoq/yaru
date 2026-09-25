@@ -6,6 +6,7 @@ import {
   BoardIcon,
   CrossIcon,
   ListIcon,
+  LogoLink,
   PlusIcon,
   PriorityIcon,
   QuestionIcon,
@@ -166,9 +167,7 @@ function Sidebar({
       class="relative hidden min-w-0 shrink-0 flex-col overflow-hidden border-r border-hairline md:flex"
     >
       <div class="flex h-12 shrink-0 items-center gap-2 px-3">
-        <span class="grid size-5 shrink-0 place-items-center rounded-[5px] bg-primary text-[11px] font-semibold text-on-primary">
-          y
-        </span>
+        <LogoLink />
         <span class="min-w-0 flex-1 truncate text-[13px] font-medium tracking-tight text-ink">
           yaru
         </span>
@@ -297,9 +296,7 @@ function Header({
   const list = filters.view === "list"
   return (
     <header class="flex h-12 shrink-0 items-center gap-3 border-b border-hairline px-4">
-      <span class="grid size-5 shrink-0 place-items-center rounded-[5px] bg-primary text-[11px] font-semibold text-on-primary md:hidden">
-        y
-      </span>
+      <LogoLink class="md:hidden" />
       <button
         id="sidebar-open"
         type="button"

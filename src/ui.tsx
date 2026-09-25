@@ -2,6 +2,7 @@ import type { PropsWithChildren } from "hono/jsx"
 import { renderToString } from "hono/jsx/dom/server"
 import { BoardPage as ClientBoardPage, type BoardPageProps } from "./client/app"
 import { BLANK, DEFAULT_VIEW, parseView, type ViewMode } from "./page"
+import { THEME_COLOR } from "./pwa"
 
 export { BLANK, DEFAULT_VIEW, parseView }
 export type { BoardPageProps, ViewMode }
@@ -23,10 +24,14 @@ export function Document({
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>yaru</title>
-        <link
-          rel="icon"
-          href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235e6ad2'/%3E%3Ctext x='16' y='22' font-family='sans-serif' font-size='17' font-weight='600' text-anchor='middle' fill='white'%3Ey%3C/text%3E%3C/svg%3E"
-        />
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="theme-color" content={THEME_COLOR} />
+        {/* ホーム画面から開いたときに iOS でも単独の画面にする https://developer.apple.com/documentation/webkit/configuring-web-applications */}
+        {/* 状態バーを透過させると上端の固定ヘッダーが隠れるので、透過しない既定のままにする */}
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="yaru" />
         <style dangerouslySetInnerHTML={{ __html: css }} />
         <script dangerouslySetInnerHTML={{ __html: SIDEBAR_BOOT }} />
       </head>

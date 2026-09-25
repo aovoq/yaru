@@ -37,6 +37,11 @@ test("distribution script serves the embedded browser UI outside the repository"
     const script = await response.text()
     expect(script).toContain("yaru-initial-state")
     expect(script).toContain("EventSource")
+    // アイコンの PNG は dist の外に置かず yaru.js に埋め込む
+    const icon = await fetch(`http://127.0.0.1:${port}/icon-512.png`)
+    expect(icon.status).toBe(200)
+    expect(icon.headers.get("content-type")).toBe("image/png")
+    expect((await icon.arrayBuffer()).byteLength).toBeGreaterThan(0)
   } finally {
     process.kill()
     await process.exited

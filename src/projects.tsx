@@ -1,3 +1,4 @@
+import { LogoMark } from "./client/icons"
 import type { Question } from "./questions"
 
 // 1 つの yaru serve で配っている全ワークスペースの一覧。スマホで最初に開く画面
@@ -15,9 +16,7 @@ export function ProjectsPage({ projects }: { projects: ProjectSummary[] }) {
   return (
     <div class="h-screen overflow-y-auto">
       <header class="sticky top-0 z-10 flex h-12 items-center gap-2 border-b border-hairline bg-canvas/90 px-4 backdrop-blur">
-        <span class="grid size-5 shrink-0 place-items-center rounded-[5px] bg-primary text-[11px] font-semibold text-on-primary">
-          y
-        </span>
+        <LogoMark />
         <h1 class="text-[13px] font-medium text-ink">Projects</h1>
         <span class="ml-auto text-[11px] text-ink-tertiary">{awaitingTotal} awaiting answer</span>
       </header>

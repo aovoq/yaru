@@ -1,3 +1,4 @@
+import { LogoLink } from "./client/icons"
 import { renderMarkdown } from "./markdown"
 import type { Question } from "./questions"
 import type { RepositoryState } from "./repository"
@@ -53,9 +54,7 @@ export function DashboardPage({
   return (
     <div class="h-screen overflow-y-auto">
       <header class="sticky top-0 z-10 flex h-12 items-center gap-2 border-b border-hairline bg-canvas/90 px-4 backdrop-blur">
-        <span class="grid size-5 shrink-0 place-items-center rounded-[5px] bg-primary text-[11px] font-semibold text-on-primary">
-          y
-        </span>
+        <LogoLink />
         {workspaceName ? (
           <a
             href="/"
