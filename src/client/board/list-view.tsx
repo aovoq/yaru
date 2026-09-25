@@ -35,7 +35,7 @@ export function ListView({
               <GroupHeading
                 section={section}
                 labelColors={labelColors}
-                class="sticky top-0 z-10 h-9 border-b border-hairline/60 bg-surface-1 px-4"
+                class="sticky top-0 z-10 h-9 border-b border-hairline/60 bg-surface-1 pr-4 pl-9"
               />
             )}
             {section.issues.map((issue) => (

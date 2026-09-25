@@ -36,6 +36,19 @@ describe("command palette entries", () => {
     expect(entries[0]!.command).toEqual({ type: "navigate", href: "/p/app/?id=73" })
   })
 
+  test("assign to me uses the viewer's name and is left out when the target is already theirs", () => {
+    const target = { ...issues[0]!, assignee: null }
+    const assign = paletteEntries(input({ target, query: "assign to me", viewer: "aovoq" })).find(
+      (entry) => entry.label === "Assignee: Assign to me (aovoq)",
+    )
+    expect(assign?.command).toEqual({
+      type: "menu",
+      action: { type: "save", issueId: "73", input: { assignee: "aovoq" } },
+    })
+    const mine = { ...issues[0]!, assignee: "aovoq" }
+    expect(labels({ target: mine, query: "assign to me", viewer: "aovoq" })).toEqual([])
+  })
+
   test("titles are searched without regard to case, and recent issues show with no query", () => {
     expect(labels({ query: "通知" })).toContain("通知")
     const recent = paletteEntries(input()).filter((entry) => entry.group === "Issues")

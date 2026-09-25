@@ -69,12 +69,8 @@ export function readRepositoryState(root: string): RepositoryState | null {
   }
 }
 
-export type IssueCommit = {
-  hash: string
-  subject: string
-  author: string
-  committedAt: string
-}
+// issue に関わるコミットも、dashboard の最近のコミットと同じく push 済みかを持つ。送り忘れたままの作業を issue の画面でも気づけるようにするため
+export type IssueCommit = RepositoryCommit
 
 export const ISSUE_COMMITS_LIMIT = 20
 
@@ -107,7 +103,7 @@ export function commitsForIssue(root: string, id: string, branch: string | null)
   const onBranch = branchCommit
     ? git(root, ["log", limit, format, branchCommit, "--not", "HEAD", "--"])
     : null
-  const byHash = new Map<string, IssueCommit & { order: number }>()
+  const byHash = new Map<string, Omit<IssueCommit, "pushed"> & { order: number }>()
   const lines = [...(onBranch ?? "").split("\n"), ...(mentioned ?? "").split("\n")]
   for (const [order, line] of lines.entries()) {
     if (!line) continue
@@ -121,13 +117,34 @@ export function commitsForIssue(root: string, id: string, branch: string | null)
       order,
     })
   }
-  return [...byHash.values()]
+  const recent = [...byHash.entries()]
     .sort(
-      (left, right) =>
+      ([, left], [, right]) =>
         Date.parse(right.committedAt) - Date.parse(left.committedAt) || left.order - right.order,
     )
     .slice(0, ISSUE_COMMITS_LIMIT)
-    .map(({ order: _order, ...commit }) => commit)
+  const unpushed = unpushedCommits(
+    root,
+    recent.map(([fullHash]) => fullHash),
+  )
+  return recent.map(([fullHash, { order: _order, ...commit }]) => ({
+    ...commit,
+    pushed: unpushed === null ? null : !unpushed.has(fullHash),
+  }))
+}
+
+// 元のフォルダの HEAD の upstream (readRepositoryState と同じ基準) から辿れないコミットを返す。upstream が無ければ分からないので null
+// 自分のリモートのブランチへ push しただけでまだ upstream に入っていないコミットも、ここでは送っていないものに数える
+// 「<コミット> --not @{upstream}」は、コミットから辿れて upstream から辿れないものを並べる。与えたコミットがそこに出れば未送信
+// https://git-scm.com/docs/git-rev-list#Documentation/git-rev-list.txt---not
+function unpushedCommits(root: string, fullHashes: string[]): Set<string> | null {
+  if (git(root, ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"]) === null) {
+    return null
+  }
+  if (fullHashes.length === 0) return new Set()
+  const listed = git(root, ["rev-list", ...fullHashes, "--not", "@{upstream}", "--"])
+  if (listed === null) return null
+  return new Set(listed.split("\n").filter(Boolean))
 }
 
 function git(root: string, args: string[]): string | null {

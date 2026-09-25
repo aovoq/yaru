@@ -56,11 +56,13 @@ export function BoardPage({ returnedDrafts, ...props }: BoardPageProps) {
       const link = target.closest("a")
       if (!link || link.target || link.download) return
       const url = new URL(link.href, window.location.href)
-      if (url.origin !== window.location.origin || url.pathname !== `${filters.basePath}/`) return
+      if (url.origin !== window.location.origin) return
+      // 板の外 (dashboard・別のワークスペース) へのリンクも受け、開いている issue に保存していない変更があれば捨てるかを確かめる
+      // issue を開いたままサイドバーを使えるので、そこから板の外へ出ると書きかけの新しい issue が黙って消えてしまうため
       event.preventDefault()
       interactions.navigate(url.href)
     },
-    [interactions.navigate, filters.basePath],
+    [interactions.navigate],
   )
 
   const onSearch = useCallback(
@@ -82,15 +84,16 @@ export function BoardPage({ returnedDrafts, ...props }: BoardPageProps) {
 
   return (
     <IssueActionsContext.Provider value={interactions.issueActions}>
+      {/* 高さは 100vh (h-screen) ではなく dvh にする。スマホの Safari の 100vh はツールバーを畳んだときの高さで、下端が隠れるため */}
+      {/* https://drafts.csswg.org/css-values-4/#viewport-variants */}
       <div
-        class="h-screen"
+        class="h-dvh"
         onClick={onNavigate}
         onClickCapture={interactions.onClickCapture}
         onContextMenu={interactions.onContextMenu}
       >
-        {/* issue 画面を開いている間は、裏の板を inert にして focus と読み上げが板へ抜けないようにする */}
-        {/* https://html.spec.whatwg.org/multipage/interaction.html#the-inert-attribute */}
-        <div data-board-shell="" inert={state.current !== null} class="flex h-full">
+        <div class="flex h-full">
+          {/* issue 画面はサイドバーの右から重なるので、開いたままでもサイドバーから絞り込みや別の画面へ移れるようにする */}
           <Sidebar
             all={state.all}
             filters={filters}
@@ -99,7 +102,13 @@ export function BoardPage({ returnedDrafts, ...props }: BoardPageProps) {
             awaitingByIssue={state.awaitingByIssue}
             labelColors={labelColors}
           />
-          <div class="flex min-w-0 flex-1 flex-col">
+          {/* issue 画面を開いている間は、その下に隠れる板の本体だけを inert にして focus と読み上げが抜けないようにする */}
+          {/* https://html.spec.whatwg.org/multipage/interaction.html#the-inert-attribute */}
+          <div
+            data-board-shell=""
+            inert={state.current !== null}
+            class="flex min-w-0 flex-1 flex-col"
+          >
             <Header
               filters={filters}
               count={state.issues.length}
@@ -139,6 +148,7 @@ export function BoardPage({ returnedDrafts, ...props }: BoardPageProps) {
             onChange={controller.changeDraft}
             onSave={controller.saveCurrent}
             onPatchIssue={controller.patchIssue}
+            viewer={state.viewer}
             onNavigate={interactions.navigate}
           />
         ) : null}

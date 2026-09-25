@@ -1,4 +1,4 @@
-import { Pill } from "../../components/pill"
+import { Pill } from "./pill"
 
 // 進行中のまま長く更新の無い issue (Issue.stale) に付ける札。エージェントが落ちたか、返事を待ったまま忘れられたかを人に気づかせる
 // 危険 (期限切れ) ほどは急がないが見落としたくないので、優先度の high と同じ橙にする

@@ -2,24 +2,40 @@ import { expect, test } from "bun:test"
 import { renderToString } from "preact-render-to-string"
 import { BLANK } from "../../page"
 import type { Issue } from "../../store"
+import { IssueActionsContext, type IssueActions } from "../context-menu/issue-actions"
 import { IssueCard } from "./issue-card"
 
 const NOW = new Date("2026-09-26T03:00:00.000Z")
 
-function card(fields: Partial<Issue> = {}, extra: Partial<Parameters<typeof IssueCard>[0]> = {}) {
+const actions: IssueActions = {
+  openIssueMenuAt: () => {},
+  openPropertyPicker: () => {},
+  bulkSelection: [],
+  toggleBulkSelection: () => {},
+  retrySave: async () => {},
+  returnedDrafts: {},
+}
+
+function card(
+  fields: Partial<Issue> = {},
+  extra: Partial<Parameters<typeof IssueCard>[0]> = {},
+  bulkSelection: string[] = [],
+) {
   return renderToString(
-    <IssueCard
-      issue={{ ...BLANK, id: "73", title: "板を直す", ...fields }}
-      filters={{}}
-      selected={false}
-      draggable
-      showStatus={false}
-      labelColors={new Map([["ui", "#123456"]])}
-      now={NOW}
-      onDragStart={() => {}}
-      onDragEnd={() => {}}
-      {...extra}
-    />,
+    <IssueActionsContext.Provider value={{ ...actions, bulkSelection }}>
+      <IssueCard
+        issue={{ ...BLANK, id: "73", title: "板を直す", ...fields }}
+        filters={{}}
+        selected={false}
+        draggable
+        showStatus={false}
+        labelColors={new Map([["ui", "#123456"]])}
+        now={NOW}
+        onDragStart={() => {}}
+        onDragEnd={() => {}}
+        {...extra}
+      />
+    </IssueActionsContext.Provider>,
   )
 }
 
@@ -48,4 +64,12 @@ test("a card cannot be dragged when the columns are not statuses, since a drop o
 test("a card shows its status icon when the columns are not statuses", () => {
   expect(card({ status: "done" }, { showStatus: true })).toContain('aria-label="Done"')
   expect(card({ status: "done" })).not.toContain('aria-label="Done"')
+})
+
+test("a card in the bulk selection is tinted and has a checked checkbox outside its link", () => {
+  const html = card({}, {}, ["73"])
+  expect(html).toMatch(/<a[^>]*data-bulk-selected/)
+  expect(html).toContain('role="checkbox" aria-checked="true" aria-label="Select #73"')
+  expect(card({}, {}, ["8"])).toContain('aria-checked="false"')
+  expect(card({}, {}, ["8"])).not.toContain("data-bulk-selected")
 })

@@ -21,7 +21,7 @@ import {
 import { hasUnsavedChanges, type DraftField } from "./state"
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts"
 import type { PageController } from "./use-page-controller"
-import { newIssueHref, pageHref, type PageFilters } from "./view-model"
+import { deleteNewIssueParams, newIssueHref, pageHref, type PageFilters } from "./view-model"
 
 // 板と issue 画面の上に重ねて開くもの (右クリックのメニュー・属性の選択・コマンドパレット・変更を捨てる確認・まとめて変える帯・知らせ) と、
 // それを開くキーボードとマウスの操作をまとめる。板の組み立て役 (app.tsx) は、返したものを置くだけにする
@@ -92,7 +92,11 @@ export function useBoardInteractions(
     if (returnFocus?.closest("#board")) controller.selectIssue(issueId)
     setPicker(null)
     setMenu({
-      items: issueMenu(issue, state.all, { now: new Date(), boardUrl: boardUrl() }),
+      items: issueMenu(issue, state.all, {
+        now: new Date(),
+        boardUrl: boardUrl(),
+        viewer: state.viewer,
+      }),
       x,
       y,
       returnFocus,
@@ -148,19 +152,28 @@ export function useBoardInteractions(
     return current.id ? id !== current.id : id !== "new"
   }
 
+  // 板の外 (dashboard・inbox・別のワークスペース) はページを読み直して開く。板の中はページを読み直さずに移る
+  const go = (href: string) => {
+    const url = new URL(href, window.location.href)
+    if (url.pathname !== `${basePath}/`) {
+      window.location.assign(url.href)
+      return
+    }
+    void controller.navigate(url.href)
+  }
+
   const navigate = (href: string) => {
     if (leavesCurrentIssue(href) && hasUnsavedChanges(state)) {
       setPendingHref(href)
       return
     }
-    void controller.navigate(href)
+    go(href)
   }
 
   const requestClose = () => {
     const url = new URL(window.location.href)
     url.searchParams.delete("id")
-    url.searchParams.delete("new_status")
-    url.searchParams.delete("new_parent")
+    deleteNewIssueParams(url)
     navigate(url.href)
   }
 
@@ -225,7 +238,7 @@ export function useBoardInteractions(
 
   const onPaletteCommand = (command: PaletteCommand) => {
     if (command.type === "navigate") navigate(command.href)
-    else if (command.type === "location") window.location.assign(command.href)
+    else if (command.type === "location") navigate(command.href)
     else if (command.type === "createIssue") navigate(newIssueHref(filters, filters.status))
     else onMenuAction(command.action)
   }
@@ -270,7 +283,13 @@ export function useBoardInteractions(
   }, [floatingError, controller.dismissError])
 
   const pickerData = picker
-    ? propertyPicker(picker.field, pickerTargets(picker.issueIds), state.all, new Date())
+    ? propertyPicker(
+        picker.field,
+        pickerTargets(picker.issueIds),
+        state.all,
+        new Date(),
+        state.viewer,
+      )
     : null
 
   const overlays = (
@@ -296,6 +315,7 @@ export function useBoardInteractions(
             issueHref: (issueId) => pageHref(filters, issueId),
             boardUrl: boardUrl(),
             now: new Date(),
+            viewer: state.viewer,
           }}
           onRun={onPaletteCommand}
           onClose={() => setPaletteOpen(false)}
@@ -314,7 +334,7 @@ export function useBoardInteractions(
           onConfirm={() => {
             const href = pendingHref
             setPendingHref(null)
-            void controller.navigate(href)
+            go(href)
           }}
           onCancel={() => setPendingHref(null)}
         />

@@ -47,7 +47,18 @@ export const DEFAULT_PORT = 47800
 // /inbox が全ワークスペースの答え待ちの質問を読み直す間隔。全ワークスペースの変更を見張るのは重いので、しばらくおきに読む
 const INBOX_POLL_MILLISECONDS = 30_000
 
-const FILTER_KEYS = ["query", "status", "assignee", "label", "view"] as const
+// 板の絞り込みと見せ方 (答え待ちだけ・並べ方・まとめ方・終わった issue の見せ方)。フォームを送ったあとも同じ板へ戻すために持ち回る
+const FILTER_KEYS = [
+  "query",
+  "status",
+  "assignee",
+  "label",
+  "awaiting",
+  "sort",
+  "group",
+  "completed",
+  "view",
+] as const
 
 export type WorkspaceAppOptions = {
   // 1 つの yaru serve で複数のワークスペースを配るときの URL の接頭辞 (例: /p/app)。単独なら ""
@@ -246,6 +257,10 @@ export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
       label: c.req.query("label") || str(body.label),
       status: c.req.query("status") || str(body.filter_status),
       assignee: c.req.query("assignee") || str(body.filter_assignee),
+      awaiting: c.req.query("awaiting") || str(body.awaiting),
+      sort: c.req.query("sort") || str(body.sort),
+      group: c.req.query("group") || str(body.group),
+      completed: c.req.query("completed") || str(body.completed),
     }
     const draft = draftFrom(body)
     try {

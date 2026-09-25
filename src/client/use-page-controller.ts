@@ -11,6 +11,7 @@ import {
   type DraftField,
   type ReturnedDrafts,
 } from "./state"
+import { deleteNewIssueParams } from "./view-model"
 
 type HistoryMode = "push" | "replace" | "none"
 
@@ -143,8 +144,7 @@ export function usePageController(
         return
       }
       const pageUrl = new URL(window.location.href)
-      pageUrl.searchParams.delete("new_status")
-      pageUrl.searchParams.delete("new_parent")
+      deleteNewIssueParams(pageUrl)
       pageUrl.searchParams.set("id", saved.id)
       await navigate(pageUrl.href, "replace")
     } catch (error) {

@@ -253,7 +253,9 @@ describe("menus and pickers from the keyboard", () => {
     expect(clicked).toBe(1)
     expect(calls).toEqual([])
     press(document.body, "d")
-    expect(document.activeElement).toBe(document.querySelector("[data-property=dueDate] input"))
+    expect(document.activeElement === document.querySelector("[data-property=dueDate] input")).toBe(
+      true,
+    )
     ;(document.activeElement as HTMLElement).blur()
     press(document.body, "s")
     expect(calls).toEqual([

@@ -1,7 +1,20 @@
 import { compile } from "tailwindcss"
 import tw from "tailwindcss/index.css" with { type: "text" }
 import { renderToString } from "preact-render-to-string"
+import { DisplayOptions } from "./client/board/display-options"
+import { WorkspaceList } from "./client/board/workspace-list"
+import { WorkspaceSwitcher } from "./client/board/workspace-switcher"
+import { IssueCard } from "./client/board/issue-card"
+import { IssueRow } from "./client/board/issue-row"
+import { BulkBar } from "./client/bulk/bulk-bar"
+import { CommandPalette } from "./client/command-palette/command-palette"
 import { ContextMenu } from "./client/context-menu/context-menu"
+import { IssueActionsContext } from "./client/context-menu/issue-actions"
+import { PropertyPicker } from "./client/context-menu/property-picker"
+import { PropRow } from "./client/issue/prop-row"
+import { RelationKindSwitch } from "./client/issue/relation-kind-switch"
+import { Alert } from "./components/alert"
+import { ConfirmDialog } from "./components/confirm-dialog"
 import { Avatar } from "./components/avatar"
 import { Button, type ButtonSize, type ButtonVariant } from "./components/button"
 import { IconButton } from "./components/icon-button"
@@ -14,10 +27,11 @@ import { Notice } from "./components/notice"
 import { Popover } from "./components/popover"
 import { Combobox } from "./components/combobox"
 import { StatusIcon } from "./components/icons/status-icon"
+import { StaleMarker } from "./components/stale-marker"
 import { TextLink } from "./components/text-link"
 import { Textarea } from "./components/textarea"
 import { LABEL_PALETTE } from "./components/tint"
-import { issueMenu } from "./client/issue-menu"
+import { issueMenu, propertyPicker } from "./client/issue-menu"
 import { DashboardPage } from "./dashboard"
 import { INTER_FONT_PATH } from "./font"
 import { ProjectsPage } from "./projects"
@@ -161,16 +175,17 @@ html[data-sidebar="closed"] #sidebar {
   margin-top: 1.3em;
 }
 .markdown h1 {
-  font-size: 1.4em;
+  font-size: 1.15em;
 }
 .markdown h2 {
-  font-size: 1.2em;
+  font-size: 1.07em;
 }
 .markdown h3 {
-  font-size: 1.05em;
+  font-size: 1em;
 }
 .markdown :is(h4, h5, h6) {
   font-size: 1em;
+  color: var(--color-ink-muted);
 }
 .markdown strong {
   color: var(--color-ink);
@@ -299,14 +314,35 @@ export function styles(): Promise<string> {
 }
 
 async function build(): Promise<string> {
-  const compiler = await compile(INPUT, {
+  const tailwind = await tailwindCompiler()
+  const sample = await sampleHtml()
+  return tailwind.build(candidates(sample))
+}
+
+function tailwindCompiler() {
+  return compile(INPUT, {
     loadStylesheet: async (id, base) => {
       if (id === "tailwindcss") return { path: id, base, content: tw }
       throw new Error(`unknown stylesheet: ${id}`)
     },
   })
-  const sample = await sampleHtml()
-  return compiler.build(candidates(sample))
+}
+
+// 渡した字の並びのうち、Tailwind のクラスとして CSS になるのに見本に描かれていないものを返す。見本の描き忘れを見つけるため
+// 見本のクラスで作った CSS に 1 つずつ足して作り直し、CSS が増えたものが描き忘れ。markdown のような Tailwind でない名前は CSS が増えないので出ない
+// compiler.build は前に渡したクラスを覚えていて、新しいクラスがあるときだけ作り直すので、1 つずつ渡せば増えたかどうかで分かる
+export async function classesMissingFromSamples(tokens: Iterable<string>): Promise<string[]> {
+  const tailwind = await tailwindCompiler()
+  const sampled = new Set(candidates(await sampleHtml()))
+  let css = tailwind.build([...sampled])
+  const missing: string[] = []
+  for (const token of new Set(tokens)) {
+    if (sampled.has(token)) continue
+    const next = tailwind.build([token])
+    if (next !== css) missing.push(token)
+    css = next
+  }
+  return missing
 }
 
 async function sampleHtml(): Promise<string> {
@@ -328,6 +364,8 @@ async function sampleHtml(): Promise<string> {
     { ...issue, id: "5", status: "canceled", assignee: null, priority: null, labels: [] },
     { ...issue, id: "6", parent: "1", status: "done" },
     { ...issue, id: "7", parent: "1", assignee: null },
+    // 進行中のまま止まった issue。板の行とカードと dashboard の作業中の一覧に Stale の札が出る
+    { ...issue, id: "8", status: "in_progress", dueDate: null, stale: true },
   ]
   // issue 画面の全部の欄 (子 issue・関係・活動・親) が出る状態
   const detailedIssue = {
@@ -340,6 +378,9 @@ async function sampleHtml(): Promise<string> {
     startedAt: "2026-01-01T00:00:00.000Z",
     completedAt: "2026-01-01T00:00:00.000Z",
     canceledAt: "2026-01-01T00:00:00.000Z",
+    session: "s",
+    worktree: "/w",
+    branch: "b",
   }
   const sampleComments = [
     {
@@ -430,6 +471,7 @@ async function sampleHtml(): Promise<string> {
     awaiting: false,
     awaitingByIssue: {},
     display: DEFAULT_ISSUE_DISPLAY,
+    viewer: "me",
   }
   const sampleSessionHealth: SessionHealth = {
     directory: "d",
@@ -490,11 +532,37 @@ async function sampleHtml(): Promise<string> {
             at: "2026-01-01T00:00:00.000Z",
           },
         ]}
-        commits={[{ hash: "h", subject: "s", author: "a", committedAt: "2026-01-01T00:00:00Z" }]}
+        commits={[
+          {
+            hash: "h",
+            subject: "s",
+            author: "a",
+            committedAt: "2026-01-01T00:00:00Z",
+            pushed: false,
+          },
+          {
+            hash: "i",
+            subject: "s",
+            author: "a",
+            committedAt: "2026-01-01T00:00:00Z",
+            pushed: true,
+          },
+          {
+            hash: "j",
+            subject: "s",
+            author: "a",
+            committedAt: "2026-01-01T00:00:00Z",
+            pushed: null,
+          },
+        ]}
         awaiting
         awaitingByIssue={{
           "1": { count: 2, expired: 1, soonestAnswerBy: "2026-01-01T01:00:00.000Z" },
+          // 板は今の時刻で残り時間を描くので、まだ期限の来ていない姿を出すには遠い先の期限を置く
+          "2": { count: 1, expired: 0, soonestAnswerBy: "2099-01-01T00:00:00.000Z" },
         }}
+        awaitingQuestionCount={3}
+        basePath="/p/a"
         issues={issues}
         all={issues}
         query="q"
@@ -524,6 +592,30 @@ async function sampleHtml(): Promise<string> {
         view="list"
         comments={[]}
       />
+      {(["priority", "label", "none"] as const).map((group) => (
+        <BoardPage
+          {...page}
+          display={{ ...DEFAULT_ISSUE_DISPLAY, group }}
+          issues={issues}
+          all={issues}
+          query=""
+          current={null}
+          view="board"
+          comments={[]}
+        />
+      ))}
+      {(["priority", "label", "none"] as const).map((group) => (
+        <BoardPage
+          {...page}
+          display={{ ...DEFAULT_ISSUE_DISPLAY, group }}
+          issues={issues}
+          all={issues}
+          query=""
+          current={null}
+          view="list"
+          comments={[]}
+        />
+      ))}
       <BoardPage {...page} issues={[]} all={[]} query="" current={null} comments={[]} />
       <BoardPage {...page} issues={[]} all={[]} query="none" current={null} comments={[]} />
       <ErrorView message="x" />
@@ -599,6 +691,25 @@ async function sampleHtml(): Promise<string> {
       />
       <Notice text="x" />
       <Notice text={null} />
+      <PropRow property="x" label="x" labelId="x" error="x" />
+      <RelationKindSwitch kind="blocks" onChange={() => {}} />
+      <DisplayOptions filters={{ group: "priority" }} />
+      <WorkspaceSwitcher basePath="/p/a" />
+      <WorkspaceList
+        basePath="/p/a"
+        workspaces={{
+          state: "loaded",
+          workspaces: [
+            { slug: "a", basePath: "/p/a", awaiting: 1 },
+            { slug: "b", basePath: "/p/b", awaiting: 0 },
+          ],
+        }}
+      />
+      <WorkspaceList basePath="/p/a" workspaces={{ state: "loading" }} />
+      <WorkspaceList basePath="/p/a" workspaces={{ state: "failed" }} />
+      <StaleMarker />
+      {/* 表示の設定の面は、狭い画面では画面の幅いっぱいに固定して開く (display-menu.tsx) */}
+      <div class="max-sm:fixed max-sm:inset-x-4 max-sm:top-[calc(env(safe-area-inset-top)+3.25rem)]" />
       <Popover open onClose={() => {}} trigger={<button type="button">t</button>}>
         <Combobox
           label="Labels"
@@ -615,6 +726,63 @@ async function sampleHtml(): Promise<string> {
       <Popover open align="end" onClose={() => {}} trigger={<button type="button">t</button>}>
         <Combobox label="Status" options={[]} selected={[]} onSelect={() => {}} />
       </Popover>
+      <PropertyPicker
+        picker={propertyPicker("dueDate", [issue], issues, new Date(0))}
+        anchor={{ left: 0, top: 0, bottom: 0 }}
+        onSelect={() => {}}
+        onCreate={() => {}}
+        onClose={() => {}}
+      />
+      <CommandPalette
+        input={{
+          all: issues,
+          awaitingByIssue: { "1": { count: 1, expired: 0, soonestAnswerBy: null } },
+          basePath: "",
+          target: issue,
+          issueHref: (issueId) => `/?id=${issueId}`,
+          boardUrl: "http://x/",
+          now: new Date(0),
+        }}
+        onRun={() => {}}
+        onClose={() => {}}
+      />
+      <ConfirmDialog
+        title="x"
+        description="x"
+        confirmLabel="x"
+        cancelLabel="x"
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />
+      <BulkBar count={2} onPick={() => {}} onClear={() => {}} />
+      {/* まとめて選んでいる間の行とカード (印をいつも出し、カードの上の行に印の幅を空ける) は、x か印を押したあとにしか描かれない */}
+      <IssueActionsContext.Provider
+        value={{
+          openIssueMenuAt: () => {},
+          openPropertyPicker: () => {},
+          bulkSelection: [issue.id],
+          toggleBulkSelection: () => {},
+          retrySave: async () => {},
+          returnedDrafts: {},
+        }}
+      >
+        <IssueRow issue={issue} filters={{}} selected labelColors={new Map()} now={new Date(0)} />
+        <IssueCard
+          issue={issue}
+          filters={{}}
+          selected={false}
+          draggable
+          showStatus={false}
+          labelColors={new Map()}
+          now={new Date(0)}
+          onDragStart={() => {}}
+          onDragEnd={() => {}}
+        />
+      </IssueActionsContext.Provider>
+      <Alert floating onDismiss={() => {}} onRetry={() => {}}>
+        x
+      </Alert>
+      <Alert>x</Alert>
     </>
   )
   // 共通の部品は、まだどの画面も使っていない大きさや種類があっても CSS に載せておく

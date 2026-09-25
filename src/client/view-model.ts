@@ -81,6 +81,14 @@ export function newIssueHref(filters: PageFilters, status?: string, parent?: str
   return `${url.pathname}${url.search}`
 }
 
+// 新しい issue の画面の URL から、下書きの初めの値を渡すための引数 (newIssueHref が付けるもの) を落とす
+// 作ったあとや閉じたあとに残すと、読み直しや戻る操作で同じ値の付いた新しい issue の画面が開き直してしまう
+export function deleteNewIssueParams(url: URL): void {
+  for (const name of ["new_status", "new_parent", "new_label", "new_assignee"]) {
+    url.searchParams.delete(name)
+  }
+}
+
 export function issueColumns(issues: Issue[]): string[] {
   const extraStatuses: string[] = []
   for (const issue of issues) {

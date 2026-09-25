@@ -139,6 +139,12 @@ function byText(root: ParentNode, selector: string, text: string): HTMLElement {
   return found
 }
 
+// bun の toBe は happy-dom の要素どうしを取り違えても通ってしまうことがあるので、同じ要素かを真偽で比べる
+function expectFocused(element: Element | null): void {
+  expect(element).not.toBeNull()
+  expect((window.document.activeElement as unknown) === element).toBe(true)
+}
+
 function submitCommentForm(): void {
   const form = window.document.getElementById("comment-form")!
   form.dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }) as never)
@@ -195,11 +201,12 @@ test("the mobile banner counts the waiting questions and expands them", async ()
   expect(list.hasAttribute("data-expanded")).toBe(true)
 })
 
-test("the issue view is a modal dialog named by the issue title", async () => {
+test("the issue view is a dialog named by the issue title that leaves the sidebar reachable", async () => {
   const root = await view()
   const dialog = root.querySelector("#issue-view")!
   expect(dialog.getAttribute("role")).toBe("dialog")
-  expect(dialog.getAttribute("aria-modal")).toBe("true")
+  // 開いたままサイドバーを使えるので、読み上げからサイドバーを隠す aria-modal は付けない
+  expect(dialog.hasAttribute("aria-modal")).toBe(false)
   const heading = window.document.getElementById(dialog.getAttribute("aria-labelledby")!)!
   expect(heading.tagName).toBe("H1")
   expect(heading.textContent).toBe("topic")
@@ -215,14 +222,53 @@ test("opening an issue moves focus into the dialog, closing returns it to the ro
   const { render } = await import("preact")
   render(null, container!)
   await settle()
-  expect(window.document.activeElement).toBe(row)
+  expect((window.document.activeElement as unknown) === row).toBe(true)
 })
 
 test("a new issue puts the cursor in the title, not in the description", async () => {
   const root = await view({ issue: { ...BLANK } })
-  expect(window.document.activeElement).toBe(root.querySelector('textarea[name="title"]') as never)
+  expectFocused(root.querySelector('textarea[name="title"]'))
   // 新しい issue でも説明を書きながら見た目を確かめられる
   expect(byText(root, "button", "Preview")).toBeDefined()
+})
+
+test("a new issue opened from inside another issue puts the cursor in the title", async () => {
+  // コマンドパレットやメニューは閉じるときに focus を開く前の場所 (issue 画面そのもの) へ戻す
+  // そのあとで新しい issue に切り替わっても、題名の欄へ移す
+  const root = await view()
+  const dialog = root.querySelector<HTMLElement>("#issue-view")!
+  dialog.focus()
+  await view({ issue: { ...BLANK } })
+  expectFocused(root.querySelector('textarea[name="title"]'))
+})
+
+test("a new issue that gets its number keeps the cursor where it was", async () => {
+  const root = await view({ issue: { ...BLANK } })
+  const title = root.querySelector('textarea[name="title"]')
+  expectFocused(title)
+  // 題名を打って離れる前に番号が付いても、打っている欄から focus を奪わない
+  await view({ issue: { ...topic, id: "5" } })
+  expectFocused(title)
+})
+
+test("commits say whether they have been pushed", async () => {
+  const commit = { subject: "s", author: "aovoq", committedAt: "2026-09-26T02:00:00.000Z" }
+  const root = await view({
+    commits: [
+      { ...commit, hash: "a1", subject: "送った", pushed: true },
+      { ...commit, hash: "b2", subject: "まだ送っていない", pushed: false },
+      { ...commit, hash: "c3", subject: "分からない", pushed: null },
+    ],
+  })
+  const pushed = byText(root, "li", "送った")
+  const unpushed = byText(root, "li", "まだ送っていない")
+  const unknown = byText(root, "li", "分からない")
+  expect(pushed.getAttribute("data-pushed")).toBe("true")
+  expect(unpushed.getAttribute("data-pushed")).toBe("false")
+  // 色だけに頼らず、読み上げでも分かるようにする
+  expect(unpushed.textContent).toContain("Not pushed")
+  expect(pushed.textContent).toContain("Pushed")
+  expect(unknown.hasAttribute("data-pushed")).toBe(false)
 })
 
 test("the title, description and comment fields are named for screen readers", async () => {
@@ -252,7 +298,7 @@ test("tapping the description on a touch screen does not start editing", async (
   await settle()
   const editor = root.querySelector<HTMLTextAreaElement>("#issue-description-editor")!
   expect(editor.className).not.toContain("font-mono")
-  expect(window.document.activeElement).toBe(editor as never)
+  expect((window.document.activeElement as unknown) === editor).toBe(true)
 })
 
 test("clicking the description with a mouse starts editing", async () => {
@@ -423,6 +469,7 @@ test("property changes and commits appear on the issue", async () => {
         subject: "受け箱を足す #1",
         author: "aovoq",
         committedAt: "2026-09-26T02:00:00.000Z",
+        pushed: true,
       },
     ],
   })

@@ -60,6 +60,7 @@ function page(current: Issue | null = saved): PageData {
     awaiting: false,
     awaitingByIssue: {},
     display: { sort: "priority", group: "status", completed: "recent" },
+    viewer: "aovoq",
   }
 }
 
@@ -151,4 +152,21 @@ test("only a page load that never arrived is offered a retry", async () => {
   await controller.patchIssue("1", { status: "done" })
   await settle()
   expect(controller.state.requestRetryable).toBe(false)
+})
+
+test("a created issue opens by its number without the new issue parameters in the URL", async () => {
+  const draft: Issue = { ...BLANK, title: "新しい issue", labels: ["ui"], assignee: "aovoq" }
+  window.history.replaceState(
+    null,
+    "",
+    "/?label=ui&id=new&new_status=todo&new_parent=3&new_label=ui&new_assignee=me",
+  )
+  await mount(page(draft))
+  const created = { ...draft, id: "9" }
+  replies.push({ status: 200, body: created }, { status: 200, body: page(created) })
+  await controller.saveCurrent()
+  await settle()
+  // 残すと、読み直しや戻る操作で同じ下書きの値が付いた新しい issue の画面が開き直してしまう
+  expect(window.location.search).toBe("?label=ui&id=9")
+  window.history.replaceState(null, "", "/")
 })

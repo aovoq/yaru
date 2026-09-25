@@ -424,6 +424,42 @@ describe("web", () => {
     expect(html).toMatch(/data-property="priority"[\s\S]*?>Medium</)
   })
 
+  test("POST /issues keeps the board's awaiting filter and display options", async () => {
+    const app = createApp(workspace())
+    const display = { awaiting: "1", sort: "updated", group: "priority", completed: "all" }
+    const res = await app.request("/issues", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ title: "kept", ...display }).toString(),
+    })
+    expect(res.status).toBe(302)
+    const location = new URL(res.headers.get("location")!, "http://localhost")
+    expect(Object.fromEntries(location.searchParams)).toEqual(display)
+    // 失敗してその場で描き直す板も、同じ見せ方のままにする
+    const failed = await app.request("/issues", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ title: "", ...display }).toString(),
+    })
+    expect(failed.status).toBe(400)
+    const html = await failed.text()
+    expect(html).toContain('"display":{"sort":"updated","group":"priority","completed":"all"}')
+    expect(html).toContain('"awaiting":true')
+  })
+
+  test("POST /comments keeps the board's awaiting filter and display options", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "topic" })
+    const display = { awaiting: "1", sort: "created", group: "label", completed: "hide" }
+    const res = await createApp(store).request("/comments", {
+      method: "POST",
+      body: new URLSearchParams({ issue: "1", body: "note", ...display }),
+    })
+    expect(res.status).toBe(303)
+    const location = new URL(res.headers.get("location")!, "http://localhost")
+    expect(Object.fromEntries(location.searchParams)).toEqual({ ...display, id: "1" })
+  })
+
   test("POST /issues saves dueDate and priority", async () => {
     const app = createApp(workspace())
     const res = await app.request("/issues", {

@@ -9,7 +9,15 @@ import {
 } from "./issue-order"
 import { listQuestions, type Question } from "./questions"
 import { commitsForIssue, type IssueCommit } from "./repository"
-import { getIssue, listComments, listIssues, type Comment, type Issue, type Store } from "./store"
+import {
+  getIssue,
+  gitName,
+  listComments,
+  listIssues,
+  type Comment,
+  type Issue,
+  type Store,
+} from "./store"
 
 export const BLANK: Issue = {
   id: "",
@@ -60,6 +68,7 @@ export type PageData = {
   query: string
   current: Issue | null
   comments: Comment[]
+  // 開いている issue の質問。人が先に見るべき順 (questions.ts の compareQuestions) に並ぶ
   questions?: Question[]
   // 開いている issue の属性の変更履歴 (古い順)
   events: IssueEvent[]
@@ -76,6 +85,8 @@ export type PageData = {
   // 1 つの yaru serve で複数のワークスペースを配るときの、このワークスペースの URL の接頭辞 (例: /p/app)。単独なら ""
   basePath?: string
   awaitingQuestionCount?: number
+  // 画面を見ている人の名前 (git config user.name)。担当者の「me」は保存のときにこの名前へ読み替わるので、画面でも同じ名前を自分として扱う
+  viewer: string
   error?: string
 }
 
@@ -109,7 +120,8 @@ export function getPageData(store: Store, url: URL, basePath = "", now = new Dat
     ),
     display.sort,
   )
-  const opened = openIssue(store, url, id, status, now)
+  const viewer = gitName()
+  const opened = openIssue(store, url, id, status, viewer, now)
   const current = opened.issue
   return {
     issues,
@@ -133,6 +145,7 @@ export function getPageData(store: Store, url: URL, basePath = "", now = new Dat
     view,
     basePath,
     awaitingQuestionCount: awaitingQuestions.length,
+    viewer,
     ...(opened.error !== undefined ? { error: opened.error } : {}),
   }
 }
@@ -144,15 +157,20 @@ function openIssue(
   url: URL,
   id: string | undefined,
   status: string | undefined,
+  viewer: string,
   now: Date,
 ): { issue: Issue | null; error?: string } {
   if (id === undefined) return { issue: null }
   if (id === "new") {
+    // ラベルや担当者で絞った板から作った issue が、作ったとたんに絞り込みから消えないよう、その値を最初から入れておく
+    const label = url.searchParams.get("new_label")?.trim()
     return {
       issue: {
         ...BLANK,
         status: url.searchParams.get("new_status") || status || "todo",
         parent: url.searchParams.get("new_parent") || null,
+        labels: label ? [label] : [],
+        assignee: draftAssignee(url.searchParams.get("new_assignee"), viewer),
       },
     }
   }
@@ -163,6 +181,14 @@ function openIssue(
     if (message === `issue not found: ${id}`) return { issue: null, error: message }
     throw err
   }
+}
+
+// 絞り込みの担当者は me (自分) と none (担当なし) を取るので、保存のとき (store.ts の resolveAssignee) と同じに読み替える
+function draftAssignee(raw: string | null, viewer: string): string | null {
+  const assignee = raw?.trim()
+  if (!assignee || assignee === "none") return null
+  if (assignee === "me") return viewer
+  return assignee
 }
 
 // サーバーで描く dashboard も板と同じサイドバーを描くので export する

@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "bun:test"
 import { renderToString } from "preact-render-to-string"
 import { installTestDom } from "../../test-dom"
+import { IssueActionsContext, type IssueActions } from "../context-menu/issue-actions"
 import type { PageFilters } from "../view-model"
 import { Header } from "./header"
 
@@ -76,7 +77,7 @@ test("on phones the search icon expands a full-width search field and Escape fol
   await settle()
   expect(form.getAttribute("data-expanded")).toBe("")
   const input = root.querySelector<HTMLInputElement>("#q")!
-  expect(window.document.activeElement).toBe(input as never)
+  expect((window.document.activeElement as unknown) === input).toBe(true)
   input.dispatchEvent(
     new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }) as never,
   )
@@ -126,4 +127,31 @@ test("the search form carries only the display options that differ from the defa
   expect(html).toContain('name="group" value="label"')
   expect(html).not.toContain('name="sort"')
   expect(html).not.toContain('name="completed"')
+})
+
+test("the command menu button opens the palette, so phones without a keyboard can reach it", async () => {
+  const opened: string[] = []
+  const actions: IssueActions = {
+    openIssueMenuAt: () => {},
+    openPropertyPicker: () => {},
+    openCommandPalette: () => opened.push("palette"),
+    bulkSelection: [],
+    toggleBulkSelection: () => {},
+    retrySave: async () => {},
+    returnedDrafts: {},
+  }
+  const { render } = await import("preact")
+  container = window.document.createElement("div") as unknown as HTMLElement
+  window.document.body.appendChild(container as never)
+  render(
+    <IssueActionsContext.Provider value={actions}>{header()}</IssueActionsContext.Provider>,
+    container,
+  )
+  await settle()
+  const button = container.querySelector<HTMLButtonElement>("#command-palette-open")!
+  expect(button.getAttribute("aria-label")).toBe("Command menu")
+  // 広い画面ではキーボードの近道も添える。スマホ幅では帯が狭いのでアイコンだけにする
+  expect(button.textContent).toContain("⌘K")
+  button.click()
+  expect(opened).toEqual(["palette"])
 })

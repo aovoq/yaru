@@ -11,12 +11,14 @@ import { SidebarIcon } from "../../components/icons/sidebar-icon"
 import { LogoLink } from "../../components/logo-link"
 import { SegmentedControl } from "../../components/segmented-control"
 import { newIssueHref, pageHref, statusLabel, type PageFilters } from "../view-model"
+import { CommandPaletteButton } from "./command-palette-button"
 import { DisplayMenu } from "./display-menu"
 import { FilterChips } from "./filter-chips"
 import { SearchBox } from "./search-box"
 
 // 板の上端の帯。いまの絞り込みの名前と件数、外せる絞り込み、検索、見せ方 (Display)、板と一覧の切り替え、新規作成を並べる
 // スマホ幅ではサイドバーが無いので、ダッシュボードへの入口を答えを待っている質問の数と一緒にここへ置く
+// ⌘K のコマンドパレットの入口も置く。キーボードの無いスマホでは、ここからしか開けないため
 // サイドバーを出す md から lg の間は本体の幅が狭いので、Display と New issue は字を短くし、帯からはみ出さないようにする
 // ホーム画面から開いたときに切り欠きの下へ潜らないよう、帯の外側に安全な余白 (pt-safe) を取る。帯そのものの高さは変えない
 
@@ -65,6 +67,7 @@ export function Header({
           class="hidden overflow-hidden md:flex"
         />
         <div class="ml-auto flex shrink-0 items-center gap-2">
+          <CommandPaletteButton />
           <SearchBox filters={filters} onSearch={onSearch} />
           <Chip
             id="mobile-dashboard-link"

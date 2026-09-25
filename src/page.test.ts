@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { getPageData } from "./page"
 import { answerQuestion, saveQuestion } from "./questions"
-import { init, saveIssue } from "./store"
+import { gitName, init, saveIssue } from "./store"
 
 const dirs: string[] = []
 
@@ -179,5 +179,47 @@ describe("page data", () => {
     expect(data.events).toEqual([])
     expect(data.commits).toEqual([])
     expect(data.error).toBeUndefined()
+  })
+
+  test("a new issue draft starts with the label and assignee the board is filtered by", () => {
+    const store = workspace()
+    expect(page(store, "?id=new&new_label=ui&new_assignee=alice").current).toMatchObject({
+      labels: ["ui"],
+      assignee: "alice",
+    })
+    // 絞り込みの me と none は保存のときと同じく、見ている人の名前と担当なしに読み替える
+    expect(page(store, "?id=new&new_assignee=me").current?.assignee).toBe(gitName())
+    expect(page(store, "?id=new&new_assignee=none").current).toMatchObject({
+      labels: [],
+      assignee: null,
+    })
+  })
+
+  test("the page names the viewer the way saving resolves me", () => {
+    expect(page(workspace()).viewer).toBe(gitName())
+  })
+
+  test("questions on the current issue come in the order a person should look at them", () => {
+    const store = workspace()
+    saveIssue(store, { title: "asks" })
+    saveQuestion(store, { title: "answered", issue: "1", defaultAction: "go" }, daysAgo(2))
+    answerQuestion(store, "1", { body: "yes" }, daysAgo(2))
+    saveQuestion(
+      store,
+      { title: "proceeded", issue: "1", answerBy: "1h", defaultAction: "go" },
+      daysAgo(1),
+    )
+    saveQuestion(store, { title: "no deadline", issue: "1", defaultAction: "go" }, NOW)
+    saveQuestion(store, { title: "later", issue: "1", answerBy: "3h", defaultAction: "go" }, NOW)
+    saveQuestion(store, { title: "sooner", issue: "1", answerBy: "1h", defaultAction: "go" }, NOW)
+    saveQuestion(store, { title: "blocking", issue: "1" }, NOW)
+    expect(page(store, "?id=1").questions?.map((question) => question.title)).toEqual([
+      "blocking",
+      "sooner",
+      "later",
+      "no deadline",
+      "proceeded",
+      "answered",
+    ])
   })
 })

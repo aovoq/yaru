@@ -120,6 +120,36 @@ test("commits for an issue are the ones mentioning #id and the ones on its branc
   expect(commits[0]!.hash).toMatch(/^[0-9a-f]{7,}$/)
 })
 
+test("commits for an issue say whether the folder's upstream already has them", () => {
+  const remote = directory("yaru-remote-")
+  git(remote, "init", "-q", "--bare", "-b", "main")
+  const root = directory("yaru-issue-commits-")
+  git(root, "init", "-q", "-b", "main")
+  git(root, "remote", "add", "origin", remote)
+  commitAt(root, "a.txt", "一覧を直す #1", 0)
+  git(root, "push", "-q", "-u", "origin", "main")
+  commitAt(root, "b.txt", "まだ送っていない #1", 1)
+  git(root, "switch", "-q", "-c", "feature/x")
+  commitAt(root, "c.txt", "ブランチの途中", 2)
+  git(root, "switch", "-q", "main")
+  expect(
+    commitsForIssue(root, "1", "feature/x").map(({ subject, pushed }) => ({ subject, pushed })),
+  ).toEqual([
+    { subject: "ブランチの途中", pushed: false },
+    { subject: "まだ送っていない #1", pushed: false },
+    { subject: "一覧を直す #1", pushed: true },
+  ])
+})
+
+test("commits for an issue have an unknown push state without an upstream", () => {
+  const root = repositoryWithIssueCommits()
+  expect(commitsForIssue(root, "1", "feature/x").map((row) => row.pushed)).toEqual([
+    null,
+    null,
+    null,
+  ])
+})
+
 test("#1 does not match a commit that mentions #12", () => {
   const root = repositoryWithIssueCommits()
   expect(commitsForIssue(root, "1", null).map((row) => row.subject)).toEqual([

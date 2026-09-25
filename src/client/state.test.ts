@@ -25,6 +25,7 @@ function page(title: string, id = "1"): PageData {
     awaiting: false,
     awaitingByIssue: {},
     display: { sort: "priority", group: "status", completed: "recent" },
+    viewer: "aovoq",
   }
 }
 

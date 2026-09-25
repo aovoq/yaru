@@ -131,6 +131,24 @@ describe("issue menu", () => {
     })
   })
 
+  test("with the viewer known, assign to me saves their name and is checked when it is them", () => {
+    const viewerMenu = issueMenu(issue, all, {
+      now: new Date(2026, 8, 25, 12),
+      boardUrl: "http://host/p/app/",
+      viewer: "aovoq",
+    })
+    const assignee = find(viewerMenu, "Assignee")
+    if (assignee.kind !== "submenu") throw new Error("assignee is not a submenu")
+    expect(find(assignee.items, "Assign to me (aovoq)")).toMatchObject({
+      checked: true,
+      action: { type: "save", input: { assignee: "aovoq" } },
+    })
+    // 自分は「Assign to me」で選べるので、人の名前の並びには重ねて出さない
+    const names = assignee.items.map((item) => item.kind !== "separator" && item.label)
+    expect(names).not.toContain("aovoq")
+    expect(names).toContain("codex")
+  })
+
   test("Copy as Markdown is just the link when the issue has no description", () => {
     const empty = issueMenu({ ...issue, body: "  " }, all, {
       now: new Date(2026, 8, 25, 12),
@@ -176,6 +194,10 @@ describe("property picker", () => {
     const assignee = propertyPicker("assignee", [issue], all, now)
     expect(assignee.choices.map((choice) => choice.value)).toEqual(["me", "", "aovoq", "codex"])
     expect(assignee.selected).toEqual(["aovoq"])
+    const mine = propertyPicker("assignee", [issue], all, now, "aovoq")
+    expect(mine.choices.map((choice) => choice.value)).toEqual(["aovoq", "", "codex"])
+    expect(mine.choices[0]).toMatchObject({ label: "Assign to me (aovoq)" })
+    expect(mine.selected).toEqual(["aovoq"])
     const due = propertyPicker("dueDate", [issue], all, now)
     expect(due.choices.map((choice) => [choice.label, choice.value])).toEqual([
       ["Today", "2026-09-25"],

@@ -42,6 +42,8 @@ export type PaletteInput = {
   issueHref: (issueId: string) => string
   boardUrl: string
   now: Date
+  // 画面を見ている人の名前。担当者の「Assign to me」をこの名前で保存する (issue-menu.ts の propertyPicker)
+  viewer?: string
 }
 
 // 何も打っていないときに出す issue の数と、打ったときに出す issue の数の上限
@@ -170,7 +172,11 @@ function targetActions(target: Issue, input: PaletteInput): PaletteEntry[] {
       command: { type: "menu", action: item.action },
     })
   }
-  for (const item of issueMenu(target, input.all, { now: input.now, boardUrl: input.boardUrl })) {
+  for (const item of issueMenu(target, input.all, {
+    now: input.now,
+    boardUrl: input.boardUrl,
+    viewer: input.viewer,
+  })) {
     add(item)
   }
   return entries

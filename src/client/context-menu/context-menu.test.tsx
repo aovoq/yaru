@@ -91,7 +91,7 @@ test("Escape closes the menu and returns focus to the row it was opened from", a
   const [panel] = panels()
   await press(panel!, "Escape")
   expect(closed()).toBe(1)
-  expect(window.document.activeElement).toBe(row)
+  expect((window.document.activeElement as unknown) === row).toBe(true)
 })
 
 test("choosing an item returns focus to the row and passes the action", async () => {
@@ -102,7 +102,7 @@ test("choosing an item returns focus to the row and passes the action", async ()
   copy.click()
   await settle()
   expect(actions).toEqual([{ type: "copy", text: "#7", notice: "Copied ID #7" }])
-  expect(window.document.activeElement).toBe(row)
+  expect((window.document.activeElement as unknown) === row).toBe(true)
 })
 
 test("a disabled placeholder is announced as disabled and does nothing", async () => {

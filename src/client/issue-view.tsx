@@ -131,10 +131,11 @@ export function IssueView({
   }
 
   return (
+    // 開いている間もサイドバーは使えるので、読み上げからサイドバーを隠す aria-modal は付けない。下に隠れる板の本体は app.tsx が inert にする
+    // https://www.w3.org/TR/wai-aria-1.2/#aria-modal
     <aside
       id="issue-view"
       role="dialog"
-      aria-modal="true"
       aria-labelledby="issue-view-title"
       tabindex={-1}
       class="issue-view fixed inset-y-0 right-0 left-0 z-20 flex flex-col bg-canvas focus:outline-none"

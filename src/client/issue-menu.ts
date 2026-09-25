@@ -57,11 +57,14 @@ const PROPERTY_LABELS: Record<PropertyField, string> = {
   dueDate: "Due date",
 }
 
+// viewer は画面を見ている人の名前 (PageData.viewer)。分かるときは「Assign to me」をその名前で保存し、自分に付いていれば選ばれている印を付ける
+// 分からないときは「me」で保存する。サーバーが保存のときに git の user.name へ読み替える (store.ts の resolveAssignee)
 export function propertyPicker(
   field: PropertyField,
   targets: Issue[],
   all: Issue[],
   now: Date,
+  viewer?: string,
 ): PropertyPicker {
   const label = PROPERTY_LABELS[field]
   if (field === "status") {
@@ -97,14 +100,26 @@ export function propertyPicker(
     }
   }
   if (field === "assignee") {
-    const people = distinct(all.map((row) => row.assignee).filter((name) => name !== null))
+    // 自分は「Assign to me」で選べるので、人の名前の並びには重ねて出さない
+    const people = distinct(
+      all
+        .map((row) => row.assignee)
+        .filter((name): name is string => name !== null && name !== viewer),
+    )
     return {
       field,
       label,
       multiple: false,
       creatable: false,
       choices: [
-        { value: "me", label: "Assign to me" },
+        viewer
+          ? {
+              value: viewer,
+              label: `Assign to me (${viewer})`,
+              icon: { kind: "avatar", name: viewer },
+              keywords: ["me", "myself"],
+            }
+          : { value: "me", label: "Assign to me" },
         { value: "", label: "Unassign", keywords: ["none", "nobody"] },
         ...people.map((name) => ({
           value: name,
@@ -172,12 +187,12 @@ export function propertyInput(
 export function issueMenu(
   issue: Issue,
   all: Issue[],
-  options: { now: Date; boardUrl: string },
+  options: { now: Date; boardUrl: string; viewer?: string },
 ): MenuItem[] {
   const link = new URL(options.boardUrl)
   link.searchParams.set("id", issue.id)
   const submenu = (field: PropertyField, icon?: MenuIcon): MenuItem => {
-    const picker = propertyPicker(field, [issue], all, options.now)
+    const picker = propertyPicker(field, [issue], all, options.now, options.viewer)
     const items = picker.choices.map((choice): MenuItem => ({
       kind: "action",
       label: choice.label,
