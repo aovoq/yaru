@@ -1,3 +1,4 @@
+import { Fragment } from "preact"
 import { EmptyState } from "../components/empty-state"
 import { QuestionAnswerForm } from "../components/question-answer-form"
 import { QuestionCard } from "../components/question-card"
@@ -25,14 +26,14 @@ export function AwaitingQuestionsSection({
         <EmptyState>No questions awaiting an answer</EmptyState>
       ) : (
         questions.map((question) => (
-          <>
+          <Fragment key={question.id}>
             <QuestionCard
               question={question}
               now={now}
               issueLink={issueLinkFor(question, issueTitles, basePath)}
             />
             <QuestionAnswerForm question={question} basePath={basePath} />
-          </>
+          </Fragment>
         ))
       )}
     </Section>

@@ -139,7 +139,7 @@ export function IssueView({
                   {questions.length > 0 ? (
                     <Section title="Questions">
                       {questions.map((question) => (
-                        <QuestionCard question={question} now={now} />
+                        <QuestionCard key={question.id} question={question} now={now} />
                       ))}
                     </Section>
                   ) : null}
@@ -159,8 +159,10 @@ export function IssueView({
           <input type="hidden" name="issue" value={issue.id} />
         </form>
       ) : null}
+      {/* 質問は新しい順に並ぶので、key が無いと新着が先頭に入ったときに書きかけの回答が別の質問へ移る */}
       {questions.map((question) => (
         <QuestionAnswerForm
+          key={question.id}
           question={question}
           basePath={basePath}
           returnTo={pageHref(filters, issue.id)}

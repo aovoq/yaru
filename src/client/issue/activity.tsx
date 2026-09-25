@@ -14,9 +14,19 @@ export function Activity({ issue, comments }: { issue: Issue; comments: Comment[
       <ol class="flex flex-col gap-3">
         {activityEntries(issue, comments).map((entry) =>
           entry.kind === "event" ? (
-            <ActivityEvent text={entry.text} status={entry.status} at={entry.at} now={now} />
+            <ActivityEvent
+              key={`event-${entry.text}`}
+              text={entry.text}
+              status={entry.status}
+              at={entry.at}
+              now={now}
+            />
           ) : (
-            <ActivityComment comment={entry.comment} now={now} />
+            <ActivityComment
+              key={`comment-${entry.comment.id}`}
+              comment={entry.comment}
+              now={now}
+            />
           ),
         )}
       </ol>

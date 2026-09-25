@@ -40,6 +40,7 @@ export function BoardView({
           >
             {items.map((issue) => (
               <IssueCard
+                key={issue.id}
                 issue={issue}
                 filters={filters}
                 selected={selectedIssueId === issue.id}

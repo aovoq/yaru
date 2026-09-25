@@ -19,7 +19,7 @@ export function IssueLinkList({
   return (
     <ul class="flex flex-col overflow-hidden rounded-lg border border-hairline bg-surface-1">
       {issues.map((issue) => (
-        <li class="border-b border-hairline last:border-b-0">
+        <li key={issue.id} class="border-b border-hairline last:border-b-0">
           <a
             href={hrefFor(issue)}
             data-id={issue.id}

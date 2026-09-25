@@ -21,6 +21,7 @@ export function RecentlyAnsweredSection({
     <Section title="Recently answered" count={questions.length}>
       {questions.map((question) => (
         <QuestionCard
+          key={question.id}
           question={question}
           now={now}
           issueLink={issueLinkFor(question, issueTitles, basePath)}

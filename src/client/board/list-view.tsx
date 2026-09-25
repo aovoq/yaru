@@ -27,7 +27,12 @@ export function ListView({
               class="sticky top-0 z-10 h-9 border-b border-hairline bg-surface-1 px-4"
             />
             {items.map((issue) => (
-              <IssueRow issue={issue} filters={filters} selected={selectedIssueId === issue.id} />
+              <IssueRow
+                key={issue.id}
+                issue={issue}
+                filters={filters}
+                selected={selectedIssueId === issue.id}
+              />
             ))}
           </section>
         )
