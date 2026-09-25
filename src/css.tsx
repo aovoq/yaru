@@ -1,5 +1,8 @@
 import { compile } from "tailwindcss"
 import tw from "tailwindcss/index.css" with { type: "text" }
+import { renderToString } from "hono/jsx/dom/server"
+import { ContextMenu, Notice } from "./client/context-menu"
+import { issueMenu } from "./client/issue-menu"
 import { DashboardPage } from "./dashboard"
 import { ProjectsPage } from "./projects"
 import type { Question } from "./questions"
@@ -429,7 +432,22 @@ async function sampleHtml(): Promise<string> {
       />
     </Document>
   )
-  return String(await node)
+  // 右クリックのメニューと知らせは操作したあとにしか描かれないので、ここで描いてクラスを拾う
+  const menu = renderToString(
+    <>
+      <ContextMenu
+        menu={{
+          items: issueMenu(issue, issues, { now: new Date(0), boardUrl: "http://x/" }),
+          x: 0,
+          y: 0,
+        }}
+        onAction={() => {}}
+        onClose={() => {}}
+      />
+      <Notice text="x" />
+    </>,
+  )
+  return String(await node) + menu
 }
 
 function candidates(source: string): string[] {

@@ -736,4 +736,11 @@ describe("web", () => {
       expect(comment).toBeGreaterThan(started)
     })
   })
+
+  test("a new sub-issue starts with its parent set", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "parent" })
+    const page = await (await createApp(store).request("/api/page?id=new&new_parent=1")).json()
+    expect(page.current.parent).toBe("1")
+  })
 })

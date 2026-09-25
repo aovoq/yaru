@@ -15,6 +15,8 @@ import {
   SidebarIcon,
   StatusIcon,
 } from "./icons"
+import { ContextMenu, Notice, type OpenMenu } from "./context-menu"
+import { issueMenu, type MenuAction } from "./issue-menu"
 import { IssueView } from "./issue-view"
 import { Avatar, DueStamp, Kbd, LabelChip, LabelDot } from "./issue-metadata"
 import { usePageController, type PageController } from "./use-page-controller"
@@ -38,7 +40,68 @@ export function BoardPage(props: BoardPageProps) {
     basePath: state.basePath ?? "",
   }
   const sidebar = useSidebarPreference()
-  useKeyboardShortcuts(controller, filters)
+  const [menu, setMenu] = useState<OpenMenu | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  // issue の行・カード・子 issue の行で右クリックしたとき、その issue のメニューを開く
+  const openIssueMenu = useCallback(
+    (issueId: string, x: number, y: number) => {
+      const issue = controller.state.all.find((row) => row.id === issueId)
+      if (!issue) return
+      const boardUrl = new URL(pageHref({ basePath: filters.basePath }), window.location.href).href
+      controller.selectIssue(issueId)
+      setMenu({
+        items: issueMenu(issue, controller.state.all, { now: new Date(), boardUrl }),
+        x,
+        y,
+      })
+    },
+    [controller.selectIssue, controller.state.all, filters.basePath],
+  )
+
+  const onContextMenu = useCallback(
+    (event: MouseEvent) => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      if (target.closest("input, textarea, select, [contenteditable]")) return
+      const row = target.closest<HTMLElement>("[data-id]")
+      if (!row?.dataset.id) return
+      event.preventDefault()
+      openIssueMenu(row.dataset.id, event.clientX, event.clientY)
+    },
+    [openIssueMenu],
+  )
+
+  const closeMenu = useCallback(() => setMenu(null), [])
+
+  const onMenuAction = useCallback(
+    (action: MenuAction) => {
+      if (action.type === "save") {
+        void controller.patchIssue(action.issueId, action.input)
+        return
+      }
+      if (action.type === "open") {
+        void controller.navigate(pageHref(filters, action.issueId))
+        return
+      }
+      if (action.type === "createSubIssue") {
+        void controller.navigate(newIssueHref(filters, undefined, action.parentId))
+        return
+      }
+      void copyText(action.text).then((copied) =>
+        setNotice(copied ? "Copied to clipboard" : "Could not copy to clipboard"),
+      )
+    },
+    [controller.navigate, controller.patchIssue, filters],
+  )
+
+  useEffect(() => {
+    if (!notice) return
+    const timer = setTimeout(() => setNotice(null), 1600)
+    return () => clearTimeout(timer)
+  }, [notice])
+
+  useKeyboardShortcuts(controller, filters, openIssueMenu)
 
   const onNavigate = useCallback(
     (event: MouseEvent) => {
@@ -71,7 +134,7 @@ export function BoardPage(props: BoardPageProps) {
   )
 
   return (
-    <div class="h-screen" onClick={onNavigate}>
+    <div class="h-screen" onClick={onNavigate} onContextMenu={onContextMenu}>
       <div class="flex h-full">
         <Sidebar
           all={state.all}
@@ -116,6 +179,8 @@ export function BoardPage(props: BoardPageProps) {
           onSave={controller.saveCurrent}
         />
       ) : null}
+      {menu ? <ContextMenu menu={menu} onAction={onMenuAction} onClose={closeMenu} /> : null}
+      {notice ? <Notice text={notice} /> : null}
       {state.requestError && !state.current ? (
         <p class="fixed top-0 right-0 z-20 rounded-md border border-semantic-danger/40 bg-surface-1 px-3 py-2 text-semantic-danger">
           {state.requestError}
@@ -711,7 +776,37 @@ function distinct(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b))
 }
 
-function useKeyboardShortcuts(controller: PageController, filters: PageFilters): void {
+// Clipboard API は https か localhost でしか使えず、許可が無いと断られる
+// そのときは選択した文字を copy コマンドで写す古い方法に切り替える
+// https://w3c.github.io/clipboard-apis/#dom-clipboard-writetext
+async function copyText(text: string): Promise<boolean> {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch {}
+  }
+  const textarea = document.createElement("textarea")
+  textarea.value = text
+  textarea.setAttribute("readonly", "")
+  textarea.style.position = "fixed"
+  textarea.style.opacity = "0"
+  document.body.appendChild(textarea)
+  textarea.select()
+  try {
+    return document.execCommand("copy")
+  } catch {
+    return false
+  } finally {
+    textarea.remove()
+  }
+}
+
+function useKeyboardShortcuts(
+  controller: PageController,
+  filters: PageFilters,
+  openIssueMenu: (issueId: string, x: number, y: number) => void,
+): void {
   useLayoutEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
@@ -733,10 +828,24 @@ function useKeyboardShortcuts(controller: PageController, filters: PageFilters):
         const url = new URL(window.location.href)
         url.searchParams.delete("id")
         url.searchParams.delete("new_status")
+        url.searchParams.delete("new_parent")
         void controller.navigate(url.href)
         return
       }
       if (isTyping) return
+      // 選んでいる issue のメニューを、メニューキーか Shift+F10 で開く
+      if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+        const selectedId = controller.state.selectedIssueId
+        if (!selectedId) return
+        const row = document.querySelector<HTMLElement>(
+          `#board [data-id="${CSS.escape(selectedId)}"]`,
+        )
+        if (!row) return
+        event.preventDefault()
+        const rect = row.getBoundingClientRect()
+        openIssueMenu(selectedId, rect.left + 24, rect.bottom)
+        return
+      }
       if (event.key === "/") {
         event.preventDefault()
         document.querySelector<HTMLInputElement>("#q")?.focus()
@@ -768,6 +877,7 @@ function useKeyboardShortcuts(controller: PageController, filters: PageFilters):
     controller.state.issues,
     controller.state.selectedIssueId,
     filters,
+    openIssueMenu,
   ])
 
   useEffect(() => {

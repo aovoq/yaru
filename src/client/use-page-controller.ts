@@ -19,6 +19,7 @@ export type PageController = {
   saveCurrent: () => Promise<void>
   commitField: (field: DraftField, value: string) => Promise<void>
   moveIssue: (issueId: string, status: string) => Promise<void>
+  patchIssue: (issueId: string, input: Partial<SaveInput>) => Promise<void>
 }
 
 export function usePageController(initialPage: PageData): PageController {
@@ -93,6 +94,7 @@ export function usePageController(initialPage: PageData): PageController {
       }
       const pageUrl = new URL(window.location.href)
       pageUrl.searchParams.delete("new_status")
+      pageUrl.searchParams.delete("new_parent")
       pageUrl.searchParams.set("id", saved.id)
       await navigate(pageUrl.href, "replace")
     } catch (error) {
@@ -129,13 +131,14 @@ export function usePageController(initialPage: PageData): PageController {
     [basePath, navigate, state.current, state.saved],
   )
 
-  const moveIssue = useCallback(
-    async (issueId: string, status: string) => {
+  // 板や右クリックから、開いていない issue の一部の項目だけを保存する
+  const patchIssue = useCallback(
+    async (issueId: string, input: Partial<SaveInput>) => {
       try {
         const response = await fetch(`${basePath}/api/issues`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ id: issueId, status }),
+          body: JSON.stringify({ ...input, id: issueId }),
         })
         if (!response.ok) throw new Error(await responseError(response))
         await navigate(window.location.href, "none", true)
@@ -146,7 +149,21 @@ export function usePageController(initialPage: PageData): PageController {
     [basePath, navigate],
   )
 
-  return { state, navigate, changeDraft, selectIssue, saveCurrent, commitField, moveIssue }
+  const moveIssue = useCallback(
+    (issueId: string, status: string) => patchIssue(issueId, { status }),
+    [patchIssue],
+  )
+
+  return {
+    state,
+    navigate,
+    changeDraft,
+    selectIssue,
+    saveCurrent,
+    commitField,
+    moveIssue,
+    patchIssue,
+  }
 }
 
 function issueInput(issue: Issue): SaveInput {

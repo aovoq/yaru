@@ -416,6 +416,7 @@ function IssueLinks({ issues, filters }: { issues: Issue[]; filters: PageFilters
         <li class="border-b border-hairline last:border-b-0">
           <a
             href={pageHref(filters, row.id)}
+            data-id={row.id}
             class="flex h-9 items-center gap-2.5 px-3 no-underline transition-colors hover:bg-surface-1"
           >
             <PriorityIcon priority={row.priority} />

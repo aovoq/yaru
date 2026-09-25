@@ -23,10 +23,11 @@ export function pageHref(filters: PageFilters, id?: string): string {
   return query ? `${base}/?${query}` : `${base}/`
 }
 
-export function newIssueHref(filters: PageFilters, status?: string): string {
-  const base = pageHref(filters, "new")
-  if (!status) return base
-  return `${base}${base.includes("?") ? "&" : "?"}new_status=${encodeURIComponent(status)}`
+export function newIssueHref(filters: PageFilters, status?: string, parent?: string): string {
+  const url = new URL(pageHref(filters, "new"), "http://yaru.local")
+  if (status) url.searchParams.set("new_status", status)
+  if (parent) url.searchParams.set("new_parent", parent)
+  return `${url.pathname}${url.search}`
 }
 
 export function issueColumns(issues: Issue[]): string[] {

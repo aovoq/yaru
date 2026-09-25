@@ -61,7 +61,11 @@ export function getPageData(store: Store, url: URL, basePath = ""): PageData {
   })
   const current =
     id === "new"
-      ? { ...BLANK, status: url.searchParams.get("new_status") || status || "todo" }
+      ? {
+          ...BLANK,
+          status: url.searchParams.get("new_status") || status || "todo",
+          parent: url.searchParams.get("new_parent") || null,
+        }
       : id
         ? getIssue(store, id)
         : null
