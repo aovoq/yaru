@@ -186,6 +186,12 @@ html[data-sidebar="closed"] #sidebar {
   font-size: 13px;
   line-height: 1.6;
 }
+/* issue 画面は板の上に重ね、広い画面ではサイドバーを隠さない */
+@media (min-width: 768px) {
+  html:not([data-sidebar="closed"]) .issue-view {
+    left: var(--sidebar-width, 14rem);
+  }
+}
 html[data-resizing],
 html[data-resizing] * {
   cursor: col-resize !important;
@@ -231,6 +237,40 @@ async function sampleHtml(): Promise<string> {
     { ...issue, id: "3", status: "in_progress", dueDate: null, priority: "medium" as const },
     { ...issue, id: "4", status: "done", dueDate: null, priority: "low" as const },
     { ...issue, id: "5", status: "canceled", assignee: null, priority: null, labels: [] },
+    { ...issue, id: "6", parent: "1", status: "done" },
+    { ...issue, id: "7", parent: "1", assignee: null },
+  ]
+  // issue 画面の全部の欄 (子 issue・関係・活動・親) が出る状態
+  const detailedIssue = {
+    ...issue,
+    parent: "2",
+    blocks: ["3"],
+    blockedBy: ["4"],
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    startedAt: "2026-01-01T00:00:00.000Z",
+    completedAt: "2026-01-01T00:00:00.000Z",
+    canceledAt: "2026-01-01T00:00:00.000Z",
+  }
+  const sampleComments = [
+    {
+      id: "1",
+      issue: "1",
+      parent: null,
+      author: "me",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      body: "c",
+    },
+    {
+      id: "2",
+      issue: "1",
+      parent: "1",
+      author: "me",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      body: "r",
+    },
   ]
   const question: Question = {
     id: "1",
@@ -312,14 +352,21 @@ async function sampleHtml(): Promise<string> {
         issues={issues}
         all={issues}
         query="q"
-        current={issue}
+        current={detailedIssue}
         view="board"
         status="todo"
         assignee="me"
         label="a"
         error="title is required"
-        comments={[]}
+        comments={sampleComments}
         questions={sampleQuestions}
+      />
+      <BoardPage
+        issues={issues}
+        all={issues}
+        query=""
+        current={{ ...issue, body: "", labels: [], assignee: null, parent: null }}
+        comments={[]}
       />
       <BoardPage issues={issues} all={issues} query="q" current={BLANK} view="list" comments={[]} />
       <BoardPage issues={[]} all={[]} query="" current={null} comments={[]} />

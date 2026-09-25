@@ -88,7 +88,7 @@ describe("web", () => {
     saveIssue(store, { title: "drawer me", body: "hello body" })
     const res = await createApp(store).request("/?id=1")
     const html = await res.text()
-    expect(html).toContain('value="drawer me"')
+    expect(html).toContain("drawer me")
     expect(html).toContain("hello body")
     expect(html).toContain('name="id"')
   })
@@ -140,7 +140,7 @@ describe("web", () => {
     const html = await res.text()
     expect(html).toContain("title is required")
     expect(html).toContain("keep me")
-    expect(html).toContain("Save")
+    expect(html).toContain("Create issue")
     expect(html).not.toContain(">back<")
   })
 
@@ -391,7 +391,7 @@ describe("web", () => {
     expect(res.status).toBe(400)
     const html = await res.text()
     expect(html).toContain("invalid dueDate")
-    expect(html).toContain("Save")
+    expect(html).toContain("Create issue")
     expect(html).not.toContain(">back<")
   })
 
@@ -479,7 +479,7 @@ describe("web", () => {
     const html = await (await createApp(store).request("/?id=2")).text()
     expect(html).toContain("Parent")
     expect(html).toContain("Blocks")
-    expect(html).toContain("Comments")
+    expect(html).toContain("Activity")
     expect(html).toContain("note")
   })
 
@@ -680,5 +680,60 @@ describe("web", () => {
     expect(board).toContain("<li>回答の箇条書き</li>")
     expect(board).toContain("<h2>見出し</h2>")
     expect(board).not.toContain("<script>x</script>")
+  })
+
+  describe("issue view", () => {
+    test("the description is shown as rendered markdown, not as a textarea", async () => {
+      const store = workspace()
+      saveIssue(store, { title: "topic", body: "## 背景\n- [ ] 決めること" })
+      const html = await (await createApp(store).request("/?id=1")).text()
+      expect(html).toContain('id="issue-description-preview"')
+      expect(html).toContain("<h2>背景</h2>")
+      expect(html).toContain('data-task-index="0"')
+      expect(html).not.toContain('id="issue-description-editor"')
+    })
+
+    test("an empty description invites writing one", async () => {
+      const store = workspace()
+      saveIssue(store, { title: "topic" })
+      const html = await (await createApp(store).request("/?id=1")).text()
+      expect(html).toContain("Add description")
+    })
+
+    test("a new issue starts in the editor with a create button", async () => {
+      const html = await (await createApp(workspace()).request("/?id=new")).text()
+      expect(html).toContain('id="issue-description-editor"')
+      expect(html).toContain("Create issue")
+    })
+
+    test("sub-issues and blocking issues are listed with their titles and progress", async () => {
+      const store = workspace()
+      saveIssue(store, { title: "親" })
+      saveIssue(store, { title: "子 A", parent: "1", status: "done" })
+      saveIssue(store, { title: "子 B", parent: "1" })
+      saveIssue(store, { title: "先にやること" })
+      saveIssue(store, { id: "4", addBlocks: ["1"] })
+      const html = await (await createApp(store).request("/?id=1")).text()
+      expect(html).toContain("Sub-issues")
+      expect(html).toContain("1/2")
+      expect(html).toContain("子 A")
+      expect(html).toContain("子 B")
+      expect(html).toContain("Blocked by")
+      expect(html).toContain("先にやること")
+    })
+
+    test("the activity timeline merges lifecycle events and comments in time order", async () => {
+      const store = workspace()
+      saveIssue(store, { title: "topic" })
+      saveIssue(store, { id: "1", status: "in_progress" })
+      saveComment(store, { issue: "1", body: "**進捗**" })
+      const html = await (await createApp(store).request("/?id=1")).text()
+      const created = html.indexOf("created the issue")
+      const started = html.indexOf("started working")
+      const comment = html.indexOf("<strong>進捗</strong>")
+      expect(created).toBeGreaterThan(-1)
+      expect(started).toBeGreaterThan(created)
+      expect(comment).toBeGreaterThan(started)
+    })
   })
 })

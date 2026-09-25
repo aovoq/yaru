@@ -1,5 +1,6 @@
 import { LogoLink } from "./client/icons"
 import { renderMarkdown } from "./markdown"
+import { relativeTime } from "./time"
 import type { Question } from "./questions"
 import type { RepositoryState } from "./repository"
 import type { SessionHealth } from "./sessions"
@@ -465,23 +466,6 @@ function PriorityBadge({ priority }: { priority: Priority }) {
 // 答えを書きかけているときにリロードで消さないよう、入力中は再読み込みせず表示だけ出す
 export function dashboardLiveReload(basePath: string): string {
   return `(()=>{const source=new EventSource(${JSON.stringify(`${basePath}/events`)});source.onmessage=()=>{const editing=[...document.querySelectorAll("textarea")].some((element)=>element.value.trim()!==""||element===document.activeElement);if(editing){document.getElementById("dashboard-stale")?.removeAttribute("hidden");return}location.reload()}})()`
-}
-
-export function relativeTime(iso: string, now: Date): string {
-  const target = Date.parse(iso)
-  if (Number.isNaN(target)) return "-"
-  const difference = target - now.getTime()
-  const minutes = Math.round(Math.abs(difference) / 60_000)
-  const span =
-    minutes < 1
-      ? "now"
-      : minutes < 60
-        ? `${minutes}m`
-        : minutes < 60 * 48
-          ? `${Math.floor(minutes / 60)}h${minutes % 60 ? ` ${minutes % 60}m` : ""}`
-          : `${Math.floor(minutes / (60 * 24))}d`
-  if (span === "now") return "now"
-  return difference >= 0 ? `in ${span}` : `${span} ago`
 }
 
 function localTime(iso: string): string {

@@ -15,7 +15,7 @@ import {
   SidebarIcon,
   StatusIcon,
 } from "./icons"
-import { IssueDrawer } from "./issue-drawer"
+import { IssueView } from "./issue-view"
 import { Avatar, DueStamp, Kbd, LabelChip, LabelDot } from "./issue-metadata"
 import { usePageController, type PageController } from "./use-page-controller"
 import { useSidebarPreference, type SidebarPreference } from "./use-sidebar-preference"
@@ -100,9 +100,11 @@ export function BoardPage(props: BoardPageProps) {
         </div>
       </div>
       {state.current ? (
-        <IssueDrawer
+        <IssueView
           issue={state.current}
+          all={state.all}
           filters={filters}
+          draftDirty={state.draftDirty}
           error={state.requestError ?? state.error}
           labelInput={state.labelInput}
           blockInput={state.blockInput}
