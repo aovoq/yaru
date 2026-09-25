@@ -1,7 +1,15 @@
 import { afterEach, describe, expect, test } from "bun:test"
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import {
   findRoot,
   getComment,
@@ -627,5 +635,46 @@ x
     )
     expect(() => saveComment(store, { issue: "9", body: "x" })).toThrow("issue not found: 9")
     expect(() => saveComment(store, { parent: "9", body: "x" })).toThrow("comment not found: 9")
+  })
+
+  describe("git worktrees", () => {
+    function git(cwd: string, ...args: string[]) {
+      const result = Bun.spawnSync(["git", ...args], { cwd, stdout: "pipe", stderr: "pipe" })
+      if (result.exitCode !== 0) throw new Error(result.stderr.toString())
+    }
+
+    // 元のフォルダに .yaru を置いてコミットし、別の場所に linked worktree を作る (herdr と同じ配置)
+    function repositoryWithWorktree(yaruDirectory = "") {
+      const main = mkdtempSync(join(tmpdir(), "yaru-main-"))
+      const worktree = join(mkdtempSync(join(tmpdir(), "yaru-worktrees-")), "feature")
+      dirs.push(main, dirname(worktree))
+      git(main, "init", "-q", "-b", "develop")
+      const workspaceRoot = join(main, yaruDirectory)
+      mkdirSync(workspaceRoot, { recursive: true })
+      init(workspaceRoot)
+      writeFileSync(join(workspaceRoot, ".yaru", "issues", ".keep"), "")
+      git(main, "add", ".")
+      git(main, "-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "-m", "init")
+      git(main, "worktree", "add", "-q", "-b", "feature", worktree)
+      return { main: realpathSync(main), worktree: realpathSync(worktree) }
+    }
+
+    test("inside a linked worktree the workspace resolves to the original folder", () => {
+      const { main, worktree } = repositoryWithWorktree()
+      expect(existsSync(join(worktree, ".yaru", "config.yml"))).toBe(true)
+      expect(findRoot(worktree)).toBe(main)
+      expect(findRoot(join(worktree, ".yaru"))).toBe(main)
+    })
+
+    test("a workspace in a subdirectory maps to the same subdirectory of the original folder", () => {
+      const { main, worktree } = repositoryWithWorktree("packages/app")
+      mkdirSync(join(worktree, "packages", "app", "src"), { recursive: true })
+      expect(findRoot(join(worktree, "packages", "app", "src"))).toBe(join(main, "packages", "app"))
+    })
+
+    test("the original folder resolves to itself", () => {
+      const { main } = repositoryWithWorktree()
+      expect(findRoot(main)).toBe(main)
+    })
   })
 })

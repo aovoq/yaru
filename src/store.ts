@@ -3,10 +3,11 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   renameSync,
   writeFileSync,
 } from "node:fs"
-import { dirname, join } from "node:path"
+import { basename, dirname, join, relative } from "node:path"
 
 export const PRIORITIES = ["urgent", "high", "medium", "low"] as const
 export type Priority = (typeof PRIORITIES)[number]
@@ -100,12 +101,43 @@ export type Store = {
 export const STATUSES = ["backlog", "todo", "in_progress", "done", "canceled"] as const
 
 export function findRoot(start = process.cwd()): string {
+  const original = originalFolderRoot(start)
+  if (original) return original
   let dir = start
   for (;;) {
     if (existsSync(join(dir, ".yaru", "config.yml"))) return dir
     const parent = dirname(dir)
     if (parent === dir) throw new Error("not a yaru workspace (run yaru init)")
     dir = parent
+  }
+}
+
+// git の linked worktree の中では、worktree のコピーではなく元のフォルダ (main worktree) の .yaru を使う
+// 並列の worktree で動くエージェントが issue や質問を別々のコピーに書くと、元のフォルダの板に出ず回答も届かないため
+// worktree の中の位置を元のフォルダの同じ位置に写し、そこから上へ .yaru を探す
+// https://git-scm.com/docs/git-worktree
+function originalFolderRoot(start: string): string | null {
+  // まだ無いディレクトリでは git を起動できないので、上へ探す通常の方法に任せる
+  if (!existsSync(start)) return null
+  const result = Bun.spawnSync(
+    ["git", "rev-parse", "--path-format=absolute", "--show-toplevel", "--git-common-dir"],
+    { cwd: start, stdout: "pipe", stderr: "ignore" },
+  )
+  if (result.exitCode !== 0) return null
+  const [worktreeTop, commonDirectory] = result.stdout.toString().trim().split("\n")
+  if (!worktreeTop || !commonDirectory) return null
+  // bare リポジトリから作った worktree には元のフォルダが無い
+  if (basename(commonDirectory) !== ".git") return null
+  const originalTop = dirname(commonDirectory)
+  if (originalTop === worktreeTop) return null
+  let dir = realpathSync(start)
+  for (;;) {
+    const inside = relative(worktreeTop, dir)
+    if (inside.startsWith("..")) return null
+    const mapped = join(originalTop, inside)
+    if (existsSync(join(mapped, ".yaru", "config.yml"))) return mapped
+    if (dir === worktreeTop) return null
+    dir = dirname(dir)
   }
 }
 
