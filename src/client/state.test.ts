@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { BLANK, type PageData } from "../page"
-import { createClientState, reduceClientState } from "./state"
+import { createClientState, fieldChange, reduceClientState } from "./state"
 
 function page(title: string): PageData {
   const issue = { ...BLANK, id: "1", title }
@@ -54,5 +54,65 @@ describe("client state", () => {
     })
     expect(edited.labelInput).toBe("bug, next ")
     expect(edited.current?.labels).toEqual(["bug", "next"])
+  })
+
+  test("the last loaded issue is kept as the saved version even while a draft is preserved", () => {
+    const edited = reduceClientState(createClientState(page("before")), {
+      type: "draftChanged",
+      field: "title",
+      value: "local edit",
+    })
+    const refreshed = reduceClientState(edited, {
+      type: "pageLoaded",
+      page: page("from disk"),
+      preserveDraft: true,
+    })
+    expect(refreshed.current?.title).toBe("local edit")
+    expect(refreshed.saved?.title).toBe("from disk")
+  })
+
+  test("autosave reports saving, then saved, and a failure returns to idle with the error", () => {
+    const initial = createClientState(page("t"))
+    expect(initial.saveState).toBe("idle")
+    const saving = reduceClientState(initial, { type: "saveStarted" })
+    expect(saving.saveState).toBe("saving")
+    const saved = reduceClientState(saving, { type: "saveFinished" })
+    expect(saved.saveState).toBe("saved")
+    const refreshed = reduceClientState(saved, {
+      type: "pageLoaded",
+      page: page("t"),
+      preserveDraft: true,
+    })
+    expect(refreshed.saveState).toBe("saved")
+    const failed = reduceClientState(saving, { type: "requestFailed", message: "boom" })
+    expect(failed.saveState).toBe("idle")
+    expect(failed.requestError).toBe("boom")
+  })
+})
+
+describe("field change", () => {
+  const saved = {
+    ...BLANK,
+    id: "1",
+    title: "t",
+    labels: ["a", "b"],
+    assignee: "me",
+    priority: "high" as const,
+  }
+
+  test("an unchanged value needs no save", () => {
+    expect(fieldChange(saved, "title", "t")).toBeNull()
+    expect(fieldChange(saved, "labels", "a,  b")).toBeNull()
+    expect(fieldChange(saved, "assignee", "me")).toBeNull()
+  })
+
+  test("a changed value becomes the matching save input", () => {
+    expect(fieldChange(saved, "title", "new")).toEqual({ title: "new" })
+    expect(fieldChange(saved, "labels", "a, c")).toEqual({ labels: ["a", "c"] })
+    expect(fieldChange(saved, "blocks", "2, 3")).toEqual({ blocks: ["2", "3"] })
+    expect(fieldChange(saved, "assignee", "")).toEqual({ assignee: null })
+    expect(fieldChange(saved, "priority", "")).toEqual({ priority: null })
+    expect(fieldChange(saved, "status", "done")).toEqual({ status: "done" })
+    expect(fieldChange(saved, "body", "x")).toEqual({ body: "x" })
   })
 })

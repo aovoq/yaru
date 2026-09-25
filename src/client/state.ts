@@ -1,5 +1,5 @@
 import { DEFAULT_VIEW, type PageData } from "../page"
-import type { Issue } from "../store"
+import type { Issue, SaveInput } from "../store"
 
 export type DraftField =
   | "title"
@@ -12,7 +12,13 @@ export type DraftField =
   | "blocks"
   | "body"
 
+// 自動保存の状態。画面の上に Saving… / Saved を出すのに使う
+export type SaveState = "idle" | "saving" | "saved"
+
 export type ClientState = PageData & {
+  // 最後に読み込んだ、保存済みの issue。自動保存で値が変わったかどうかを比べるのに使う
+  saved: Issue | null
+  saveState: SaveState
   selectedIssueId: string | null
   draftDirty: boolean
   labelInput: string
@@ -25,6 +31,8 @@ export type ClientAction =
   | { type: "draftChanged"; field: DraftField; value: string }
   | { type: "issueSelected"; issueId: string | null }
   | { type: "requestFailed"; message: string }
+  | { type: "saveStarted" }
+  | { type: "saveFinished" }
 
 export function createClientState(
   page: Omit<PageData, "view"> & { view?: PageData["view"] },
@@ -32,6 +40,8 @@ export function createClientState(
   return {
     ...page,
     view: page.view ?? DEFAULT_VIEW,
+    saved: page.current,
+    saveState: "idle",
     selectedIssueId: null,
     draftDirty: false,
     labelInput: page.current?.labels.join(", ") ?? "",
@@ -49,6 +59,8 @@ export function reduceClientState(state: ClientState, action: ClientAction): Cli
     return {
       ...action.page,
       current: preserveCurrent ? state.current : action.page.current,
+      saved: action.page.current,
+      saveState: state.saveState,
       error: preserveCurrent ? state.error : action.page.error,
       selectedIssueId,
       draftDirty: preserveCurrent,
@@ -77,7 +89,9 @@ export function reduceClientState(state: ClientState, action: ClientAction): Cli
   if (action.type === "issueSelected") {
     return { ...state, selectedIssueId: action.issueId }
   }
-  return { ...state, requestError: action.message }
+  if (action.type === "saveStarted") return { ...state, saveState: "saving" }
+  if (action.type === "saveFinished") return { ...state, saveState: "saved", draftDirty: false }
+  return { ...state, saveState: "idle", requestError: action.message }
 }
 
 function updateDraft(issue: Issue, field: DraftField, value: string): Issue {
@@ -94,4 +108,21 @@ function updateDraft(issue: Issue, field: DraftField, value: string): Issue {
     return { ...issue, [field]: value || null }
   }
   return { ...issue, [field]: value }
+}
+
+// 入力欄の文字列を、保存済みの issue と比べて変わっていれば保存用の入力にする。変わっていなければ null
+export function fieldChange(
+  saved: Issue,
+  field: DraftField,
+  value: string,
+): Partial<SaveInput> | null {
+  const next = updateDraft(saved, field, value)
+  const before = saved[field]
+  const after = next[field]
+  const same =
+    Array.isArray(before) && Array.isArray(after)
+      ? before.length === after.length && before.every((item, index) => item === after[index])
+      : before === after
+  if (same) return null
+  return { [field]: after } as Partial<SaveInput>
 }

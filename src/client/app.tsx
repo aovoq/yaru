@@ -105,6 +105,8 @@ export function BoardPage(props: BoardPageProps) {
           all={state.all}
           filters={filters}
           draftDirty={state.draftDirty}
+          saveState={state.saveState}
+          onCommit={controller.commitField}
           error={state.requestError ?? state.error}
           labelInput={state.labelInput}
           blockInput={state.blockInput}

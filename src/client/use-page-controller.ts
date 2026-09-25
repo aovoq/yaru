@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useReducer, useRef } from "hono/jsx"
 import type { PageData } from "../page"
 import type { Issue, SaveInput } from "../store"
-import { createClientState, reduceClientState, type ClientState, type DraftField } from "./state"
+import {
+  createClientState,
+  fieldChange,
+  reduceClientState,
+  type ClientState,
+  type DraftField,
+} from "./state"
 
 type HistoryMode = "push" | "replace" | "none"
 
@@ -11,6 +17,7 @@ export type PageController = {
   changeDraft: (field: DraftField, value: string) => void
   selectIssue: (issueId: string | null) => void
   saveCurrent: () => Promise<void>
+  commitField: (field: DraftField, value: string) => Promise<void>
   moveIssue: (issueId: string, status: string) => Promise<void>
 }
 
@@ -66,9 +73,11 @@ export function usePageController(initialPage: PageData): PageController {
     dispatch({ type: "issueSelected", issueId })
   }, [])
 
+  // ⌘⏎ や Create で下書き全体を保存する。既存の issue は開いたまま、新しい issue は作った issue を開く
   const saveCurrent = useCallback(async () => {
     if (!state.current) return
     const input: SaveInput = issueInput(state.current)
+    dispatch({ type: "saveStarted" })
     try {
       const response = await fetch(`${basePath}/api/issues`, {
         method: "POST",
@@ -76,14 +85,49 @@ export function usePageController(initialPage: PageData): PageController {
         body: JSON.stringify(input),
       })
       if (!response.ok) throw new Error(await responseError(response))
+      const saved = (await response.json()) as Issue
+      dispatch({ type: "saveFinished" })
+      if (state.current.id) {
+        await navigate(window.location.href, "none")
+        return
+      }
       const pageUrl = new URL(window.location.href)
-      pageUrl.searchParams.delete("id")
       pageUrl.searchParams.delete("new_status")
-      await navigate(pageUrl.href)
+      pageUrl.searchParams.set("id", saved.id)
+      await navigate(pageUrl.href, "replace")
     } catch (error) {
       dispatch({ type: "requestFailed", message: errorMessage(error) })
     }
   }, [basePath, navigate, state.current])
+
+  // Linear のように、属性は変えたとき、文字の欄は離れたときにその項目だけを保存する
+  // 保存済みの値と同じなら書き込まない。新しい issue は Create まで保存しない
+  const commitField = useCallback(
+    async (field: DraftField, value: string) => {
+      const saved = state.saved
+      if (!state.current?.id || !saved || saved.id !== state.current.id) {
+        dispatch({ type: "draftChanged", field, value })
+        return
+      }
+      const change = fieldChange(saved, field, value)
+      if (!change) return
+      dispatch({ type: "draftChanged", field, value })
+      dispatch({ type: "saveStarted" })
+      try {
+        const response = await fetch(`${basePath}/api/issues`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ id: saved.id, ...change }),
+        })
+        if (!response.ok) throw new Error(await responseError(response))
+        dispatch({ type: "saveFinished" })
+        await navigate(window.location.href, "none")
+      } catch (error) {
+        dispatch({ type: "requestFailed", message: errorMessage(error) })
+      }
+    },
+    [basePath, navigate, state.current, state.saved],
+  )
 
   const moveIssue = useCallback(
     async (issueId: string, status: string) => {
@@ -102,7 +146,7 @@ export function usePageController(initialPage: PageData): PageController {
     [basePath, navigate],
   )
 
-  return { state, navigate, changeDraft, selectIssue, saveCurrent, moveIssue }
+  return { state, navigate, changeDraft, selectIssue, saveCurrent, commitField, moveIssue }
 }
 
 function issueInput(issue: Issue): SaveInput {

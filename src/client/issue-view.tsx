@@ -7,7 +7,7 @@ import { PRIORITIES, type Comment, type Issue } from "../store"
 import { relativeTime } from "../time"
 import { ChevronIcon, CrossIcon, PriorityIcon, StatusIcon } from "./icons"
 import { Avatar, LabelChip } from "./issue-metadata"
-import type { DraftField } from "./state"
+import type { DraftField, SaveState } from "./state"
 import { issueColumns, pageHref, priorityLabel, statusLabel, type PageFilters } from "./view-model"
 
 // Linear の issue 画面にならい、左に題名・説明・子 issue・関係・質問・活動、右に属性を置く
@@ -23,7 +23,9 @@ export function IssueView({
   comments,
   questions,
   draftDirty,
+  saveState,
   onChange,
+  onCommit,
   onSave,
 }: {
   issue: Issue
@@ -35,7 +37,9 @@ export function IssueView({
   comments: Comment[]
   questions: Question[]
   draftDirty: boolean
+  saveState: SaveState
   onChange: (field: DraftField, value: string) => void
+  onCommit: (field: DraftField, value: string) => Promise<void>
   onSave: () => Promise<void>
 }) {
   const isNew = !issue.id
@@ -47,6 +51,16 @@ export function IssueView({
         | HTMLSelectElement
         | HTMLTextAreaElement
       onChange(field, input.value)
+    }
+  // その項目を保存する。属性は変えたとき、文字の欄は離れたときに呼ぶ
+  const commit =
+    (field: DraftField) =>
+    (event: Event): void => {
+      const input = event.currentTarget as
+        | HTMLInputElement
+        | HTMLSelectElement
+        | HTMLTextAreaElement
+      void onCommit(field, input.value)
     }
   const basePath = filters.basePath ?? ""
   return (
@@ -77,15 +91,36 @@ export function IssueView({
           </span>
           <span class="font-mono text-[12px] text-ink">{isNew ? "New issue" : `#${issue.id}`}</span>
           <div class="ml-auto flex items-center gap-2">
-            {isNew || draftDirty ? (
+            {isNew ? (
               <button
                 type="submit"
                 class="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md border-0 bg-primary px-3 font-sans text-xs font-medium text-on-primary transition-colors hover:bg-primary-hover active:bg-primary-focus focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary-focus/50"
               >
-                {isNew ? "Create issue" : "Save"}
+                Create issue
                 <span class="font-mono text-[10px] text-on-primary/60">⌘⏎</span>
               </button>
-            ) : null}
+            ) : (
+              <>
+                <span aria-live="polite" class="text-[11px] text-ink-tertiary">
+                  {saveState === "saving"
+                    ? "Saving…"
+                    : draftDirty
+                      ? "Unsaved"
+                      : saveState === "saved"
+                        ? "Saved"
+                        : ""}
+                </span>
+                {/* JavaScript が動かないときは自動保存されないので、保存のボタンを出す */}
+                <noscript>
+                  <button
+                    type="submit"
+                    class="inline-flex h-7 cursor-pointer items-center rounded-md border-0 bg-primary px-3 font-sans text-xs font-medium text-on-primary"
+                  >
+                    Save
+                  </button>
+                </noscript>
+              </>
+            )}
             <a
               id="drawer-close"
               href={pageHref(filters)}
@@ -113,6 +148,7 @@ export function IssueView({
                   name="title"
                   value={issue.title}
                   onInput={change("title")}
+                  onBlur={commit("title")}
                   placeholder="Issue title"
                   autofocus={isNew}
                   singleLine
@@ -122,6 +158,7 @@ export function IssueView({
                   issue={issue}
                   startEditing={isNew}
                   onChangeBody={(body) => onChange("body", body)}
+                  onCommitBody={(body) => void onCommit("body", body)}
                 />
               </div>
             </div>
@@ -134,6 +171,7 @@ export function IssueView({
                   labelInput={labelInput}
                   blockInput={blockInput}
                   change={change}
+                  commit={commit}
                 />
               </div>
             </section>
@@ -235,10 +273,12 @@ function Description({
   issue,
   startEditing,
   onChangeBody,
+  onCommitBody,
 }: {
   issue: Issue
   startEditing: boolean
   onChangeBody: (body: string) => void
+  onCommitBody: (body: string) => void
 }) {
   const [editing, setEditing] = useState(startEditing)
   useEffect(() => {
@@ -251,13 +291,13 @@ function Description({
       if (!(target instanceof Element)) return
       if (target instanceof HTMLInputElement && target.dataset.taskIndex !== undefined) {
         event.preventDefault()
-        onChangeBody(toggleTask(issue.body, Number(target.dataset.taskIndex)))
+        onCommitBody(toggleTask(issue.body, Number(target.dataset.taskIndex)))
         return
       }
       if (target.closest("a")) return
       setEditing(true)
     },
-    [issue.body, onChangeBody],
+    [issue.body, onCommitBody],
   )
   if (editing) {
     return (
@@ -269,10 +309,14 @@ function Description({
           onInput={(event: Event) =>
             onChangeBody((event.currentTarget as HTMLTextAreaElement).value)
           }
+          onBlur={(event: Event) => {
+            if (!startEditing) onCommitBody((event.currentTarget as HTMLTextAreaElement).value)
+          }}
           onKeyDown={(event: KeyboardEvent) => {
-            // Esc は issue を閉じずに、説明の編集だけを終える
+            // Esc は issue を閉じずに、説明の編集だけを終える。離れたときと同じく保存する
             if (event.key !== "Escape") return
             event.stopPropagation()
+            if (!startEditing) onCommitBody((event.currentTarget as HTMLTextAreaElement).value)
             setEditing(false)
           }}
           placeholder="Add description… (Markdown)"
@@ -487,6 +531,7 @@ function Properties({
   labelInput,
   blockInput,
   change,
+  commit,
 }: {
   issue: Issue
   all: Issue[]
@@ -494,6 +539,7 @@ function Properties({
   labelInput: string
   blockInput: string
   change: (field: DraftField) => (event: Event) => void
+  commit: (field: DraftField) => (event: Event) => void
 }) {
   const statuses = issueColumns([issue])
   const parent = issue.parent ? all.find((row) => row.id === issue.parent) : undefined
@@ -502,7 +548,7 @@ function Properties({
     <div class="flex flex-col gap-0.5">
       <div class="mb-2 hidden text-[11px] font-medium text-ink-tertiary md:block">Properties</div>
       <PropRow label="Status" icon={<StatusIcon status={issue.status} />}>
-        <SelectBox name="status" value={issue.status} onInput={change("status")}>
+        <SelectBox name="status" value={issue.status} onInput={commit("status")}>
           {statuses.map((status) => (
             <option value={status} selected={status === issue.status}>
               {statusLabel(status)}
@@ -511,7 +557,7 @@ function Properties({
         </SelectBox>
       </PropRow>
       <PropRow label="Priority" icon={<PriorityIcon priority={issue.priority} />}>
-        <SelectBox name="priority" value={issue.priority ?? ""} onInput={change("priority")}>
+        <SelectBox name="priority" value={issue.priority ?? ""} onInput={commit("priority")}>
           <option value="" selected={!issue.priority}>
             No priority
           </option>
@@ -530,6 +576,8 @@ function Properties({
           name="assignee"
           value={issue.assignee ?? ""}
           onInput={change("assignee")}
+          onBlur={commit("assignee")}
+          onKeyDown={blurOnEnter}
           placeholder="Unassigned"
           class={FIELD}
         />
@@ -551,7 +599,11 @@ function Properties({
               name="labels"
               value={labelInput}
               onInput={change("labels")}
-              onBlur={onDone}
+              onBlur={(event: Event) => {
+                commit("labels")(event)
+                onDone()
+              }}
+              onKeyDown={blurOnEnter}
               placeholder="Comma separated"
               class={FIELD}
             />
@@ -563,7 +615,7 @@ function Properties({
           type="date"
           name="dueDate"
           value={issue.dueDate ?? ""}
-          onInput={change("dueDate")}
+          onChange={commit("dueDate")}
           class={FIELD}
         />
       </PropRow>
@@ -588,7 +640,11 @@ function Properties({
               name="parent"
               value={issue.parent ?? ""}
               onInput={change("parent")}
-              onBlur={onDone}
+              onBlur={(event: Event) => {
+                commit("parent")(event)
+                onDone()
+              }}
+              onKeyDown={blurOnEnter}
               placeholder="Issue id"
               class={FIELD}
             />
@@ -606,7 +662,11 @@ function Properties({
               name="blocks"
               value={blockInput}
               onInput={change("blocks")}
-              onBlur={onDone}
+              onBlur={(event: Event) => {
+                commit("blocks")(event)
+                onDone()
+              }}
+              onKeyDown={blurOnEnter}
               placeholder="Issue ids, comma separated"
               class={FIELD}
             />
@@ -770,6 +830,13 @@ function IssueQuestion({ question }: { question: Question }) {
   )
 }
 
+// 1 行の入力欄では Enter で入力を終え、離れたときの保存に任せる
+function blurOnEnter(event: KeyboardEvent): void {
+  if (event.key !== "Enter" || event.isComposing) return
+  event.preventDefault()
+  ;(event.currentTarget as HTMLElement).blur()
+}
+
 function isAwaiting(question: Question): boolean {
   return question.status === "open" || question.status === "expired"
 }
@@ -823,8 +890,16 @@ function AutoGrowTextarea({
         onInput(event)
       }}
       onKeyDown={(event: KeyboardEvent) => {
-        if (singleLine && event.key === "Enter" && !event.metaKey && !event.ctrlKey)
+        if (
+          singleLine &&
+          event.key === "Enter" &&
+          !event.metaKey &&
+          !event.ctrlKey &&
+          !event.isComposing
+        ) {
           event.preventDefault()
+          ;(event.currentTarget as HTMLElement).blur()
+        }
         const handler = props.onKeyDown as ((event: KeyboardEvent) => void) | undefined
         handler?.(event)
       }}
