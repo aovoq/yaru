@@ -3,8 +3,9 @@ import { join } from "node:path"
 import { Hono, type Context } from "hono"
 import { clientScript } from "./client-script"
 import { styles } from "./css"
-import { DashboardPage, dashboardLiveReload, USE_DEFAULT_ANSWER_PREFIX } from "./dashboard"
-import { getPageData } from "./page"
+import { DashboardPage, USE_DEFAULT_ANSWER_PREFIX } from "./dashboard"
+import { dashboardLiveReload } from "./dashboard/live-reload"
+import { BLANK, getPageData, parseView } from "./page"
 import { registerPwaRoutes } from "./pwa"
 import { PROJECTS_AUTO_RELOAD, ProjectsPage, type ProjectSummary } from "./projects"
 import { answerQuestion, ensureQuestionsDirectory, getQuestion, listQuestions } from "./questions"
@@ -21,7 +22,9 @@ import {
   open,
   type Store,
 } from "./store"
-import { BLANK, BoardPage, ErrorView, parseView, renderDocument } from "./ui"
+import { BoardPage } from "./ui/board-page"
+import { ErrorView } from "./ui/error-view"
+import { renderDocument } from "./ui/render-document"
 import { findWorkspace, listWorkspaces, stateDirectory, type Workspace } from "./workspaces"
 
 export const DEFAULT_PORT = 47800

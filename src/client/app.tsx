@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "preact/hooks"
-import { BLANK, DEFAULT_VIEW, parseView, type PageData, type ViewMode } from "../page"
+import { DEFAULT_VIEW, type PageData, type ViewMode } from "../page"
 import { BoardContent } from "./board/board-content"
 import { Header } from "./board/header"
 import { MobileStatusNav } from "./board/mobile-status-nav"
@@ -17,9 +17,6 @@ import { newIssueHref, pageHref, type PageFilters } from "./view-model"
 
 // 板の画面の組み立て役。状態とその操作 (usePageController) を各部品へ配り、
 // 右クリックのメニューと知らせ、同じ板の中のリンクをページを読み直さずに開く処理だけをここで持つ
-
-export { BLANK, DEFAULT_VIEW, parseView }
-export type { ViewMode }
 
 export type BoardPageProps = Omit<PageData, "view"> & { view?: ViewMode }
 

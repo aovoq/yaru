@@ -128,4 +128,3 @@ export function DashboardPage({
 }
 
 // web.tsx は dashboard の入口からまとめて読み込むので、ここから出し直す
-export { dashboardLiveReload } from "./dashboard/live-reload"

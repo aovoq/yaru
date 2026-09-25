@@ -8,7 +8,10 @@ import { DashboardPage } from "./dashboard"
 import { ProjectsPage } from "./projects"
 import type { Question } from "./questions"
 import type { SessionHealth } from "./sessions"
-import { BLANK, BoardPage, Document, ErrorView } from "./ui"
+import { BLANK } from "./page"
+import { BoardPage } from "./ui/board-page"
+import { Document } from "./ui/document"
+import { ErrorView } from "./ui/error-view"
 
 const INPUT = `@import "tailwindcss";
 @theme static {
