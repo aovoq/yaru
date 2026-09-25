@@ -4,12 +4,12 @@ import { Hono, type Context } from "hono"
 import { clientScript } from "./client-script"
 import { styles } from "./css"
 import { DashboardPage, USE_DEFAULT_ANSWER_PREFIX } from "./dashboard"
-import { dashboardLiveReload } from "./dashboard/live-reload"
 import { registerFontRoutes } from "./font"
 import { BLANK, getPageData, type PageData } from "./page"
 import { registerPwaRoutes } from "./pwa"
 import { PROJECTS_AUTO_RELOAD, ProjectsPage, type ProjectSummary } from "./projects"
 import { inboxQuestionAnchor, readInbox, workspaceBasePath } from "./inbox"
+import { INBOX_PATH, InboxPage } from "./inbox-page"
 import { notifyExpiringQuestions, notifyStaleIssues } from "./notify"
 import {
   answerQuestion,
@@ -18,6 +18,8 @@ import {
   getQuestion,
   listQuestions,
   QuestionConflictError,
+  undoAnswer,
+  type Question,
 } from "./questions"
 import { readRepositoryState } from "./repository"
 import { readSessionHealth } from "./sessions"
@@ -35,10 +37,15 @@ import {
 } from "./store"
 import { BoardPage } from "./ui/board-page"
 import { ErrorView } from "./ui/error-view"
+import { livePageScript } from "./ui/live-page"
+import { pageTitle } from "./ui/page-title"
 import { renderDocument } from "./ui/render-document"
 import { findWorkspace, listWorkspaces, stateDirectory, type Workspace } from "./workspaces"
 
 export const DEFAULT_PORT = 47800
+
+// /inbox が全ワークスペースの答え待ちの質問を読み直す間隔。全ワークスペースの変更を見張るのは重いので、しばらくおきに読む
+const INBOX_POLL_MILLISECONDS = 30_000
 
 const FILTER_KEYS = ["query", "status", "assignee", "label", "view"] as const
 
@@ -51,8 +58,16 @@ export type WorkspaceAppOptions = {
 export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
   const app = new Hono()
   const basePath = options.basePath ?? ""
-  const renderDashboardFor = (error?: string) =>
-    renderDashboard(store, { basePath, workspaceName: options.workspaceName }, error)
+  // ワークスペースの中の失敗の画面は、一覧 (/) まで戻らずにそのワークスペースの板へ戻す
+  const renderError = async (message: string) =>
+    renderDocument(await styles(), <ErrorView message={message} backHref={`${basePath}/`} />, {
+      title: pageTitle("Error"),
+    })
+  const boardTitle = (data: PageData) =>
+    pageTitle(
+      data.current?.id ? `#${data.current.id} ${data.current.title}` : undefined,
+      options.workspaceName,
+    )
 
   app.onError(async (err, c) => {
     const message = errorMessage(err)
@@ -62,26 +77,41 @@ export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
       if (c.req.path.startsWith("/api/")) {
         return c.json({ error: message, question: err.question }, 409)
       }
-      return c.html(renderDocument(await styles(), <ErrorView message={message} />), 409)
+      return c.html(await renderError(message), 409)
     }
     const status = message.includes("not found") ? 404 : 400
     if (c.req.path.startsWith("/api/")) return c.json({ error: message }, status)
-    return c.html(renderDocument(await styles(), <ErrorView message={message} />), status)
+    return c.html(await renderError(message), status)
   })
 
   app.notFound(async (c) => {
     if (c.req.path.startsWith("/api/")) return c.json({ error: "not found" }, 404)
-    return c.html(renderDocument(await styles(), <ErrorView message="not found" />), 404)
+    return c.html(await renderError("not found"), 404)
   })
 
   app.get("/", async (c) => {
     const { data, status } = boardPageData(store, new URL(c.req.url), basePath)
-    return c.html(renderDocument(await styles(), <BoardPage {...data} />), status)
+    return c.html(
+      renderDocument(await styles(), <BoardPage {...data} />, { title: boardTitle(data) }),
+      status,
+    )
   })
 
-  // 失敗したフォームから戻ってきたときは、?error= の理由を画面の上に出す
+  // 失敗したフォームから戻ってきたときは、理由 (error)・どの質問か (q)・書きかけ (answer) を受け、そのカードに戻す
+  // 答えた直後に戻ってきたときは、答えた質問 (answered) の取り消しの知らせを出す
   app.get("/dashboard", async (c) => {
-    return c.html(await renderDashboardFor(c.req.query("error") || undefined))
+    return c.html(
+      await renderDashboard(store, {
+        basePath,
+        workspaceName: options.workspaceName,
+        returned: {
+          question: c.req.query("q") || undefined,
+          error: c.req.query("error") || undefined,
+          answer: c.req.query("answer") || undefined,
+        },
+        answered: findQuestion(store, c.req.query("answered")),
+      }),
+    )
   })
 
   // フォームの POST の結果は、成功しても失敗しても 303 See Other で GET の画面へ戻す
@@ -94,6 +124,7 @@ export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
     const returnTo = formReturnPath(str(body.returnTo), basePath)
     const fragment = questionFragment(returnTo, id, options.workspaceName)
     const draft = str(body.body)
+    const workspace = inboxWorkspace(returnTo, options.workspaceName)
     try {
       const answer =
         str(body.useDefault) === "1"
@@ -108,18 +139,47 @@ export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
       return c.redirect(
         redirectPath(
           returnTo,
-          {
-            error: errorMessage(err),
-            q: id,
-            workspace: inboxWorkspace(returnTo, options.workspaceName),
-            answer: draftForRedirect(draft),
-          },
+          { error: errorMessage(err), q: id, workspace, answer: draftForRedirect(draft) },
           fragment,
         ),
         303,
       )
     }
-    return c.redirect(redirectPath(returnTo, {}, fragment), 303)
+    // 答えたカードは答え待ちから外れるので、フォームが持ってきた次のカード (next) へ戻し、答えた質問 (answered) の取り消しを出す
+    // 板 (issue 画面) は取り消しの知らせを持たないので、answered は dashboard と /inbox に戻るときだけ載せる
+    return c.redirect(
+      redirectPath(
+        returnTo,
+        showsAnsweredToast(returnTo, basePath) ? { answered: id, workspace } : {},
+        nextFragment(str(body.next)) ?? fragment,
+      ),
+      303,
+    )
+  })
+
+  // 答えたばかりの答えを取り消し、答え待ちに戻す (questions.ts の undoAnswer)
+  // 取り消した答えは消えるので、書きかけ (answer) として戻り先のカードに戻し、直して答え直せるようにする
+  app.post("/questions/:id/undo", async (c) => {
+    const body = await c.req.parseBody()
+    const id = c.req.param("id")
+    const returnTo = formReturnPath(str(body.returnTo), basePath)
+    const fragment = questionFragment(returnTo, id, options.workspaceName)
+    const workspace = inboxWorkspace(returnTo, options.workspaceName)
+    let answer = ""
+    try {
+      const question = getQuestion(store, id)
+      answer = typedAnswer(question)
+      undoAnswer(store, id, { answeredAt: str(body.answeredAt) || undefined })
+    } catch (err) {
+      return c.redirect(
+        redirectPath(returnTo, { error: errorMessage(err), q: id, workspace }, fragment),
+        303,
+      )
+    }
+    return c.redirect(
+      redirectPath(returnTo, { q: id, workspace, answer: draftForRedirect(answer) }, fragment),
+      303,
+    )
   })
 
   app.post("/questions/:id/cancel", async (c) => {
@@ -143,7 +203,7 @@ export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
         303,
       )
     }
-    return c.redirect(redirectPath(returnTo, {}, fragment), 303)
+    return c.redirect(redirectPath(returnTo, {}, nextFragment(str(body.next)) ?? fragment), 303)
   })
 
   app.get("/api/questions", (c) => {
@@ -216,6 +276,7 @@ export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
             comments={draft.id ? listComments(store, { issue: draft.id }) : []}
             error={errorMessage(err)}
           />,
+          { title: boardTitle(data) },
         ),
         400,
       )
@@ -346,24 +407,49 @@ export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
 
 async function renderDashboard(
   store: Store,
-  options: { basePath: string; workspaceName?: string },
-  error?: string,
+  options: {
+    basePath: string
+    workspaceName?: string
+    returned: { question?: string; error?: string; answer?: string }
+    answered: Question | null
+  },
 ): Promise<string> {
   const now = new Date()
   return renderDocument(
     await styles(),
     <DashboardPage
       questions={listQuestions(store, {}, now)}
-      issues={listIssues(store)}
+      issues={listIssues(store, {}, now)}
       now={now}
       sessionHealth={readSessionHealth(store.root, { now })}
       repository={readRepositoryState(store.root)}
       basePath={options.basePath}
       workspaceName={options.workspaceName}
-      error={error}
+      returned={options.returned}
+      answered={options.answered}
     />,
-    dashboardLiveReload(options.basePath),
+    {
+      title: pageTitle("Dashboard", options.workspaceName),
+      script: livePageScript({
+        watch: {
+          type: "events",
+          eventsUrl: `${options.basePath}/events`,
+          questionsUrl: `${options.basePath}/api/questions`,
+        },
+        draftStorageKey: `yaru.drafts:${options.basePath}/dashboard`,
+      }),
+    },
   )
+}
+
+// 戻り先の URL の answered= の質問。消えていたら (別の場所で消されたなど) 知らせを出さない
+function findQuestion(store: Store, id: string | undefined): Question | null {
+  if (!id) return null
+  try {
+    return getQuestion(store, id)
+  } catch {
+    return null
+  }
 }
 
 async function serveClientScript(c: Context) {
@@ -390,11 +476,63 @@ export function createServerApp(directory = stateDirectory()) {
   }
 
   app.notFound(async (c) => {
-    return c.html(renderDocument(await styles(), <ErrorView message="not found" />), 404)
+    return c.html(
+      renderDocument(await styles(), <ErrorView message="not found" />, {
+        title: pageTitle("Error"),
+      }),
+      404,
+    )
   })
 
   app.get("/", async (c) => {
     return c.html(await renderProjects(directory))
+  })
+
+  // 失敗したフォームから戻ってきたときは、どのワークスペースの (workspace) どの質問か (q) で、そのカードに理由と書きかけを戻す
+  // 答えた直後に戻ってきたときは、そのワークスペースの答えた質問 (answered) の取り消しの知らせを出す
+  app.get(INBOX_PATH, async (c) => {
+    const now = new Date()
+    const workspaceSlug = c.req.query("workspace") || undefined
+    const answeredId = c.req.query("answered") || undefined
+    const answeredWorkspace =
+      answeredId && workspaceSlug ? findWorkspace(workspaceSlug, directory) : undefined
+    const answeredQuestion = answeredWorkspace
+      ? findQuestion(open(answeredWorkspace.root), answeredId)
+      : null
+    return c.html(
+      renderDocument(
+        await styles(),
+        <InboxPage
+          inbox={readInbox(directory, now)}
+          now={now}
+          returned={{
+            workspace: workspaceSlug,
+            question: c.req.query("q") || undefined,
+            error: c.req.query("error") || undefined,
+            answer: c.req.query("answer") || undefined,
+          }}
+          answered={
+            answeredWorkspace && answeredQuestion
+              ? {
+                  question: answeredQuestion,
+                  basePath: workspaceBasePath(answeredWorkspace.slug),
+                }
+              : null
+          }
+        />,
+        {
+          title: pageTitle("Inbox"),
+          script: livePageScript({
+            watch: {
+              type: "poll",
+              inboxUrl: "/api/inbox",
+              intervalMilliseconds: INBOX_POLL_MILLISECONDS,
+            },
+            draftStorageKey: `yaru.drafts:${INBOX_PATH}`,
+          }),
+        },
+      ),
+    )
   })
 
   app.get("/assets/app.js", serveClientScript)
@@ -414,6 +552,7 @@ export function createServerApp(directory = stateDirectory()) {
         renderDocument(
           await styles(),
           <ErrorView message={`workspace not found: ${c.req.param("slug")}`} />,
+          { title: pageTitle("Error") },
         ),
         404,
       )
@@ -448,7 +587,10 @@ async function renderProjects(directory: string): Promise<string> {
       inProgress: listIssues(store, { status: "in_progress" }).length,
     }
   })
-  return renderDocument(await styles(), <ProjectsPage projects={projects} />, PROJECTS_AUTO_RELOAD)
+  return renderDocument(await styles(), <ProjectsPage projects={projects} now={now} />, {
+    title: pageTitle(),
+    script: PROJECTS_AUTO_RELOAD,
+  })
 }
 
 export function serve(port = DEFAULT_PORT) {
@@ -570,6 +712,27 @@ function questionFragment(returnTo: string, id: string, workspaceName: string | 
 
 function inboxWorkspace(returnTo: string, workspaceName: string | undefined): string {
   return isInbox(returnTo) && workspaceName ? workspaceName : ""
+}
+
+// 取り消した答えのうち、人が回答欄に書いたもの。Use default と選択肢のボタンの答えは書いたものではないので、回答欄に戻さない
+function typedAnswer(question: Question): string {
+  const answer = question.answer ?? ""
+  if (answer.startsWith(USE_DEFAULT_ANSWER_PREFIX) || question.options.includes(answer)) return ""
+  return answer
+}
+
+// 答えた直後の取り消しの知らせ (AnsweredToast) を出す画面か
+function showsAnsweredToast(returnTo: string, basePath: string): boolean {
+  const pathname = new URL(returnTo, REDIRECT_BASE).pathname
+  return pathname === `${basePath}/dashboard` || pathname === INBOX_PATH
+}
+
+// 答えたあとに開く次のカードの id (フォームの next)。fragment に載せるので、カードの id の形 (q-<名前>-<番号>) だけを通す
+// 形の違うものは使わず、答えたカードの id に戻す
+const NEXT_FRAGMENT_PATTERN = /^[A-Za-z][A-Za-z0-9._-]*$/
+
+function nextFragment(next: string): string | undefined {
+  return NEXT_FRAGMENT_PATTERN.test(next) ? next : undefined
 }
 
 // 書きかけの文を戻り先の URL に載せるのは、その URL がサーバーの受け取れる長さに収まるときだけにする

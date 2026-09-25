@@ -2,7 +2,13 @@ import { afterEach, describe, expect, test } from "bun:test"
 import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { answerQuestion, cancelQuestion, getQuestion, saveQuestion } from "./questions"
+import {
+  acknowledgeQuestion,
+  answerQuestion,
+  cancelQuestion,
+  getQuestion,
+  saveQuestion,
+} from "./questions"
 import { init, saveComment, saveIssue } from "./store"
 import { createApp, serve } from "./web"
 
@@ -124,7 +130,7 @@ describe("web", () => {
     const html = await res.text()
     expect(html).toContain("overflow-x-auto")
     expect(html).toContain(">boarded<")
-    expect(html).toContain(".w-\\[300px\\]")
+    expect(html).toContain(".sm\\:w-\\[272px\\]")
     expect(html).toContain(".rounded-lg")
     expect(html).toContain(".shadow-\\[inset_0_1px_0_0_rgb")
   })
@@ -407,14 +413,15 @@ describe("web", () => {
     expect(html).toContain(">listed<")
   })
 
-  test("drawer has dueDate and priority fields", async () => {
+  // 期日は押すまで入力欄を出さず、一覧と同じ短い日付で見せる。優先度は押すと候補の面を開くボタンで見せる
+  test("drawer shows the due date and priority as values", async () => {
     const store = workspace()
     saveIssue(store, { title: "drawer me", dueDate: "2026-08-20", priority: "medium" })
     const html = await (await createApp(store).request("/?id=1")).text()
-    expect(html).toContain('name="dueDate"')
-    expect(html).toContain('value="2026-08-20"')
-    expect(html).toContain('name="priority"')
-    expect(html).toContain('value="medium"')
+    expect(html).toContain('data-property="dueDate"')
+    expect(html).toContain('datetime="2026-08-20"')
+    expect(html).not.toContain('name="dueDate"')
+    expect(html).toMatch(/data-property="priority"[\s\S]*?>Medium</)
   })
 
   test("POST /issues saves dueDate and priority", async () => {
@@ -587,7 +594,7 @@ describe("web", () => {
       body: new URLSearchParams({ body: "消してよい" }),
     })
     expect(res.status).toBe(303)
-    expect(res.headers.get("location")).toBe("/dashboard#q-1")
+    expect(res.headers.get("location")).toBe("/dashboard?answered=1#q-1")
     expect(getQuestion(store, "1")).toMatchObject({ status: "answered", answer: "消してよい" })
   })
 
@@ -736,7 +743,7 @@ describe("web", () => {
       "/questions/1/answer",
       { method: "POST", body: new URLSearchParams({ body: "yes", returnTo: "/inbox" }) },
     )
-    expect(res.headers.get("location")).toBe("/inbox#q-app-1")
+    expect(res.headers.get("location")).toBe("/inbox?answered=1&workspace=app#q-app-1")
   })
 
   test("a failed comment returns to the issue with the error and the draft", async () => {
@@ -868,7 +875,7 @@ describe("web", () => {
         method: "POST",
         body: new URLSearchParams({ body: "yes", returnTo }),
       })
-      expect(res.headers.get("location")).toBe(`/dashboard#q-${id}`)
+      expect(res.headers.get("location")).toBe(`/dashboard?answered=${id}#q-${id}`)
     }
   })
 
@@ -929,14 +936,15 @@ describe("web", () => {
       expect(html).toContain("先にやること")
     })
 
-    test("the activity timeline merges lifecycle events and comments in time order", async () => {
+    // 状態の変更は変更の記録 (.yaru/events) から「changed status Todo → In Progress」として並べる
+    test("the activity timeline merges lifecycle events, property changes and comments in time order", async () => {
       const store = workspace()
       saveIssue(store, { title: "topic" })
       saveIssue(store, { id: "1", status: "in_progress" })
       saveComment(store, { issue: "1", body: "**進捗**" })
       const html = await (await createApp(store).request("/?id=1")).text()
       const created = html.indexOf("created the issue")
-      const started = html.indexOf("started working")
+      const started = html.indexOf("changed status Todo → In Progress")
       const comment = html.indexOf("<strong>進捗</strong>")
       expect(created).toBeGreaterThan(-1)
       expect(started).toBeGreaterThan(created)
@@ -949,5 +957,139 @@ describe("web", () => {
     saveIssue(store, { title: "parent" })
     const page = await (await createApp(store).request("/api/page?id=new&new_parent=1")).json()
     expect(page.current.parent).toBe("1")
+  })
+
+  describe("after answering", () => {
+    // 答えたカードは答え待ちから外れるので、フォームが持ってきた次のカードの id へ戻す
+    test("the answer returns to the next card and says which question was answered", async () => {
+      const store = workspace()
+      saveQuestion(store, { title: "a" })
+      saveQuestion(store, { title: "b" })
+      const res = await createApp(store).request("/questions/1/answer", {
+        method: "POST",
+        body: new URLSearchParams({ body: "yes", next: "q-2" }),
+      })
+      expect(res.headers.get("location")).toBe("/dashboard?answered=1#q-2")
+    })
+
+    test("a next anchor that is not a card id falls back to the answered card", async () => {
+      const store = workspace()
+      saveQuestion(store, { title: "a" })
+      saveQuestion(store, { title: "b" })
+      const app = createApp(store)
+      for (const [id, next] of [
+        ["1", "javascript:alert(1)"],
+        ["2", 'q-1"><script>'],
+      ] as const) {
+        const res = await app.request(`/questions/${id}/answer`, {
+          method: "POST",
+          body: new URLSearchParams({ body: "yes", next }),
+        })
+        expect(res.headers.get("location")).toBe(`/dashboard?answered=${id}#q-${id}`)
+      }
+    })
+
+    test("the dashboard offers to undo the answer just given", async () => {
+      const store = workspace()
+      saveQuestion(store, { title: "a" })
+      const answered = answerQuestion(store, "1", { body: "yes" })
+      const html = await (await createApp(store).request("/dashboard?answered=1")).text()
+      expect(html).toContain("Answered Q1")
+      expect(html).toContain('action="/questions/1/undo"')
+      expect(html).toContain(`name="answeredAt" value="${answered.answeredAt}"`)
+    })
+
+    // 取り消した答えは消えるので、書きかけとして回答欄に戻し、直して答え直せるようにする
+    test("undo puts the question back and returns the answer to its card as a draft", async () => {
+      const store = workspace()
+      saveQuestion(store, { title: "a" })
+      const answered = answerQuestion(store, "1", { body: "消してよい" })
+      const app = createApp(store)
+      const res = await app.request("/questions/1/undo", {
+        method: "POST",
+        body: new URLSearchParams({ answeredAt: answered.answeredAt! }),
+      })
+      expect(res.status).toBe(303)
+      const location = new URL(res.headers.get("location")!, "http://localhost")
+      expect(location.pathname).toBe("/dashboard")
+      expect(location.searchParams.get("q")).toBe("1")
+      expect(location.searchParams.get("answer")).toBe("消してよい")
+      expect(location.searchParams.get("error")).toBeNull()
+      expect(location.hash).toBe("#q-1")
+      expect(getQuestion(store, "1").status).toBe("open")
+      const html = await (await app.request(`${location.pathname}${location.search}`)).text()
+      expect(html).toMatch(/<textarea[^>]*>消してよい<\/textarea>/)
+      expect(html).not.toContain('role="alert"')
+    })
+
+    test("undo of an answer the agent already picked up comes back with the reason", async () => {
+      const store = workspace()
+      saveQuestion(store, { title: "a" })
+      const answered = answerQuestion(store, "1", { body: "yes" })
+      acknowledgeQuestion(store, "1")
+      const res = await createApp(store).request("/questions/1/undo", {
+        method: "POST",
+        body: new URLSearchParams({ answeredAt: answered.answeredAt! }),
+      })
+      expect(res.status).toBe(303)
+      const location = new URL(res.headers.get("location")!, "http://localhost")
+      expect(location.searchParams.get("error")).toContain(
+        "expected the agent not to have picked it up",
+      )
+      expect(getQuestion(store, "1").answer).toBe("yes")
+    })
+
+    test("a returned draft is put back into its card with the error inside the card", async () => {
+      const store = workspace()
+      saveQuestion(store, { title: "a" })
+      const html = await (
+        await createApp(store).request(
+          `/dashboard?${new URLSearchParams({ error: "too short", q: "1", answer: "書きかけ" })}`,
+        )
+      ).text()
+      expect(html).toMatch(/id="q-1"[\s\S]*?role="alert"[\s\S]*?too short/)
+      expect(html).toMatch(/<textarea[^>]*>書きかけ<\/textarea>/)
+    })
+  })
+
+  test("the dashboard's inline script submits an answer with Cmd+Enter", async () => {
+    const html = await (await createApp(workspace()).request("/dashboard")).text()
+    expect(html).toContain('hasAttribute("data-answer-shortcut")')
+  })
+
+  test("each page names itself in the tab title", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "topic" })
+    const app = createApp(store, { basePath: "/p/app", workspaceName: "app" })
+    const title = async (path: string) =>
+      /<title>([^<]*)<\/title>/.exec(await (await app.request(path)).text())?.[1]
+    expect(await title("/dashboard")).toBe("Dashboard · app · yaru")
+    expect(await title("/")).toBe("app · yaru")
+    expect(await title("/?id=1")).toBe("#1 topic · app · yaru")
+    expect(await title("/missing")).toBe("Error · yaru")
+  })
+
+  test("an error page inside a workspace goes back to that workspace's board", async () => {
+    const app = createApp(workspace(), { basePath: "/p/app", workspaceName: "app" })
+    const html = await (await app.request("/missing")).text()
+    expect(html).toMatch(/href="\/p\/app\/"[^>]*>[^<]*back/)
+  })
+
+  // Use default と選択肢は人が書いた答えではないので、取り消しても回答欄には戻さない
+  test("undoing a default or option answer does not put it back as a draft", async () => {
+    const store = workspace()
+    saveQuestion(store, { title: "q", defaultAction: "残す" })
+    const app = createApp(store)
+    await app.request("/questions/1/answer", {
+      method: "POST",
+      body: new URLSearchParams({ useDefault: "1" }),
+    })
+    const res = await app.request("/questions/1/undo", {
+      method: "POST",
+      body: new URLSearchParams({ answeredAt: getQuestion(store, "1").answeredAt! }),
+    })
+    const location = new URL(res.headers.get("location")!, "http://localhost")
+    expect(location.searchParams.get("answer")).toBeNull()
+    expect(getQuestion(store, "1").status).toBe("open")
   })
 })

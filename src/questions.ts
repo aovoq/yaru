@@ -242,6 +242,87 @@ export function answerQuestion(
   return withStatus(next, now)
 }
 
+// 答えてから取り消せるまでの時間。押し間違いや別の質問への誤答に気づくのに要る時間の目安
+// エージェントが答えを読んで動き出した後に取り消すと、人とエージェントの考えが食い違うので、短く区切る
+export const UNDO_ANSWER_MILLISECONDS = 30_000
+
+export type UndoAnswerInput = {
+  // 取り消したい答えの answeredAt。別の人が同じ時間内に答えを置き換えていたら、その答えを消さずに断る
+  answeredAt?: string
+}
+
+// 答えたばかりの答えを消して、質問を答え待ちに戻す
+// 次のどれかなら断る。答えを消すと、エージェントか issue の記録が消えた答えを元に動いてしまうため
+// - エージェントが既に答えを受け取った (acknowledgedAt)
+// - 答えてから UNDO_ANSWER_MILLISECONDS を過ぎた
+// - 期限切れの後の答えで、issue のコメントに書き写した (コメントは消せない)
+export function undoAnswer(
+  store: Store,
+  id: string,
+  input: UndoAnswerInput,
+  now = new Date(),
+): Question {
+  const path = questionPath(store, id)
+  if (!existsSync(path)) throw new Error(`question not found: ${id}`)
+  const current = readQuestion(path, id)
+  const currentStatus = statusOf(current, now)
+  const prefix = `cannot undo the answer to question ${id}`
+  if (currentStatus !== "answered" || current.answeredAt === null) {
+    throw new QuestionConflictError(
+      `${prefix}: expected status answered, actual ${currentStatus}`,
+      withStatus(current, now),
+    )
+  }
+  if (input.answeredAt !== undefined && input.answeredAt !== current.answeredAt) {
+    throw new QuestionConflictError(
+      `${prefix}: expected answeredAt ${input.answeredAt}, actual ${current.answeredAt}`,
+      withStatus(current, now),
+    )
+  }
+  if (current.acknowledgedAt !== null) {
+    throw new QuestionConflictError(
+      `${prefix}: expected the agent not to have picked it up, actual picked up at ${current.acknowledgedAt}`,
+      withStatus(current, now),
+    )
+  }
+  const elapsed = now.getTime() - Date.parse(current.answeredAt)
+  if (elapsed > UNDO_ANSWER_MILLISECONDS) {
+    throw new Error(
+      `${prefix}: expected within ${UNDO_ANSWER_MILLISECONDS / 1000}s of answering, actual ${Math.round(elapsed / 1000)}s`,
+    )
+  }
+  if (isLateAnswer(current.issue, current.answerBy, current.answeredAt)) {
+    throw new Error(
+      `${prefix}: expected an answer before answerBy, actual a late answer already added to issue ${current.issue} as a comment`,
+    )
+  }
+  const next: StoredQuestion = {
+    ...current,
+    answer: null,
+    answeredBy: null,
+    answeredAt: null,
+    acknowledgedAt: null,
+    updatedAt: now.toISOString(),
+  }
+  writeReplace(path, formatQuestion(next))
+  return withStatus(next, now)
+}
+
+// 取り消しの時間が終わる時刻。取り消せない答え (答え待ち・エージェントが受け取った・issue に書き写した) なら null
+// 画面は、断られると分かっている取り消しのボタンを出さないためにこれを見る
+export function undoAnswerDeadline(question: Question): Date | null {
+  if (question.status !== "answered" || question.answeredAt === null) return null
+  if (question.acknowledgedAt !== null) return null
+  if (isLateAnswer(question.issue, question.answerBy, question.answeredAt)) return null
+  return new Date(Date.parse(question.answeredAt) + UNDO_ANSWER_MILLISECONDS)
+}
+
+// answerQuestion が期限切れの後の答えを issue のコメントに書き写したか
+function isLateAnswer(issue: string | null, answerBy: string | null, answeredAt: string): boolean {
+  if (issue === null || answerBy === null) return false
+  return Date.parse(answerBy) <= Date.parse(answeredAt)
+}
+
 // 答えを待っている質問を取り下げる。答え済みの質問は、答えを読んだエージェントが既に動いているかもしれないので取り下げさせない
 export function cancelQuestion(store: Store, id: string, now = new Date()): Question {
   const path = questionPath(store, id)

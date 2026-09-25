@@ -1,7 +1,7 @@
 import { QuestionCard } from "../components/question-card"
 import { Section } from "../components/section"
 import type { Question } from "../questions"
-import { issueLinkFor, type IssueTitles } from "./issue-link-for"
+import { issueLinkFor, type IssueTitles } from "../components/issue-link-for"
 
 // dashboard の最近答えた質問のまとまり
 // 答えを見返すときも、何を聞かれて何が既定だったかと並べて読めるよう、答え待ちと同じカードで見せる

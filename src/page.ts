@@ -165,7 +165,8 @@ function openIssue(
   }
 }
 
-function summarizeAwaiting(questions: Question[]): Record<string, AwaitingSummary> {
+// サーバーで描く dashboard も板と同じサイドバーを描くので export する
+export function summarizeAwaiting(questions: Question[]): Record<string, AwaitingSummary> {
   const summaries: Record<string, AwaitingSummary> = {}
   for (const question of questions) {
     if (question.issue === null) continue

@@ -4,11 +4,13 @@ import { StatusIcon } from "./icons/status-icon"
 import { Avatar } from "./avatar"
 import { DueStamp } from "./due-stamp"
 import { IssueId } from "./issue-id"
+import { StaleMarker } from "../client/board/stale-marker"
 
 // issue の行を並べた一覧。行を押すとその issue を開き、右クリックのメニューも開ける (data-id)
 // 子 issue・関係・dashboard の作業中や期限切れなど、issue を数件並べる場所で共通に使う
 // 優先度・番号・状態・期日・担当者は、値が無い行でも同じ幅の枠 (data-slot) を置き、行をまたいで列を縦にそろえる
 // 終わった (done・canceled) issue は題名を薄くし、data-finished を付ける。期日を過ぎていても期限切れの色にはしない
+// showStale は dashboard の作業中の一覧のように、進行中のまま止まっている issue (Issue.stale) に札を付けて気づかせたい場所で使う
 // 一覧は枠の中で端まで広がり、外に出る focus の枠は切れてしまうので、内側に引いた枠を使う
 
 const FINISHED_STATUSES = ["done", "canceled"]
@@ -17,11 +19,13 @@ export function IssueLinkList({
   issues,
   hrefFor,
   showDueDate = false,
+  showStale = false,
   now = new Date(),
 }: {
   issues: Issue[]
   hrefFor: (issue: Issue) => string
   showDueDate?: boolean
+  showStale?: boolean
   now?: Date
 }) {
   return (
@@ -48,6 +52,7 @@ export function IssueLinkList({
               >
                 {issue.title}
               </span>
+              {showStale && issue.stale ? <StaleMarker /> : null}
               {showDueDate ? (
                 <span data-slot="due" class="w-20 shrink-0 text-right">
                   <DueStamp date={issue.dueDate} status={issue.status} now={now} />

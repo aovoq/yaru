@@ -563,6 +563,7 @@ async function sampleHtml(): Promise<string> {
           ],
         }}
         error="x"
+        answered={sampleQuestions[5]}
       />
       <DashboardPage
         questions={[]}

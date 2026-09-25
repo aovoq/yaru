@@ -7,20 +7,33 @@ export function isAwaitingAnswer(question: Question): boolean {
   return question.status === "open" || question.status === "expired"
 }
 
+// scope は /inbox のように、複数のワークスペースの質問を 1 画面に並べるときのワークスペースの名前
+// 質問の番号はワークスペースごとに 1 から振られるので、名前を挟まないと別のワークスペースの同じ番号の質問と id が重なり、
+// form 属性が先に出たフォームに結びついて、別のワークスペースへ答えてしまう
+// カードの id は inbox.ts の inboxQuestionAnchor と同じ形 (q-<名前>-<番号>) にし、サーバーの戻り先の fragment と合わせる
+function scoped(question: Question, scope: string | undefined): string {
+  return scope ? `${scope}-${question.id}` : question.id
+}
+
+// 質問のカードの id。通知や一覧から #q-8 で飛べるようにする
+export function questionAnchorId(question: Question, scope?: string): string {
+  return `q-${scoped(question, scope)}`
+}
+
 // 回答欄の文字を送るフォーム
-export function answerFormId(question: Question): string {
-  return `answer-question-${question.id}`
+export function answerFormId(question: Question, scope?: string): string {
+  return `answer-question-${scoped(question, scope)}`
 }
 
 // 選択肢のボタンを送るフォーム。回答欄と同じフォームで送ると、ボタンの body と回答欄の body (空) が 2 つ並び、
 // 受け取る側がどちらを読むか決まらないので、選択肢は回答欄を持たない別のフォームで送る
-export function optionFormId(question: Question): string {
-  return `answer-question-${question.id}-option`
+export function optionFormId(question: Question, scope?: string): string {
+  return `${answerFormId(question, scope)}-option`
 }
 
 // 期限切れの質問を取り下げる (Dismiss) フォーム
-export function cancelFormId(question: Question): string {
-  return `cancel-question-${question.id}`
+export function cancelFormId(question: Question, scope?: string): string {
+  return `cancel-question-${scoped(question, scope)}`
 }
 
 // 回答欄で Cmd+Enter (macOS) か Ctrl+Enter を押したら、その回答欄のフォームを送る

@@ -53,7 +53,8 @@ export function Document({
         <style dangerouslySetInnerHTML={{ __html: css }} />
         <script dangerouslySetInnerHTML={{ __html: SIDEBAR_BOOT }} />
       </head>
-      <body class="h-screen overflow-hidden bg-canvas font-sans text-body text-ink antialiased scheme-dark">
+      {/* 高さは 100vh (h-screen) ではなく dvh にする。スマホの Safari の 100vh はツールバーを畳んだときの高さなので、開いている間は下端が隠れるため https://drafts.csswg.org/css-values-4/#viewport-variants */}
+      <body class="h-dvh overflow-hidden bg-canvas font-sans text-body text-ink antialiased scheme-dark">
         <div id="root">{children}</div>
         {script !== undefined ? (
           <script dangerouslySetInnerHTML={{ __html: script }} />

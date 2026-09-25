@@ -241,3 +241,65 @@ test("the dashboard's inline script submits the answer form on Cmd+Enter", async
     )
   expect(submitted).toBe(1)
 })
+
+// /inbox は全ワークスペースの質問を 1 画面に並べ、質問の番号はワークスペースごとに 1 から振られる
+// id が質問の番号だけだと、別のワークスペースの Q1 の入力欄が先に出た Q1 のフォームに結びついて、別のワークスペースへ答えてしまう
+test("a scope keeps the card and its forms apart from another workspace's question of the same id", () => {
+  const scoped = renderToString(
+    <>
+      <QuestionCard
+        question={question({ status: "expired", options: ["a"] })}
+        now={NOW}
+        scope="app"
+      />
+      <QuestionAnswerForm
+        question={question({ status: "expired", options: ["a"] })}
+        basePath="/p/app"
+        scope="app"
+      />
+    </>,
+  )
+  expect(scoped).toContain('id="q-app-8"')
+  expect(scoped).toContain('aria-describedby="q-app-8-title"')
+  expect(scoped).toContain('id="answer-question-app-8"')
+  expect(scoped).toContain('form="answer-question-app-8"')
+  expect(scoped).toContain('id="answer-question-app-8-option"')
+  expect(scoped).toContain('form="answer-question-app-8-option"')
+  expect(scoped).toContain('id="cancel-question-app-8"')
+  expect(scoped).toContain('form="cancel-question-app-8"')
+  expect(scoped).not.toContain('id="q-8"')
+})
+
+test("the card names its workspace when questions from several workspaces are mixed", () => {
+  const html = renderToString(
+    <QuestionCard
+      question={question()}
+      now={NOW}
+      workspace={{ name: "AsukaTravel", href: "/p/AsukaTravel/dashboard#q-8" }}
+    />,
+  )
+  expect(html).toMatch(/href="\/p\/AsukaTravel\/dashboard#q-8"[^>]*>[\s\S]*?AsukaTravel/)
+})
+
+// 送った答えが断られて戻ってきたら、書きかけの答えと理由をそのカードの中に出し、どこで何が起きたかを探させない
+test("a draft and an error returned from a failed answer are shown inside the card", () => {
+  const html = renderToString(
+    <QuestionCard
+      question={question()}
+      now={NOW}
+      draft="書きかけの答え"
+      error="invalid answer: expected a non-empty string"
+    />,
+  )
+  expect(html).toMatch(/<textarea[^>]*>書きかけの答え<\/textarea>/)
+  expect(html).toContain('role="alert"')
+  expect(html).toContain("invalid answer: expected a non-empty string")
+})
+
+// 答えたあとは次の質問へ進めるよう、次のカードの id をフォームに持たせてサーバーの戻り先の fragment にする
+test("the forms carry the anchor of the next card to return to", () => {
+  const html = renderToString(
+    <QuestionAnswerForm question={question({ options: ["a"] })} basePath="" next="q-9" />,
+  )
+  expect(html.match(/name="next" value="q-9"/g)?.length).toBe(2)
+})

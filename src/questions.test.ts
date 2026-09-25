@@ -13,8 +13,11 @@ import {
   markExpiringNotified,
   questionsAboutToExpire,
   saveQuestion,
+  undoAnswer,
+  undoAnswerDeadline,
   QUESTION_ANSWER_MARKER,
   QuestionConflictError,
+  UNDO_ANSWER_MILLISECONDS,
 } from "./questions"
 import { init, listComments, saveIssue } from "./store"
 
@@ -458,5 +461,113 @@ describe("questions", () => {
     })
     expect(status.stdout.toString()).not.toContain("questions")
     expect(listQuestions(store, {}, NOW).map((row) => row.id)).toEqual(["1"])
+  })
+
+  describe("undoAnswer", () => {
+    const answeredAt = NOW
+    const within = new Date(NOW.getTime() + UNDO_ANSWER_MILLISECONDS - 1000)
+
+    test("within the window the answer is cleared and the question awaits an answer again", () => {
+      const store = workspace()
+      saveQuestion(store, { title: "q", answerBy: "2h" }, NOW)
+      answerQuestion(store, "1", { body: "消してよい" }, answeredAt)
+      const undone = undoAnswer(store, "1", { answeredAt: answeredAt.toISOString() }, within)
+      expect(undone).toMatchObject({
+        status: "open",
+        answer: null,
+        answeredBy: null,
+        answeredAt: null,
+        acknowledgedAt: null,
+        updatedAt: within.toISOString(),
+      })
+      expect(getQuestion(store, "1", within).status).toBe("open")
+    })
+
+    test("after the window the answer stays, since the agent may already be acting on it", () => {
+      const store = workspace()
+      saveQuestion(store, { title: "q" }, NOW)
+      answerQuestion(store, "1", { body: "yes" }, answeredAt)
+      const late = new Date(NOW.getTime() + UNDO_ANSWER_MILLISECONDS + 1000)
+      expect(() => undoAnswer(store, "1", { answeredAt: answeredAt.toISOString() }, late)).toThrow(
+        "cannot undo the answer to question 1: expected within 30s of answering, actual 31s",
+      )
+      expect(getQuestion(store, "1").answer).toBe("yes")
+    })
+
+    test("an answer the agent has picked up cannot be undone", () => {
+      const store = workspace()
+      saveQuestion(store, { title: "q" }, NOW)
+      answerQuestion(store, "1", { body: "yes" }, answeredAt)
+      acknowledgeQuestion(store, "1", new Date(NOW.getTime() + 1000))
+      expect(() =>
+        undoAnswer(store, "1", { answeredAt: answeredAt.toISOString() }, within),
+      ).toThrow(QuestionConflictError)
+      expect(() =>
+        undoAnswer(store, "1", { answeredAt: answeredAt.toISOString() }, within),
+      ).toThrow(
+        `cannot undo the answer to question 1: expected the agent not to have picked it up, actual picked up at ${new Date(NOW.getTime() + 1000).toISOString()}`,
+      )
+    })
+
+    test("an answer replaced after the one being undone is kept", () => {
+      const store = workspace()
+      saveQuestion(store, { title: "q" }, NOW)
+      answerQuestion(store, "1", { body: "first" }, answeredAt)
+      const replacedAt = new Date(NOW.getTime() + 5000)
+      answerQuestion(store, "1", { body: "second", force: true }, replacedAt)
+      expect(() =>
+        undoAnswer(store, "1", { answeredAt: answeredAt.toISOString() }, within),
+      ).toThrow(
+        `cannot undo the answer to question 1: expected answeredAt ${answeredAt.toISOString()}, actual ${replacedAt.toISOString()}`,
+      )
+      expect(getQuestion(store, "1").answer).toBe("second")
+    })
+
+    test("a question without an answer has nothing to undo", () => {
+      const store = workspace()
+      saveQuestion(store, { title: "q" }, NOW)
+      expect(() => undoAnswer(store, "1", {}, within)).toThrow(
+        "cannot undo the answer to question 1: expected status answered, actual open",
+      )
+      expect(() => undoAnswer(store, "9", {}, within)).toThrow("question not found: 9")
+    })
+
+    test("a late answer already written to the issue as a comment cannot be undone", () => {
+      const store = workspace()
+      saveIssue(store, { title: "topic" })
+      saveQuestion(
+        store,
+        { title: "q", issue: "1", defaultAction: "x", answerBy: "2026-09-25T08:00:00.000Z" },
+        new Date("2026-09-25T07:00:00.000Z"),
+      )
+      answerQuestion(store, "1", { body: "late" }, answeredAt)
+      expect(() =>
+        undoAnswer(store, "1", { answeredAt: answeredAt.toISOString() }, within),
+      ).toThrow(
+        "cannot undo the answer to question 1: expected an answer before answerBy, actual a late answer already added to issue 1 as a comment",
+      )
+      expect(getQuestion(store, "1", within).answer).toBe("late")
+    })
+  })
+
+  // 画面は取り消しのボタンをいつまで出すかをこれで決める。断られると分かっているボタンは出さない
+  test("undoAnswerDeadline is when the undo window closes, or null when undo would be refused", () => {
+    const store = workspace()
+    saveIssue(store, { title: "topic" })
+    saveQuestion(store, { title: "a" }, NOW)
+    const answered = answerQuestion(store, "1", { body: "yes" }, NOW)
+    expect(undoAnswerDeadline(answered)?.toISOString()).toBe(
+      new Date(NOW.getTime() + UNDO_ANSWER_MILLISECONDS).toISOString(),
+    )
+    expect(undoAnswerDeadline({ ...answered, acknowledgedAt: NOW.toISOString() })).toBeNull()
+    expect(undoAnswerDeadline(getQuestion(store, "1", NOW))).not.toBeNull()
+    saveQuestion(store, { title: "b" }, NOW)
+    expect(undoAnswerDeadline(getQuestion(store, "2", NOW))).toBeNull()
+    saveQuestion(
+      store,
+      { title: "c", issue: "1", answerBy: "2026-09-25T08:30:00.000Z" },
+      new Date("2026-09-25T08:00:00.000Z"),
+    )
+    expect(undoAnswerDeadline(answerQuestion(store, "3", { body: "late" }, NOW))).toBeNull()
   })
 })

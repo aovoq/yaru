@@ -1,14 +1,17 @@
 import type { ComponentChildren } from "preact"
 
 // 見出しつきのまとまり。件数 (count)、題名に続けて折り返して並べる札 (meta)、右端の補足 (aside) を見出しの行に置ける
+// id を渡すと、dashboard の件数の札などから #id で飛べる
 
 export function Section({
+  id,
   title,
   count,
   meta,
   aside,
   children,
 }: {
+  id?: string
   title: string
   count?: number
   meta?: ComponentChildren
@@ -16,7 +19,7 @@ export function Section({
   children?: ComponentChildren
 }) {
   return (
-    <section class="flex flex-col gap-3">
+    <section id={id} class="flex flex-col gap-3">
       <div class="flex items-center gap-2">
         <h2 class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-medium text-ink">
           {title}

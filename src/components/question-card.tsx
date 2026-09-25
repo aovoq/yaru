@@ -1,9 +1,12 @@
 import type { Question } from "../questions"
 import { relativeTime } from "../time"
+import { Alert } from "./alert"
 import { Button } from "./button"
 import { Card } from "./card"
 import { Collapsible } from "./collapsible"
 import { IssueId } from "./issue-id"
+import { FOCUS_RING } from "./focus-ring"
+import { HIT_AREA } from "./hit-area"
 import { Kbd } from "./kbd"
 import { Markdown } from "./markdown"
 import { Pill } from "./pill"
@@ -13,6 +16,7 @@ import {
   cancelFormId,
   isAwaitingAnswer,
   optionFormId,
+  questionAnchorId,
   submitAnswerOnModifierEnter,
 } from "./question-answer"
 import { QuestionTiming } from "./question-timing"
@@ -27,18 +31,30 @@ import { Textarea } from "./textarea"
 // 期限切れの質問は、エージェントが既定の動き (defaultAction) で先に進んでいる。答えても使われないかもしれないので、
 // 取り下げ (Dismiss) を主な操作にし、答えるボタン (Answer anyway) は一段弱くして、その旨を添える
 // カードには q-<id> の id を付け、通知や一覧から #q-8 で飛べるようにする
+// 複数のワークスペースの質問を並べる /inbox では、scope (ワークスペースの名前) を id に挟み、workspace でどのワークスペースの質問かを示す
+// 期限のある答え待ちのカードには data-answer-by を付け、開いたままの画面で期限を過ぎたことをスクリプト (ui/live-page.ts) が気づけるようにする
+// 送った答えが断られて戻ってきたときは、書きかけの答え (draft) を回答欄に戻し、理由 (error) をカードの中に出す
 
 export function QuestionCard({
   question,
   now,
   issueLink,
+  scope,
+  workspace,
+  draft,
+  error,
 }: {
   question: Question
   now: Date
   // 質問が紐づく issue へのリンク。issue 画面の中では同じ issue なので渡さない
   issueLink?: { href: string; title: string }
+  scope?: string
+  // 質問を聞いたワークスペースと、その dashboard でこの質問を開くリンク
+  workspace?: { name: string; href: string }
+  draft?: string
+  error?: string
 }) {
-  const anchorId = `q-${question.id}`
+  const anchorId = questionAnchorId(question, scope)
   if (!isAwaitingAnswer(question)) {
     return (
       <Card as="article" id={anchorId} data-question-status={question.status}>
@@ -47,7 +63,13 @@ export function QuestionCard({
           summaryClass="min-h-11 px-3 py-2 sm:min-h-10"
         >
           <div class="flex flex-col gap-2.5 px-3 pb-3">
-            <QuestionMeta question={question} now={now} issueLink={issueLink} settled />
+            <QuestionMeta
+              question={question}
+              now={now}
+              issueLink={issueLink}
+              workspace={workspace}
+              settled
+            />
             {question.body ? <Markdown source={question.body} compact /> : null}
             {question.defaultAction ? (
               <DefaultAction label="Default" action={question.defaultAction} />
@@ -62,7 +84,7 @@ export function QuestionCard({
   }
 
   const expired = question.status === "expired"
-  const formId = answerFormId(question)
+  const formId = answerFormId(question, scope)
   const titleId = `${anchorId}-title`
   // 既定が選択肢の 1 つなら、その選択肢を先頭に出して「Default」の札を付け、「Use default」のボタンは重ねて出さない
   const defaultIsOption =
@@ -81,9 +103,10 @@ export function QuestionCard({
       id={anchorId}
       danger={expired}
       data-question-status={question.status}
+      data-answer-by={!expired && question.answerBy !== null ? question.answerBy : undefined}
       class="flex flex-col gap-2.5 p-3"
     >
-      <QuestionMeta question={question} now={now} issueLink={issueLink} />
+      <QuestionMeta question={question} now={now} issueLink={issueLink} workspace={workspace} />
       <h3 id={titleId} class="text-title font-medium text-ink">
         {question.title}
       </h3>
@@ -100,7 +123,7 @@ export function QuestionCard({
             <Button
               key={option}
               type="submit"
-              form={optionFormId(question)}
+              form={optionFormId(question, scope)}
               name="body"
               value={option}
               formNoValidate
@@ -113,11 +136,13 @@ export function QuestionCard({
           ))}
         </div>
       ) : null}
+      {error ? <Alert>{error}</Alert> : null}
       <Textarea
         form={formId}
         name="body"
         rows={3}
         required
+        value={draft}
         placeholder={options.length > 0 ? "Or write an answer" : "Answer"}
         aria-label={`Answer to Q${question.id}`}
         aria-describedby={titleId}
@@ -133,7 +158,7 @@ export function QuestionCard({
           </Button>
           <Button
             type="submit"
-            form={cancelFormId(question)}
+            form={cancelFormId(question, scope)}
             formNoValidate
             variant="primary"
             size="md"
@@ -174,15 +199,25 @@ function QuestionMeta({
   question,
   now,
   issueLink,
+  workspace,
   settled = false,
 }: {
   question: Question
   now: Date
   issueLink?: { href: string; title: string }
+  workspace?: { name: string; href: string }
   settled?: boolean
 }) {
   return (
     <div class="text-micro flex flex-wrap items-center gap-x-2 gap-y-1">
+      {workspace ? (
+        <a
+          href={workspace.href}
+          class={`rounded-xs font-medium text-ink-muted no-underline hover:text-ink ${HIT_AREA} ${FOCUS_RING}`}
+        >
+          {workspace.name}
+        </a>
+      ) : null}
       {settled ? null : <span class="font-mono text-ink-tertiary">Q{question.id}</span>}
       {question.priority ? <PriorityBadge priority={question.priority} /> : null}
       {settled ? null : <QuestionTiming question={question} now={now} />}

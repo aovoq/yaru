@@ -1,6 +1,6 @@
 import type { Question } from "../questions"
 
-// 質問のカードに添える、質問が紐づく issue へのリンクを作る。答え待ちと最近答えたのまとまりの両方で使う
+// 質問のカードに添える、質問が紐づく issue へのリンクを作る。dashboard の答え待ちと最近答えたのまとまり、/inbox で使う
 
 export type IssueTitles = ReadonlyMap<string, string>
 

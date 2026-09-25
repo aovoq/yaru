@@ -6,12 +6,22 @@ import { StatTile } from "../components/stat-tile"
 import { percent, usd } from "../format"
 import type { SessionHealth } from "../sessions"
 import { SessionRow } from "./session-row"
+import type { SessionTouches } from "./session-touches"
 
 // dashboard の Claude Code のセッションのまとまり。費用・キャッシュ・ツールの失敗・人の割り込みを数字で出し、最近のセッションを並べる
 
 const RECENT_SESSIONS_LIMIT = 8
 
-export function SessionsSection({ health, now }: { health: SessionHealth; now: Date }) {
+export function SessionsSection({
+  health,
+  now,
+  touches,
+}: {
+  health: SessionHealth
+  now: Date
+  // セッションの id ごとの、聞いた質問と作った issue (session-touches.ts)
+  touches: ReadonlyMap<string, SessionTouches>
+}) {
   const { totals } = health
   return (
     <Section title="Agent sessions" count={totals.sessions}>
@@ -51,7 +61,7 @@ export function SessionsSection({ health, now }: { health: SessionHealth; now: D
           </StatGrid>
           <ListBox>
             {health.sessions.slice(0, RECENT_SESSIONS_LIMIT).map((session) => (
-              <SessionRow session={session} now={now} />
+              <SessionRow session={session} now={now} touches={touches.get(session.id)} />
             ))}
           </ListBox>
         </>
