@@ -1,5 +1,3 @@
-/** @jsxImportSource preact */
-
 import type { ComponentChildren, RenderableProps as PropsWithChildren } from "preact"
 import { useCallback, useEffect, useState } from "preact/hooks"
 import { renderMarkdown, toggleTask } from "../markdown"

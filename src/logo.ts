@@ -25,13 +25,3 @@ export function logoSvg(frame: LogoFrame): string {
   const transform = scale === 1 ? "" : ` transform="translate(${offset} ${offset}) scale(${scale})"`
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}"><rect width="${size}" height="${size}"${radius} fill="${LOGO_COLOR}"/><path d="${LOGO_GLYPH_PATH}"${transform} fill="none" stroke="${LOGO_GLYPH_COLOR}" stroke-width="${LOGO_GLYPH_STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round"/></svg>`
 }
-
-// 画面の見出しに置く小さいロゴ。板 (Preact) とサーバーの画面 (hono/jsx) の両方から同じものを埋め込むため、SVG の文字列で作る
-export function logoMarkMarkup(className: string): string {
-  return `<svg class="${className}" viewBox="0 0 ${LOGO_VIEW_BOX} ${LOGO_VIEW_BOX}" aria-hidden="true"><rect width="${LOGO_VIEW_BOX}" height="${LOGO_VIEW_BOX}" rx="${LOGO_CORNER_RADIUS}" fill="${LOGO_COLOR}"/><path d="${LOGO_GLYPH_PATH}" fill="none" stroke="${LOGO_GLYPH_COLOR}" stroke-width="${LOGO_GLYPH_STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round"/></svg>`
-}
-
-export const LOGO_MARK_CLASS = "size-5 shrink-0"
-
-export const LOGO_LINK_CLASS =
-  "shrink-0 rounded-[5px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-focus/50"

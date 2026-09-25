@@ -1,5 +1,3 @@
-/** @jsxImportSource preact */
-
 import { render } from "preact"
 import { BoardPage, type BoardPageProps } from "./app"
 

@@ -1,4 +1,4 @@
-import { LogoLink } from "./logo-mark"
+import { LogoLink } from "./client/icons"
 import { renderMarkdown } from "./markdown"
 import { relativeTime } from "./time"
 import type { Question } from "./questions"
@@ -375,7 +375,7 @@ function QuestionCard({
               type="submit"
               name="useDefault"
               value="1"
-              formnovalidate
+              formNoValidate
               class="h-9 flex-1 rounded-md border border-hairline px-3 text-[13px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink sm:flex-none"
             >
               Use default

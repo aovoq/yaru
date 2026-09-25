@@ -1,6 +1,6 @@
-import type { PropsWithChildren } from "hono/jsx"
-import type { BoardPageProps } from "./client/app"
-import { renderBoardPage } from "./client/server-render"
+import type { ComponentChildren, VNode } from "preact"
+import { renderToString } from "preact-render-to-string"
+import { BoardPage as ClientBoardPage, type BoardPageProps } from "./client/app"
 import { BLANK, DEFAULT_VIEW, parseView, type ViewMode } from "./page"
 import { THEME_COLOR } from "./pwa"
 
@@ -17,7 +17,11 @@ export function Document({
   css,
   script,
   children,
-}: PropsWithChildren<{ css: string; script?: string }>) {
+}: {
+  css: string
+  script?: string
+  children?: ComponentChildren
+}) {
   return (
     <html lang="en">
       <head>
@@ -48,11 +52,12 @@ export function Document({
   )
 }
 
+// 板はサーバーで描いた HTML をブラウザで同じ部品が引き継ぐので、ブラウザに渡す初期状態も一緒に埋め込む
 export function BoardPage(props: BoardPageProps) {
   const initialState = { ...props, view: props.view ?? DEFAULT_VIEW }
   return (
     <>
-      <div dangerouslySetInnerHTML={{ __html: renderBoardPage(initialState) }} />
+      <ClientBoardPage {...initialState} />
       <script
         id="yaru-initial-state"
         type="application/json"
@@ -79,6 +84,15 @@ export function ErrorView({ message }: { message: string }) {
       </div>
     </main>
   )
+}
+
+// 画面全体の HTML を作る。サーバーの画面はここを通して描く
+export function renderDocument(css: string, body: VNode, script?: string): string {
+  return `<!DOCTYPE html>${renderToString(
+    <Document css={css} script={script}>
+      {body}
+    </Document>,
+  )}`
 }
 
 function serialize(value: unknown): string {

@@ -69,10 +69,9 @@
   - ワークスペースは CLI が開くたびに `~/.local/state/yaru/workspaces.json` へ自動で登録される
 - git の worktree の中では、元のフォルダ (main worktree) の `.yaru` を読み書きする
 - 質問 (`.yaru/questions/`) は git に入れない。issue とコメントは git で管理する
-- 板の画面 (`src/client/`) は Preact で、サーバーでも `preact-render-to-string` で最初の HTML を描き、ブラウザで同じ部品を動かす
-  - `src/client/` の `.tsx` は先頭に `/** @jsxImportSource preact */` を書く。サーバーからも読み込まれ、Bun はファイルごとの指定で JSX を変換するため
-  - サーバーだけの画面 (dashboard・一覧・外枠) は hono/jsx のまま。hono/jsx の中から Preact の部品は使えないので、`src/client/server-render.tsx` で描いた文字列を埋め込む
-  - 両方に出す部品 (ロゴなど) は、文字列を作る関数にして両方から埋め込む
+- 画面は全て Preact で描く。URL の振り分けと API は Hono が受け持つ
+  - サーバーでは `preact-render-to-string` で HTML を作る (`renderDocument` in `src/ui.tsx`)。板 (`src/client/`) はブラウザで同じ部品が引き継いで動かす
+  - JSX の読み込み先は `tsconfig.json` の `jsxImportSource: "preact"` で決める。hono/jsx は使わない
 
 ## 変更したあと
 

@@ -1,5 +1,3 @@
-/** @jsxImportSource preact */
-
 import type { ComponentChildren } from "preact"
 import { isOverdue } from "../store"
 

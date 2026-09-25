@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test"
+import { renderToString } from "preact-render-to-string"
 import { DashboardPage } from "./dashboard"
 import type { RepositoryState } from "./repository"
 import type { SessionHealth, SessionSummary } from "./sessions"
@@ -43,17 +44,9 @@ const health: SessionHealth = {
   },
 }
 
-test("the dashboard shows session health in plain numbers", async () => {
-  const html = String(
-    await (
-      <DashboardPage
-        questions={[]}
-        issues={[]}
-        now={NOW}
-        sessionHealth={health}
-        repository={null}
-      />
-    ),
+test("the dashboard shows session health in plain numbers", () => {
+  const html = renderToString(
+    <DashboardPage questions={[]} issues={[]} now={NOW} sessionHealth={health} repository={null} />,
   )
   expect(html).toContain("Agent sessions")
   expect(html).toContain("$12.35")
@@ -66,17 +59,15 @@ test("the dashboard shows session health in plain numbers", async () => {
   expect(html).toContain("3 subagents")
 })
 
-test("a session without a title falls back to its short id", async () => {
-  const html = String(
-    await (
-      <DashboardPage
-        questions={[]}
-        issues={[]}
-        now={NOW}
-        sessionHealth={{ ...health, sessions: [{ ...session, title: null }] }}
-        repository={null}
-      />
-    ),
+test("a session without a title falls back to its short id", () => {
+  const html = renderToString(
+    <DashboardPage
+      questions={[]}
+      issues={[]}
+      now={NOW}
+      sessionHealth={{ ...health, sessions: [{ ...session, title: null }] }}
+      repository={null}
+    />,
   )
   expect(html).toContain("b7c46321")
 })
@@ -105,17 +96,15 @@ const repository: RepositoryState = {
   ],
 }
 
-test("the dashboard shows the branch, commits not pushed, and uncommitted files", async () => {
-  const html = String(
-    await (
-      <DashboardPage
-        questions={[]}
-        issues={[]}
-        now={NOW}
-        sessionHealth={health}
-        repository={repository}
-      />
-    ),
+test("the dashboard shows the branch, commits not pushed, and uncommitted files", () => {
+  const html = renderToString(
+    <DashboardPage
+      questions={[]}
+      issues={[]}
+      now={NOW}
+      sessionHealth={health}
+      repository={repository}
+    />,
   )
   expect(html).toContain("develop")
   expect(html).toContain("2 not pushed")
@@ -125,32 +114,28 @@ test("the dashboard shows the branch, commits not pushed, and uncommitted files"
   expect(html).toContain('data-pushed="true"')
 })
 
-test("without an upstream the dashboard says the push state is unknown", async () => {
-  const html = String(
-    await (
-      <DashboardPage
-        questions={[]}
-        issues={[]}
-        now={NOW}
-        sessionHealth={health}
-        repository={{ ...repository, upstream: null, ahead: null, behind: null }}
-      />
-    ),
+test("without an upstream the dashboard says the push state is unknown", () => {
+  const html = renderToString(
+    <DashboardPage
+      questions={[]}
+      issues={[]}
+      now={NOW}
+      sessionHealth={health}
+      repository={{ ...repository, upstream: null, ahead: null, behind: null }}
+    />,
   )
   expect(html).toContain("no upstream")
 })
 
-test("a session from a worktree shows its branch", async () => {
-  const html = String(
-    await (
-      <DashboardPage
-        questions={[]}
-        issues={[]}
-        now={NOW}
-        sessionHealth={{ ...health, sessions: [{ ...session, worktree: "feature/add-thing" }] }}
-        repository={null}
-      />
-    ),
+test("a session from a worktree shows its branch", () => {
+  const html = renderToString(
+    <DashboardPage
+      questions={[]}
+      issues={[]}
+      now={NOW}
+      sessionHealth={{ ...health, sessions: [{ ...session, worktree: "feature/add-thing" }] }}
+      repository={null}
+    />,
   )
   expect(html).toContain("feature/add-thing")
 })

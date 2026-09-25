@@ -1,5 +1,3 @@
-/** @jsxImportSource preact */
-
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks"
 import { PriorityIcon, StatusIcon } from "./icons"
 import { clampMenuPosition, type MenuAction, type MenuIcon, type MenuItem } from "./issue-menu"

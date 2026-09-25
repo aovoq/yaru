@@ -6,7 +6,7 @@ import { iconImage } from "./icon-images"
 import { ICON_IMAGES } from "./pwa"
 
 // Bun の実行時は JSX の変換設定を作業ディレクトリの tsconfig.json からしか読まないため、
-// src を bin にすると yaru リポジトリの外で hono/jsx ではなく react/jsx-dev-runtime を探して落ちる
+// src を bin にすると yaru リポジトリの外で preact ではなく react/jsx-dev-runtime を探して落ちる
 // ビルド時に変換を済ませた単一の JS を bin にして、実行場所に依存しないようにする
 // compile した単一バイナリは Nix の bun が参照する ICU の store path を焼き込み、GC 後に起動しなくなるため使わない
 export async function buildDistribution(

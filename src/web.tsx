@@ -1,7 +1,6 @@
 import { existsSync, watch } from "node:fs"
 import { join } from "node:path"
 import { Hono, type Context } from "hono"
-import { jsxRenderer } from "hono/jsx-renderer"
 import { clientScript } from "./client-script"
 import { styles } from "./css"
 import { DashboardPage, dashboardLiveReload, USE_DEFAULT_ANSWER_PREFIX } from "./dashboard"
@@ -22,7 +21,7 @@ import {
   open,
   type Store,
 } from "./store"
-import { BLANK, BoardPage, Document, ErrorView, parseView } from "./ui"
+import { BLANK, BoardPage, ErrorView, parseView, renderDocument } from "./ui"
 import { findWorkspace, listWorkspaces, stateDirectory, type Workspace } from "./workspaces"
 
 export const DEFAULT_PORT = 47800
@@ -41,28 +40,25 @@ export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
   const renderDashboardFor = (error?: string) =>
     renderDashboard(store, { basePath, workspaceName: options.workspaceName }, error)
 
-  app.use(
-    jsxRenderer(async ({ children }) => <Document css={await styles()}>{children}</Document>, {
-      docType: true,
-    }),
-  )
-
-  app.onError((err, c) => {
+  app.onError(async (err, c) => {
     const message = err instanceof Error ? err.message : String(err)
     const status = message.includes("not found") ? 404 : 400
     if (c.req.path.startsWith("/api/")) return c.json({ error: message }, status)
-    c.status(status)
-    return c.render(<ErrorView message={message} />)
+    return c.html(renderDocument(await styles(), <ErrorView message={message} />), status)
   })
 
-  app.notFound((c) => {
+  app.notFound(async (c) => {
     if (c.req.path.startsWith("/api/")) return c.json({ error: "not found" }, 404)
-    c.status(404)
-    return c.render(<ErrorView message="not found" />)
+    return c.html(renderDocument(await styles(), <ErrorView message="not found" />), 404)
   })
 
-  app.get("/", (c) => {
-    return c.render(<BoardPage {...getPageData(store, new URL(c.req.url), basePath)} />)
+  app.get("/", async (c) => {
+    return c.html(
+      renderDocument(
+        await styles(),
+        <BoardPage {...getPageData(store, new URL(c.req.url), basePath)} />,
+      ),
+    )
   })
 
   app.get("/dashboard", async (c) => {
@@ -131,26 +127,29 @@ export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      c.status(400)
-      return c.render(
-        <BoardPage
-          issues={listIssues(store, {
-            query: filters.query || undefined,
-            status: filters.status || undefined,
-            assignee: filters.assignee || undefined,
-            label: filters.label || undefined,
-          })}
-          all={listIssues(store)}
-          query={filters.query}
-          current={draft}
-          status={filters.status || undefined}
-          assignee={filters.assignee || undefined}
-          label={filters.label || undefined}
-          view={parseView(filters.view)}
-          comments={draft.id ? listComments(store, { issue: draft.id }) : []}
-          basePath={basePath}
-          error={message}
-        />,
+      return c.html(
+        renderDocument(
+          await styles(),
+          <BoardPage
+            issues={listIssues(store, {
+              query: filters.query || undefined,
+              status: filters.status || undefined,
+              assignee: filters.assignee || undefined,
+              label: filters.label || undefined,
+            })}
+            all={listIssues(store)}
+            query={filters.query}
+            current={draft}
+            status={filters.status || undefined}
+            assignee={filters.assignee || undefined}
+            label={filters.label || undefined}
+            view={parseView(filters.view)}
+            comments={draft.id ? listComments(store, { issue: draft.id }) : []}
+            basePath={basePath}
+            error={message}
+          />,
+        ),
+        400,
       )
     }
     return c.redirect(hrefFrom(filters, basePath))
@@ -274,21 +273,20 @@ async function renderDashboard(
   error?: string,
 ): Promise<string> {
   const now = new Date()
-  const page = (
-    <Document css={await styles()} script={dashboardLiveReload(options.basePath)}>
-      <DashboardPage
-        questions={listQuestions(store, {}, now)}
-        issues={listIssues(store)}
-        now={now}
-        sessionHealth={readSessionHealth(store.root, { now })}
-        repository={readRepositoryState(store.root)}
-        basePath={options.basePath}
-        workspaceName={options.workspaceName}
-        error={error}
-      />
-    </Document>
+  return renderDocument(
+    await styles(),
+    <DashboardPage
+      questions={listQuestions(store, {}, now)}
+      issues={listIssues(store)}
+      now={now}
+      sessionHealth={readSessionHealth(store.root, { now })}
+      repository={readRepositoryState(store.root)}
+      basePath={options.basePath}
+      workspaceName={options.workspaceName}
+      error={error}
+    />,
+    dashboardLiveReload(options.basePath),
   )
-  return `<!DOCTYPE html>${await page}`
 }
 
 async function serveClientScript(c: Context) {
@@ -314,15 +312,8 @@ export function createServerApp(directory = stateDirectory()) {
     return created
   }
 
-  app.use(
-    jsxRenderer(async ({ children }) => <Document css={await styles()}>{children}</Document>, {
-      docType: true,
-    }),
-  )
-
-  app.notFound((c) => {
-    c.status(404)
-    return c.render(<ErrorView message="not found" />)
+  app.notFound(async (c) => {
+    return c.html(renderDocument(await styles(), <ErrorView message="not found" />), 404)
   })
 
   app.get("/", async (c) => {
@@ -334,11 +325,16 @@ export function createServerApp(directory = stateDirectory()) {
 
   app.get("/p/:slug", (c) => c.redirect(`${workspaceBasePath(c.req.param("slug"))}/`))
 
-  app.all("/p/:slug/*", (c) => {
+  app.all("/p/:slug/*", async (c) => {
     const workspace = findWorkspace(c.req.param("slug"), directory)
     if (!workspace) {
-      c.status(404)
-      return c.render(<ErrorView message={`workspace not found: ${c.req.param("slug")}`} />)
+      return c.html(
+        renderDocument(
+          await styles(),
+          <ErrorView message={`workspace not found: ${c.req.param("slug")}`} />,
+        ),
+        404,
+      )
     }
     const url = new URL(c.req.url)
     url.pathname = url.pathname.slice(workspaceBasePath(workspace.slug).length) || "/"
@@ -374,12 +370,7 @@ async function renderProjects(directory: string): Promise<string> {
       inProgress: listIssues(store, { status: "in_progress" }).length,
     }
   })
-  const page = (
-    <Document css={await styles()} script={PROJECTS_AUTO_RELOAD}>
-      <ProjectsPage projects={projects} />
-    </Document>
-  )
-  return `<!DOCTYPE html>${await page}`
+  return renderDocument(await styles(), <ProjectsPage projects={projects} />, PROJECTS_AUTO_RELOAD)
 }
 
 export function serve(port = DEFAULT_PORT) {

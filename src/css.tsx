@@ -1,6 +1,8 @@
 import { compile } from "tailwindcss"
 import tw from "tailwindcss/index.css" with { type: "text" }
-import { renderInteractionSamples } from "./client/server-render"
+import { renderToString } from "preact-render-to-string"
+import { ContextMenu, Notice } from "./client/context-menu"
+import { issueMenu } from "./client/issue-menu"
 import { DashboardPage } from "./dashboard"
 import { ProjectsPage } from "./projects"
 import type { Question } from "./questions"
@@ -430,8 +432,22 @@ async function sampleHtml(): Promise<string> {
       />
     </Document>
   )
-  const menu = renderInteractionSamples(issue, issues)
-  return String(await node) + menu
+  // 右クリックのメニューと知らせは操作したあとにしか描かれないので、ここで描いてクラスを拾う
+  const interactions = (
+    <>
+      <ContextMenu
+        menu={{
+          items: issueMenu(issue, issues, { now: new Date(0), boardUrl: "http://x/" }),
+          x: 0,
+          y: 0,
+        }}
+        onAction={() => {}}
+        onClose={() => {}}
+      />
+      <Notice text="x" />
+    </>
+  )
+  return renderToString(node) + renderToString(interactions)
 }
 
 function candidates(source: string): string[] {
