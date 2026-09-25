@@ -5,13 +5,24 @@ import { clientScript } from "./client-script"
 import { styles } from "./css"
 import { DashboardPage, USE_DEFAULT_ANSWER_PREFIX } from "./dashboard"
 import { dashboardLiveReload } from "./dashboard/live-reload"
-import { BLANK, getPageData, parseView } from "./page"
+import { registerFontRoutes } from "./font"
+import { BLANK, getPageData, type PageData } from "./page"
 import { registerPwaRoutes } from "./pwa"
 import { PROJECTS_AUTO_RELOAD, ProjectsPage, type ProjectSummary } from "./projects"
-import { answerQuestion, ensureQuestionsDirectory, getQuestion, listQuestions } from "./questions"
+import { inboxQuestionAnchor, readInbox, workspaceBasePath } from "./inbox"
+import { notifyExpiringQuestions, notifyStaleIssues } from "./notify"
+import {
+  answerQuestion,
+  cancelQuestion,
+  ensureQuestionsDirectory,
+  getQuestion,
+  listQuestions,
+  QuestionConflictError,
+} from "./questions"
 import { readRepositoryState } from "./repository"
 import { readSessionHealth } from "./sessions"
 import {
+  getComment,
   getIssue,
   listComments,
   listIssues,
@@ -44,7 +55,15 @@ export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
     renderDashboard(store, { basePath, workspaceName: options.workspaceName }, error)
 
   app.onError(async (err, c) => {
-    const message = err instanceof Error ? err.message : String(err)
+    const message = errorMessage(err)
+    // 画面を描いた後に状態が変わっていたときは 409 Conflict にし、API ではいま保存されている質問も返す
+    // https://www.rfc-editor.org/rfc/rfc9110#section-15.5.10
+    if (err instanceof QuestionConflictError) {
+      if (c.req.path.startsWith("/api/")) {
+        return c.json({ error: message, question: err.question }, 409)
+      }
+      return c.html(renderDocument(await styles(), <ErrorView message={message} />), 409)
+    }
     const status = message.includes("not found") ? 404 : 400
     if (c.req.path.startsWith("/api/")) return c.json({ error: message }, status)
     return c.html(renderDocument(await styles(), <ErrorView message={message} />), status)
@@ -56,32 +75,75 @@ export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
   })
 
   app.get("/", async (c) => {
-    return c.html(
-      renderDocument(
-        await styles(),
-        <BoardPage {...getPageData(store, new URL(c.req.url), basePath)} />,
-      ),
-    )
+    const { data, status } = boardPageData(store, new URL(c.req.url), basePath)
+    return c.html(renderDocument(await styles(), <BoardPage {...data} />), status)
   })
 
+  // 失敗したフォームから戻ってきたときは、?error= の理由を画面の上に出す
   app.get("/dashboard", async (c) => {
-    return c.html(await renderDashboardFor())
+    return c.html(await renderDashboardFor(c.req.query("error") || undefined))
   })
 
+  // フォームの POST の結果は、成功しても失敗しても 303 See Other で GET の画面へ戻す
+  // POST の結果を直接描くと、画面の自動の読み直しやブラウザの再読み込みが POST を送り直し、行き止まりの画面が残るため
+  // 失敗したときは、理由 (error)、どの質問か (q)、書きかけの答え (answer) を戻り先の URL に載せ、カードで答え直せるようにする
+  // https://www.rfc-editor.org/rfc/rfc9110#section-15.4.4
   app.post("/questions/:id/answer", async (c) => {
     const body = await c.req.parseBody()
     const id = c.req.param("id")
+    const returnTo = formReturnPath(str(body.returnTo), basePath)
+    const fragment = questionFragment(returnTo, id, options.workspaceName)
+    const draft = str(body.body)
     try {
       const answer =
         str(body.useDefault) === "1"
           ? `${USE_DEFAULT_ANSWER_PREFIX}${getQuestion(store, id).defaultAction ?? ""}`
-          : str(body.body)
-      answerQuestion(store, id, { body: answer })
+          : draft
+      answerQuestion(store, id, {
+        body: answer,
+        expectedStatus: str(body.expectedStatus) || undefined,
+        force: str(body.force) === "1",
+      })
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      return c.html(await renderDashboardFor(message), 400)
+      return c.redirect(
+        redirectPath(
+          returnTo,
+          {
+            error: errorMessage(err),
+            q: id,
+            workspace: inboxWorkspace(returnTo, options.workspaceName),
+            answer: draftForRedirect(draft),
+          },
+          fragment,
+        ),
+        303,
+      )
     }
-    return c.redirect(boardReturnPath(str(body.returnTo), basePath))
+    return c.redirect(redirectPath(returnTo, {}, fragment), 303)
+  })
+
+  app.post("/questions/:id/cancel", async (c) => {
+    const body = await c.req.parseBody()
+    const id = c.req.param("id")
+    const returnTo = formReturnPath(str(body.returnTo), basePath)
+    const fragment = questionFragment(returnTo, id, options.workspaceName)
+    try {
+      cancelQuestion(store, id)
+    } catch (err) {
+      return c.redirect(
+        redirectPath(
+          returnTo,
+          {
+            error: errorMessage(err),
+            q: id,
+            workspace: inboxWorkspace(returnTo, options.workspaceName),
+          },
+          fragment,
+        ),
+        303,
+      )
+    }
+    return c.redirect(redirectPath(returnTo, {}, fragment), 303)
   })
 
   app.get("/api/questions", (c) => {
@@ -98,12 +160,23 @@ export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
   })
 
   app.post("/api/questions/:id/answer", async (c) => {
-    const input = await c.req.json<{ body?: string }>()
-    return c.json(answerQuestion(store, c.req.param("id"), { body: input.body }))
+    const input = await c.req.json<{ body?: string; expectedStatus?: string; force?: boolean }>()
+    return c.json(
+      answerQuestion(store, c.req.param("id"), {
+        body: input.body,
+        expectedStatus: input.expectedStatus,
+        force: input.force === true,
+      }),
+    )
+  })
+
+  app.post("/api/questions/:id/cancel", (c) => {
+    return c.json(cancelQuestion(store, c.req.param("id")))
   })
 
   app.get("/assets/app.js", serveClientScript)
   registerPwaRoutes(app)
+  registerFontRoutes(app)
 
   app.post("/issues", async (c) => {
     const body = await c.req.parseBody()
@@ -129,27 +202,19 @@ export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
         body: "body" in body ? draft.body : undefined,
       })
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
+      // 書きかけの issue を失わないよう、ここだけは戻らずにその場で描き直す (新しい issue の下書きは URL に載せきれないため)
+      // 板の他の部分は同じ絞り込みの GET と同じにするため、板の URL を組み立てて getPageData を通す
+      const boardUrl = new URL(hrefFrom(filters, ""), c.req.url)
+      if (draft.id) boardUrl.searchParams.set("id", draft.id)
+      const { data } = boardPageData(store, boardUrl, basePath)
       return c.html(
         renderDocument(
           await styles(),
           <BoardPage
-            issues={listIssues(store, {
-              query: filters.query || undefined,
-              status: filters.status || undefined,
-              assignee: filters.assignee || undefined,
-              label: filters.label || undefined,
-            })}
-            all={listIssues(store)}
-            query={filters.query}
+            {...data}
             current={draft}
-            status={filters.status || undefined}
-            assignee={filters.assignee || undefined}
-            label={filters.label || undefined}
-            view={parseView(filters.view)}
             comments={draft.id ? listComments(store, { issue: draft.id }) : []}
-            basePath={basePath}
-            error={message}
+            error={errorMessage(err)}
           />,
         ),
         400,
@@ -225,8 +290,10 @@ export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
     )
   })
 
+  // 消えた issue を開こうとしたときも、板を描き直せるよう page のデータを添えたまま 404 を返す
   app.get("/api/page", (c) => {
-    return c.json(getPageData(store, new URL(c.req.url), basePath))
+    const { data, status } = boardPageData(store, new URL(c.req.url), basePath)
+    return c.json(data, status)
   })
 
   app.get("/api/issues/:id", (c) => {
@@ -248,23 +315,30 @@ export function createApp(store: Store, options: WorkspaceAppOptions = {}) {
     return c.json(saveComment(store, await c.req.json()))
   })
 
+  // 失敗したときは、理由 (error) と書きかけのコメント (comment) を載せて issue へ戻す。理由は /questions/:id/answer と同じ
   app.post("/comments", async (c) => {
     const body = await c.req.parseBody()
-    const saved = saveComment(store, {
-      issue: str(body.issue) || undefined,
-      parent: str(body.parent) || undefined,
-      body: str(body.body),
-    })
     const params = new URLSearchParams()
     for (const key of FILTER_KEYS) {
       const value = c.req.query(key) || str(body[key])
       if (value) params.set(key, value)
     }
-    params.set("id", saved.issue)
-    const qs = params.toString()
-    return c.redirect(
-      qs ? `${basePath}/?${qs}` : `${basePath}/?id=${encodeURIComponent(saved.issue)}`,
-    )
+    const draft = str(body.body)
+    try {
+      const saved = saveComment(store, {
+        issue: str(body.issue) || undefined,
+        parent: str(body.parent) || undefined,
+        body: draft,
+      })
+      params.set("id", saved.issue)
+    } catch (err) {
+      const issue = str(body.issue) || commentIssue(store, str(body.parent))
+      if (issue) params.set("id", issue)
+      params.set("error", errorMessage(err))
+      const comment = draftForRedirect(draft)
+      if (comment) params.set("comment", comment)
+    }
+    return c.redirect(`${basePath}/?${params.toString()}`, 303)
   })
 
   return app
@@ -325,6 +399,11 @@ export function createServerApp(directory = stateDirectory()) {
 
   app.get("/assets/app.js", serveClientScript)
   registerPwaRoutes(app)
+  registerFontRoutes(app)
+
+  app.get("/api/inbox", (c) => {
+    return c.json(readInbox(directory, new Date()))
+  })
 
   app.get("/p/:slug", (c) => c.redirect(`${workspaceBasePath(c.req.param("slug"))}/`))
 
@@ -356,10 +435,6 @@ export function createServerApp(directory = stateDirectory()) {
   return app
 }
 
-function workspaceBasePath(slug: string): string {
-  return `/p/${encodeURIComponent(slug)}`
-}
-
 async function renderProjects(directory: string): Promise<string> {
   const now = new Date()
   const projects: ProjectSummary[] = listWorkspaces(directory).map((workspace) => {
@@ -389,6 +464,7 @@ export function serve(port = DEFAULT_PORT) {
       },
     })
     console.log(`yaru  http://127.0.0.1:${server.port}`)
+    watchNotifications(stateDirectory(), `http://127.0.0.1:${server.port}`)
   } catch (err) {
     if (isAddrInUse(err)) {
       console.log(`yaru  already running  http://127.0.0.1:${port}`)
@@ -396,6 +472,32 @@ export function serve(port = DEFAULT_PORT) {
     }
     throw err
   }
+}
+
+const NOTIFICATION_CHECK_INTERVAL_MILLISECONDS = 60_000
+
+// 質問の期限が近いことと、issue が止まっていることは、何かを書き込んだ瞬間ではなく時間が経って起きるので、serve が毎分見回って知らせる
+// 前の見回りが通知コマンドを待っている間は次を始めない
+function watchNotifications(directory: string, baseUrl: string): void {
+  let running = false
+  const check = async () => {
+    if (running) return
+    running = true
+    try {
+      const now = new Date()
+      const warnings = [
+        ...(await notifyExpiringQuestions(directory, now, baseUrl)),
+        ...(await notifyStaleIssues(directory, now, baseUrl)),
+      ]
+      for (const warning of warnings) console.error(warning)
+    } catch (err) {
+      console.error(`notification check failed: ${errorMessage(err)}`)
+    } finally {
+      running = false
+    }
+  }
+  void check()
+  setInterval(check, NOTIFICATION_CHECK_INTERVAL_MILLISECONDS)
 }
 
 function isAddrInUse(err: unknown): boolean {
@@ -412,10 +514,86 @@ function hrefFrom(source: Record<string, unknown>, basePath: string): string {
   return qs ? `${basePath}/?${qs}` : `${basePath}/`
 }
 
-// 回答後の戻り先はこのワークスペースの板の中だけに限る
-// 外部の URL へ飛ばされないよう、<basePath>/? で始まる板の URL 以外は dashboard に戻す
-function boardReturnPath(returnTo: string, basePath: string): string {
-  return returnTo.startsWith(`${basePath}/?`) ? returnTo : `${basePath}/dashboard`
+// フォームの後の戻り先は、このワークスペースの板と dashboard と、全ワークスペースの受信箱 (/inbox) だけに限る
+// 外部の URL や別のワークスペースへ飛ばされないよう、それ以外は dashboard に戻す
+const REDIRECT_BASE = "http://yaru.invalid"
+
+function formReturnPath(returnTo: string, basePath: string): string {
+  const fallback = `${basePath}/dashboard`
+  if (!returnTo.startsWith("/") || returnTo.startsWith("//") || returnTo.includes("\\")) {
+    return fallback
+  }
+  let url: URL
+  try {
+    url = new URL(returnTo, REDIRECT_BASE)
+  } catch {
+    return fallback
+  }
+  if (url.origin !== REDIRECT_BASE) return fallback
+  if (![`${basePath}/`, `${basePath}/dashboard`, "/inbox"].includes(url.pathname)) return fallback
+  return `${url.pathname}${url.search}`
+}
+
+// 戻り先に元からある query を壊さないよう、文字列をつながず URL として足す。空の値は載せない
+function redirectPath(path: string, params: Record<string, string>, fragment: string): string {
+  const url = new URL(path, REDIRECT_BASE)
+  for (const [key, value] of Object.entries(params)) {
+    if (value) url.searchParams.set(key, value)
+  }
+  url.hash = fragment
+  return `${url.pathname}${url.search}${url.hash}`
+}
+
+// 板の深いリンク (?id=) の issue が無いとき、getPageData は板を描けるよう current を空にして理由を error に入れる
+// 状態は 404 にし、リンクが切れていることは機械にも分かるようにする
+// 失敗したフォームから戻ってきたときは ?error= の理由を優先して出す
+function boardPageData(
+  store: Store,
+  url: URL,
+  basePath: string,
+): { data: PageData; status: 200 | 404 } {
+  const data = getPageData(store, url, basePath)
+  const id = url.searchParams.get("id")
+  const missing = id !== null && data.error === `issue not found: ${id}`
+  const returnedError = url.searchParams.get("error") || undefined
+  return { data: { ...data, error: returnedError ?? data.error }, status: missing ? 404 : 200 }
+}
+
+// /inbox は全ワークスペースの質問を並べ、質問の番号はワークスペースごとなので、戻り先が /inbox ならワークスペースの名前を添える
+function isInbox(returnTo: string): boolean {
+  return new URL(returnTo, REDIRECT_BASE).pathname === "/inbox"
+}
+
+function questionFragment(returnTo: string, id: string, workspaceName: string | undefined): string {
+  return isInbox(returnTo) && workspaceName ? inboxQuestionAnchor(workspaceName, id) : `q-${id}`
+}
+
+function inboxWorkspace(returnTo: string, workspaceName: string | undefined): string {
+  return isInbox(returnTo) && workspaceName ? workspaceName : ""
+}
+
+// 書きかけの文を戻り先の URL に載せるのは、その URL がサーバーの受け取れる長さに収まるときだけにする
+// Bun.serve は request line とヘッダーの合計がおよそ 16KB を超えると 431 を返し、日本語は 1 文字が 9 文字に符号化されるため
+// 載せられないときは理由だけを返す。書きかけの文はブラウザの「戻る」でフォームに残っている
+// https://www.rfc-editor.org/rfc/rfc6585#section-5
+const REDIRECT_DRAFT_MAX_ENCODED_LENGTH = 8000
+
+function draftForRedirect(draft: string): string {
+  return encodeURIComponent(draft).length <= REDIRECT_DRAFT_MAX_ENCODED_LENGTH ? draft : ""
+}
+
+// 返信のフォームには issue が無いので、親のコメントから戻り先の issue を探す
+function commentIssue(store: Store, parent: string): string {
+  if (!parent) return ""
+  try {
+    return getComment(store, parent).issue
+  } catch {
+    return ""
+  }
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }
 
 function str(value: unknown): string {

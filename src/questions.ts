@@ -9,11 +9,13 @@ import {
   joinOr,
   parseFrontmatter,
   resolvePriority,
+  saveComment,
   writeCreate,
   writeReplace,
   type Priority,
   type Store,
 } from "./store"
+import type { Provenance } from "./provenance"
 
 // エージェントが人に投げる非同期の質問
 // 人が期限までに答えなければ、エージェントは defaultAction で進める
@@ -34,10 +36,20 @@ export type Question = {
   priority: Priority | null
   defaultAction: string | null
   answerBy: string | null
+  // エージェントが挙げた選択肢。人は押すだけで答えられる。無ければ空
+  options: string[]
   author: string
+  // どのエージェントが、どの作業場所で聞いたか。並列の worktree の質問を見分けるため作成時に 1 度だけ記録する
+  session: string | null
+  worktree: string | null
+  branch: string | null
   answer: string | null
   answeredBy: string | null
   answeredAt: string | null
+  // エージェントが答えを初めて受け取った時刻。人が「読まれたか」を確かめられるようにする。答えを直すと null に戻る
+  acknowledgedAt: string | null
+  // 期限が近いことを知らせた時刻。serve が毎分見回るので、同じ質問を何度も知らせないために残す
+  notifiedExpiringAt: string | null
   canceledAt: string | null
   createdAt: string
   updatedAt: string
@@ -52,8 +64,49 @@ export type SaveQuestionInput = {
   priority?: string | null
   defaultAction?: string | null
   answerBy?: string | null
+  // null か空の配列で選択肢を消す
+  options?: string[] | null
+  // 作成時だけ記録する。作業場所は CLI を動かした場所 (process.cwd()) から読む。store.root は常に元のフォルダを指すため
+  provenance?: Provenance
+  // 同じ質問がまだ開いていても、あえてもう一度聞く
+  force?: boolean
   body?: string
 }
+
+export type AnswerQuestionInput = {
+  body?: string
+  // 画面が描いたときの状態。answered なら、表示していた答えを直す意図とみなす
+  expectedStatus?: string
+  // 答え済みの質問の答えを置き換える
+  force?: boolean
+}
+
+// 人が答える前に状態が変わっていたときの失敗。Web では 409 Conflict として返す
+// https://www.rfc-editor.org/rfc/rfc9110#section-15.5.10
+export class QuestionConflictError extends Error {
+  readonly question: Question
+
+  constructor(message: string, question: Question) {
+    super(message)
+    this.name = "QuestionConflictError"
+    this.question = question
+  }
+}
+
+// 答えを待っている質問を、人が先に見るべき順に分けたもの
+// blocking: 既定の行動が無く、答えるまでエージェントが止まっている
+// dueSoon: 期限までに答えないと既定の行動で進む。期限の近い順
+// noDeadline: 既定の行動はあるが期限が無い
+// proceeded: 期限が過ぎ、エージェントは既定の行動で進んだ
+export type AwaitingQuestionGroups<T> = {
+  blocking: T[]
+  dueSoon: T[]
+  noDeadline: T[]
+  proceeded: T[]
+}
+
+// 期限の何分前に知らせるか。知らせを見てから答えを書くのに要る時間の目安
+export const EXPIRING_NOTICE_MILLISECONDS = 15 * 60_000
 
 export type QuestionFilter = {
   status?: string
@@ -69,6 +122,7 @@ export function saveQuestion(store: Store, input: SaveQuestionInput, now = new D
   const answerBy = resolveAnswerBy(input.answerBy, now)
   const defaultAction = resolveSingleLine(input.defaultAction)
   const issue = resolveIssue(store, input.issue)
+  const options = resolveOptions(input.options)
   if (input.body !== undefined) assertBody(input.body)
   if (input.id) {
     const path = questionPath(store, input.id)
@@ -87,6 +141,7 @@ export function saveQuestion(store: Store, input: SaveQuestionInput, now = new D
       priority: priority !== undefined ? priority : current.priority,
       defaultAction: defaultAction !== undefined ? defaultAction : current.defaultAction,
       answerBy: answerBy !== undefined ? answerBy : current.answerBy,
+      options: options !== undefined ? options : current.options,
       body: input.body ?? current.body,
       canceled,
       canceledAt: canceled ? (current.canceled ? current.canceledAt : timestamp) : null,
@@ -96,19 +151,27 @@ export function saveQuestion(store: Store, input: SaveQuestionInput, now = new D
     return withStatus(next, now)
   }
   if (!input.title?.trim()) throw new Error("title is required when creating a question")
+  const title = singleLine(input.title)
+  if (!input.force) assertNotDuplicate(store, title, issue ?? null, now)
   ensureQuestionsDirectory(store)
   for (;;) {
     const created: StoredQuestion = {
       id: nextQuestionId(store),
-      title: singleLine(input.title),
+      title,
       issue: issue ?? null,
       priority: priority ?? null,
       defaultAction: defaultAction ?? null,
       answerBy: answerBy ?? null,
+      options: options ?? [],
       author: gitName(),
+      session: input.provenance?.session ?? null,
+      worktree: input.provenance?.worktree ?? null,
+      branch: input.provenance?.branch ?? null,
       answer: null,
       answeredBy: null,
       answeredAt: null,
+      acknowledgedAt: null,
+      notifiedExpiringAt: null,
       canceled: status === "canceled",
       canceledAt: status === "canceled" ? timestamp : null,
       createdAt: timestamp,
@@ -127,15 +190,26 @@ export function saveQuestion(store: Store, input: SaveQuestionInput, now = new D
 export function answerQuestion(
   store: Store,
   id: string,
-  input: { body?: string },
+  input: AnswerQuestionInput,
   now = new Date(),
 ): Question {
   const path = questionPath(store, id)
   if (!existsSync(path)) throw new Error(`question not found: ${id}`)
   const current = readQuestion(path, id)
-  if (current.canceled) {
-    throw new Error(
-      `cannot answer question ${id}: expected status open or expired, actual canceled`,
+  const expectedStatus =
+    input.expectedStatus !== undefined ? resolveExpectedStatus(input.expectedStatus) : undefined
+  const currentStatus = statusOf(current, now)
+  // 別の端末や古いタブから答えた人の答えを、黙って上書きしないようにする
+  // 期限切れは読むたびに決まるので、open を見ていたタブが expired の質問に答えるのは衝突にしない
+  const replacing = input.force === true || expectedStatus === "answered"
+  if (currentStatus === "canceled" || (currentStatus === "answered" && !replacing)) {
+    throw new QuestionConflictError(
+      `cannot answer question ${id}: expected status open or expired, actual ${currentStatus}${
+        currentStatus === "answered"
+          ? ` (answered by ${current.answeredBy ?? "unknown"} at ${current.answeredAt ?? "unknown"}; force to replace the answer)`
+          : ""
+      }`,
+      withStatus(current, now),
     )
   }
   if (!input.body?.trim()) {
@@ -150,10 +224,72 @@ export function answerQuestion(
     answer: input.body,
     answeredBy: gitName(),
     answeredAt: timestamp,
+    acknowledgedAt: null,
     updatedAt: timestamp,
   }
   writeReplace(path, formatQuestion(next))
+  // 期限切れの後の答えは、エージェントが既定の行動で進んだ後に届く。作業の記録に残し、次に issue を読んだエージェントが拾えるようにする
+  if (currentStatus === "expired" && current.issue !== null) {
+    saveComment(store, {
+      issue: current.issue,
+      body: `Late answer to Q${id} (${current.title}), ${
+        current.defaultAction !== null
+          ? "after the agent proceeded with the default"
+          : "after answerBy passed"
+      }:\n\n${input.body}`,
+    })
+  }
   return withStatus(next, now)
+}
+
+// 答えを待っている質問を取り下げる。答え済みの質問は、答えを読んだエージェントが既に動いているかもしれないので取り下げさせない
+export function cancelQuestion(store: Store, id: string, now = new Date()): Question {
+  const path = questionPath(store, id)
+  if (!existsSync(path)) throw new Error(`question not found: ${id}`)
+  const current = readQuestion(path, id)
+  const currentStatus = statusOf(current, now)
+  if (currentStatus === "canceled") return withStatus(current, now)
+  if (currentStatus === "answered") {
+    throw new QuestionConflictError(
+      `cannot cancel question ${id}: expected status open or expired, actual answered`,
+      withStatus(current, now),
+    )
+  }
+  return saveQuestion(store, { id, status: "canceled" }, now)
+}
+
+// エージェントが答えを初めて受け取った時刻を残す。並びが揺れないよう updatedAt は変えない
+export function acknowledgeQuestion(store: Store, id: string, now = new Date()): Question {
+  const path = questionPath(store, id)
+  if (!existsSync(path)) throw new Error(`question not found: ${id}`)
+  const current = readQuestion(path, id)
+  if (statusOf(current, now) !== "answered" || current.acknowledgedAt !== null) {
+    return withStatus(current, now)
+  }
+  const next: StoredQuestion = { ...current, acknowledgedAt: now.toISOString() }
+  writeReplace(path, formatQuestion(next))
+  return withStatus(next, now)
+}
+
+// 期限が近いことを知らせた時刻を残す。並びが揺れないよう updatedAt は変えない
+export function markExpiringNotified(store: Store, id: string, now = new Date()): Question {
+  const path = questionPath(store, id)
+  if (!existsSync(path)) throw new Error(`question not found: ${id}`)
+  const next: StoredQuestion = { ...readQuestion(path, id), notifiedExpiringAt: now.toISOString() }
+  writeReplace(path, formatQuestion(next))
+  return withStatus(next, now)
+}
+
+// 期限が EXPIRING_NOTICE_MILLISECONDS 以内に来る、まだ知らせていない open の質問
+// 最初から期限がその幅より短い質問は、作ったときの知らせと続けて届くだけなので除く
+export function questionsAboutToExpire(questions: Question[], now: Date): Question[] {
+  return questions.filter((question) => {
+    if (question.status !== "open" || question.answerBy === null) return false
+    if (question.notifiedExpiringAt !== null) return false
+    const answerBy = Date.parse(question.answerBy)
+    if (answerBy - Date.parse(question.createdAt) <= EXPIRING_NOTICE_MILLISECONDS) return false
+    return answerBy - now.getTime() <= EXPIRING_NOTICE_MILLISECONDS
+  })
 }
 
 export function getQuestion(store: Store, id: string, now = new Date()): Question {
@@ -169,12 +305,7 @@ export function listQuestions(
 ): Question[] {
   const status = filter.status !== undefined ? resolveStatus(filter.status) : undefined
   const questions = loadRawQuestions(store).map((question) => withStatus(question, now))
-  questions.sort(
-    (a, b) =>
-      statusRank(a.status) - statusRank(b.status) ||
-      b.createdAt.localeCompare(a.createdAt) ||
-      Number(b.id) - Number(a.id),
-  )
+  questions.sort(compareQuestions)
   return questions.filter((question) => {
     if (status && question.status !== status) return false
     if (filter.issue && question.issue !== filter.issue) return false
@@ -182,10 +313,79 @@ export function listQuestions(
   })
 }
 
-// 人が答えるべきもの (open と expired) を先に、終わったものを後ろに並べる
-function statusRank(status: QuestionStatus): number {
-  if (status === "open" || status === "expired") return 0
-  return 1
+// 人が先に見るべき順に並べる
+// 1. 止まっている (既定の行動が無い) 質問。長く待たせているものから
+// 2. 期限までに答えないと既定の行動で進む質問。期限の近いものから
+// 3. 期限の無い質問。新しいものから
+// 4. 期限が過ぎて既定の行動で進んだ質問。期限が最近過ぎたものから
+// 5. 答え済みと取り下げた質問。最近片付いたものから
+// ワークスペースをまたいで混ぜるときも同じ順にするため export する
+export function compareQuestions(a: Question, b: Question): number {
+  const rank = questionRank(a) - questionRank(b)
+  if (rank !== 0) return rank
+  switch (questionRank(a)) {
+    case 0:
+      return (
+        compareAnswerBy(a, b) || a.createdAt.localeCompare(b.createdAt) || compareIdAscending(a, b)
+      )
+    case 1:
+      return compareAnswerBy(a, b) || compareIdAscending(a, b)
+    case 2:
+      return b.createdAt.localeCompare(a.createdAt) || compareIdAscending(b, a)
+    case 3:
+      return (b.answerBy ?? "").localeCompare(a.answerBy ?? "") || compareIdAscending(b, a)
+    default:
+      return resolvedAt(b).localeCompare(resolvedAt(a)) || compareIdAscending(b, a)
+  }
+}
+
+export function groupAwaitingQuestions(questions: Question[]): AwaitingQuestionGroups<Question>
+export function groupAwaitingQuestions<T>(
+  items: T[],
+  questionOf: (item: T) => Question,
+): AwaitingQuestionGroups<T>
+export function groupAwaitingQuestions<T>(
+  items: T[],
+  questionOf: (item: T) => Question = (item) => item as Question,
+): AwaitingQuestionGroups<T> {
+  const groups: AwaitingQuestionGroups<T> = {
+    blocking: [],
+    dueSoon: [],
+    noDeadline: [],
+    proceeded: [],
+  }
+  const keys = ["blocking", "dueSoon", "noDeadline", "proceeded"] as const
+  const sorted = [...items].sort((a, b) => compareQuestions(questionOf(a), questionOf(b)))
+  for (const item of sorted) {
+    const key = keys[questionRank(questionOf(item))]
+    if (key) groups[key].push(item)
+  }
+  return groups
+}
+
+function questionRank(question: Question): number {
+  if (question.status === "open") {
+    if (question.defaultAction === null) return 0
+    return question.answerBy !== null ? 1 : 2
+  }
+  if (question.status === "expired") return 3
+  return 4
+}
+
+// 期限の無いものは期限のあるものより後ろにする
+function compareAnswerBy(a: Question, b: Question): number {
+  if (a.answerBy === b.answerBy) return 0
+  if (a.answerBy === null) return 1
+  if (b.answerBy === null) return -1
+  return a.answerBy.localeCompare(b.answerBy)
+}
+
+function compareIdAscending(a: Question, b: Question): number {
+  return Number(a.id) - Number(b.id)
+}
+
+function resolvedAt(question: Question): string {
+  return question.answeredAt ?? question.canceledAt ?? question.createdAt
 }
 
 function withStatus(question: StoredQuestion, now: Date): Question {
@@ -216,6 +416,53 @@ function resolveStatus(value: string): QuestionStatus {
     throw new Error(`invalid status: expected ${joinOr(QUESTION_STATUSES)}, actual ${value}`)
   }
   return trimmed as QuestionStatus
+}
+
+function resolveExpectedStatus(value: string): QuestionStatus {
+  const trimmed = value.trim()
+  if (!(QUESTION_STATUSES as readonly string[]).includes(trimmed)) {
+    throw new Error(
+      `invalid expectedStatus: expected ${joinOr(QUESTION_STATUSES)}, actual ${value}`,
+    )
+  }
+  return trimmed as QuestionStatus
+}
+
+function resolveOptions(value: string[] | null | undefined): string[] | undefined {
+  if (value === undefined) return undefined
+  if (value === null) return []
+  const options: string[] = []
+  for (const option of value) {
+    const resolved = singleLine(option)
+    if (!resolved) {
+      throw new Error(
+        `invalid option: expected a non-empty string, actual ${JSON.stringify(option)}`,
+      )
+    }
+    if (options.includes(resolved)) {
+      throw new Error(
+        `invalid option: expected each option once, actual ${JSON.stringify(resolved)} twice`,
+      )
+    }
+    options.push(resolved)
+  }
+  return options
+}
+
+// エージェントが待ちきれずに同じことを聞き直すと、人の画面に同じ質問が並んで答えが割れるため断る
+function assertNotDuplicate(store: Store, title: string, issue: string | null, now: Date): void {
+  const existing = loadRawQuestions(store)
+    .map((question) => withStatus(question, now))
+    .find(
+      (question) =>
+        question.status === "open" && question.title === title && question.issue === issue,
+    )
+  if (!existing) return
+  throw new Error(
+    `duplicate question: expected no open question titled ${JSON.stringify(title)} ${
+      issue === null ? "without an issue" : `on issue ${issue}`
+    }, actual question ${existing.id} is open; force to ask again`,
+  )
 }
 
 const DURATION_UNITS: Record<string, number> = { m: 60_000, h: 3_600_000, d: 86_400_000 }
@@ -327,16 +574,38 @@ function readQuestion(path: string, stem: string): StoredQuestion {
     priority: resolvePriority(meta.priority ?? "") ?? null,
     defaultAction: blankToNull(meta.defaultAction ?? "") ?? null,
     answerBy: blankToNull(meta.answerBy ?? "") ?? null,
+    options: parseOptions(meta.options ?? ""),
     author: meta.author || "",
+    session: blankToNull(meta.session ?? "") ?? null,
+    worktree: blankToNull(meta.worktree ?? "") ?? null,
+    branch: blankToNull(meta.branch ?? "") ?? null,
     answer,
     answeredBy: blankToNull(meta.answeredBy ?? "") ?? null,
     answeredAt: blankToNull(meta.answeredAt ?? "") ?? null,
+    acknowledgedAt: blankToNull(meta.acknowledgedAt ?? "") ?? null,
+    notifiedExpiringAt: blankToNull(meta.notifiedExpiringAt ?? "") ?? null,
     canceled: meta.status === "canceled",
     canceledAt: blankToNull(meta.canceledAt ?? "") ?? null,
     createdAt: meta.createdAt || "",
     updatedAt: meta.updatedAt || "",
     body: questionBody,
   }
+}
+
+// 選択肢は読点やカンマを含む文になりやすいので、区切り文字で並べず 1 行の JSON 配列で書く
+// https://www.rfc-editor.org/rfc/rfc8259
+function parseOptions(value: string): string[] {
+  if (!value.trim()) return []
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(value)
+  } catch {
+    throw new Error("invalid question file")
+  }
+  if (!Array.isArray(parsed) || !parsed.every((option) => typeof option === "string")) {
+    throw new Error("invalid question file")
+  }
+  return parsed
 }
 
 function formatQuestion(question: StoredQuestion): string {
@@ -355,9 +624,15 @@ function formatQuestion(question: StoredQuestion): string {
       ["priority", question.priority ?? ""],
       ["defaultAction", question.defaultAction ?? ""],
       ["answerBy", question.answerBy ?? ""],
+      ["options", question.options.length > 0 ? JSON.stringify(question.options) : ""],
       ["author", question.author],
+      ["session", question.session ?? ""],
+      ["worktree", question.worktree ?? ""],
+      ["branch", question.branch ?? ""],
       ["answeredBy", question.answeredBy ?? ""],
       ["answeredAt", question.answeredAt ?? ""],
+      ["acknowledgedAt", question.acknowledgedAt ?? ""],
+      ["notifiedExpiringAt", question.notifiedExpiringAt ?? ""],
       ["canceledAt", question.canceledAt ?? ""],
       ["createdAt", question.createdAt],
       ["updatedAt", question.updatedAt],

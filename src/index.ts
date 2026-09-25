@@ -16,6 +16,7 @@ import {
   type Store,
 } from "./store"
 import {
+  acknowledgeQuestion,
   answerQuestion,
   ensureQuestionsDirectory,
   getQuestion,
@@ -23,7 +24,8 @@ import {
   saveQuestion,
   type Question,
 } from "./questions"
-import { notify } from "./notify"
+import { notify, notifyBaseUrl, questionUrl } from "./notify"
+import { readProvenance } from "./provenance"
 import { DEFAULT_PORT, serve } from "./web"
 import { registerWorkspace } from "./workspaces"
 
@@ -186,7 +188,9 @@ const QUESTION_LIST_HELP = `yaru question list — list questions in this worksp
 Usage:
   yaru question list [--status NAME] [--issue ID] [-f|--format]
 
-Open and expired questions come first, newest first.
+Questions awaiting an answer come first: blocking ones (no default action),
+then open ones by answerBy, then open ones without a deadline, then expired ones.
+Answered and canceled questions follow, most recently resolved first.
 JSON prints {questions}.
 
 Status: open, expired, answered, canceled
@@ -197,6 +201,9 @@ const QUESTION_GET_HELP = `yaru question get — retrieve one question by id
 
 Usage:
   yaru question get <id> [-f|--format]
+
+Reading an answered question for the first time records acknowledgedAt,
+so the human can see the answer was picked up.
 `
 
 const QUESTION_SAVE_HELP = `yaru question save — ask a question or update one
@@ -207,17 +214,29 @@ Omitted fields stay unchanged on update. none clears issue, priority, default, o
 
 --default is the action you will take if no answer arrives by answerBy (one line).
 --answerBy is a duration from now (30m, 2h, 1d) or an ISO 8601 datetime.
---body is Markdown context: options, trade-offs, your recommendation. Use --body - to read stdin.
+--option is one answer the human can pick with one tap (one line). Repeat it for each option;
+any --option replaces the whole list, and --option none clears it.
+--body is Markdown context: trade-offs, your recommendation. Use --body - to read stdin.
 --status canceled withdraws a question that no longer needs an answer; open restores it.
 
+Creating records the session (CLAUDE_CODE_SESSION_ID or CODEX_SESSION_ID), the git worktree,
+and the branch it was asked from.
+Creating refuses when an open question with the same title (and the same issue) exists;
+the error names it. --force asks again anyway.
+Creating without --default and --answerBy warns: the question blocks until the human answers.
+
 Creating a question runs the notify command from .yaru/config.yml (notify: COMMAND) with
-{"event":"question.created","question":{...}} on stdin. A failing command only warns.
+{"event":"question.created","url":"...","question":{...}} on stdin. A failing command only warns.
+url opens the question on the dashboard; publicUrl: URL in config.yml replaces http://127.0.0.1:${DEFAULT_PORT}.
+A running yaru serve also sends {"event":"question.expiring",...} once, 15 minutes before answerBy.
 
 Usage:
   yaru question save --title TEXT [--issue ID] [--priority NAME] [--default TEXT]
-                     [--answerBy WHEN] [--body TEXT|-] [-f|--format]
+                     [--answerBy WHEN] [--option TEXT]... [--body TEXT|-] [--force]
+                     [-f|--format]
   yaru question save --id ID [--title TEXT] [--issue ID] [--priority NAME] [--default TEXT]
-                     [--answerBy WHEN] [--body TEXT|-] [--status open|canceled] [-f|--format]
+                     [--answerBy WHEN] [--option TEXT|none]... [--body TEXT|-]
+                     [--status open|canceled] [-f|--format]
 
 Priority: urgent, high, medium, low
 `
@@ -225,9 +244,12 @@ Priority: urgent, high, medium, low
 const QUESTION_ANSWER_HELP = `yaru question answer — answer a question
 
 Usage:
-  yaru question answer <id> --body TEXT|- [-f|--format]
+  yaru question answer <id> --body TEXT|- [--force] [-f|--format]
 
-Answering again replaces the answer. An expired question can still be answered.
+An expired question can still be answered; when it belongs to an issue, the late answer
+is also added to the issue as a comment.
+An answered question keeps its answer: answering again fails unless --force replaces it.
+A canceled question cannot be answered.
 `
 
 const QUESTION_WAIT_HELP = `yaru question wait — block until a question is resolved
@@ -237,6 +259,7 @@ Usage:
 
 Returns when the question is answered, canceled, or expired (answerBy passed).
 On expired, proceed with defaultAction. Prints the question as JSON.
+Returning an answer records acknowledgedAt the first time.
 -f / --format prints the answer, or the defaultAction when expired.
 
 --timeout defaults to 10m, --interval to 1s. Durations: 100ms, 30s, 10m, 1h.
@@ -291,11 +314,13 @@ const QUESTION_SAVE_FLAGS = new Set([
   "priority",
   "default",
   "answerBy",
+  "option",
   "body",
   "status",
+  "force",
   ...FORMAT_FLAGS,
 ])
-const QUESTION_ANSWER_FLAGS = new Set(["help", "h", "id", "body", ...FORMAT_FLAGS])
+const QUESTION_ANSWER_FLAGS = new Set(["help", "h", "id", "body", "force", ...FORMAT_FLAGS])
 const QUESTION_WAIT_FLAGS = new Set(["help", "h", "id", "timeout", "interval", ...FORMAT_FLAGS])
 const INIT_FLAGS = new Set(["help", "h"])
 const SERVE_FLAGS = new Set(["help", "h", "port", "p"])
@@ -454,7 +479,8 @@ async function issue(
     if (flags.blockedBy) input.addBlockedBy = flags.blockedBy
     if (flags.removeBlock) input.removeBlocks = flags.removeBlock
     if (flags.removeBlockedBy) input.removeBlockedBy = flags.removeBlockedBy
-    const saved = saveIssue(openWorkspace(), input)
+    // 作業場所は CLI を動かした場所から読む。store.root は worktree の中でも元のフォルダを指すため
+    const saved = saveIssue(openWorkspace(), input, { provenance: readProvenance(process.cwd()) })
     if (outputFormat(flag) === "json") {
       printJson(saved)
       return
@@ -555,7 +581,7 @@ async function question(
     const id = flag("id") || rest[1]
     if (!id) throw new Error("usage: yaru question get <id>")
     assertNoExtra(rest.slice(flag("id") ? 1 : 2))
-    const found = getQuestion(openWorkspace(), id)
+    const found = acknowledgeQuestion(openWorkspace(), id)
     if (outputFormat(flag) === "json") printJson(found)
     else process.stdout.write(formatQuestion(found))
     return
@@ -564,6 +590,7 @@ async function question(
     assertKnownFlags(flags, QUESTION_SAVE_FLAGS)
     assertNoExtra(rest.slice(1))
     const store = openWorkspace()
+    const creating = !flag("id")
     const saved = saveQuestion(store, {
       id: flag("id"),
       title: flag("title"),
@@ -571,11 +598,29 @@ async function question(
       priority: flag("priority"),
       defaultAction: flag("default"),
       answerBy: flag("answerBy"),
+      options: parseOptionFlags(flags.option),
       status: flag("status"),
       body: flag("body") === "-" ? readStdin() : flag("body"),
+      // 作業場所は CLI を動かした場所から読む。store.root は worktree の中でも元のフォルダを指すため
+      provenance: creating ? readProvenance(process.cwd()) : undefined,
+      force: flag("force") === "true",
     })
-    if (!flag("id")) {
-      const warning = notify(store, { event: "question.created", question: saved })
+    if (creating) {
+      if (saved.defaultAction === null && saved.answerBy === null) {
+        console.error(
+          `warning: question ${saved.id} has no --default and no --answerBy: work blocks until the human answers; give both unless there is no safe default`,
+        )
+      }
+      const workspace = registerWorkspace(store.root)
+      const warning = notify(store, {
+        event: "question.created",
+        url: questionUrl(
+          notifyBaseUrl(store, `http://127.0.0.1:${DEFAULT_PORT}`),
+          workspace.slug,
+          saved.id,
+        ),
+        question: saved,
+      })
       if (warning) console.error(warning)
     }
     if (outputFormat(flag) === "json") {
@@ -591,7 +636,7 @@ async function question(
     if (!id) throw new Error("usage: yaru question answer <id> --body TEXT|-")
     assertNoExtra(rest.slice(flag("id") ? 1 : 2))
     const body = flag("body") === "-" ? readStdin() : flag("body")
-    const saved = answerQuestion(openWorkspace(), id, { body })
+    const saved = answerQuestion(openWorkspace(), id, { body, force: flag("force") === "true" })
     if (outputFormat(flag) === "json") {
       printJson(saved)
       return
@@ -613,6 +658,7 @@ async function question(
       await Bun.sleep(Math.min(interval, Math.max(deadline - Date.now(), 0)))
       current = getQuestion(store, id)
     }
+    current = acknowledgeQuestion(store, id)
     if (outputFormat(flag) === "json") printJson(current)
     else process.stdout.write(formatWaitResult(current))
     if (current.status === "open") {
@@ -630,11 +676,17 @@ function formatQuestion(question: Question): string {
     question.title,
   ]
   if (question.defaultAction) lines.push(`default: ${question.defaultAction}`)
+  for (const option of question.options) lines.push(`option: ${option}`)
+  if (question.branch || question.worktree || question.session) {
+    lines.push(
+      `asked from: ${question.branch ?? "-"}  ${question.worktree ?? "-"}  session ${question.session ?? "-"}`,
+    )
+  }
   if (question.body) lines.push("", question.body)
   if (question.answer !== null) {
     lines.push(
       "",
-      `answer (${question.answeredBy ?? "-"} ${question.answeredAt ?? "-"}):`,
+      `answer (${question.answeredBy ?? "-"} ${question.answeredAt ?? "-"}, picked up ${question.acknowledgedAt ?? "-"}):`,
       question.answer,
     )
   }
@@ -647,6 +699,13 @@ function formatWaitResult(question: Question): string {
     return `expired: proceed with the default action\n${question.defaultAction ?? "(no default action)"}\n`
   }
   return `${question.status}\n`
+}
+
+// --option を並べた順に選択肢にする。none だけなら選択肢を消す
+function parseOptionFlags(values: string[] | undefined): string[] | null | undefined {
+  if (values === undefined) return undefined
+  if (values.length === 1 && values[0] === "none") return null
+  return values
 }
 
 const DURATION_MILLISECONDS: Record<string, number> = { ms: 1, s: 1_000, m: 60_000, h: 3_600_000 }
@@ -745,7 +804,7 @@ function assertNoExtra(rest: string[]) {
   if (rest.length > 0) throw new Error(`unexpected argument: ${rest[0]}`)
 }
 
-const BARE = new Set(["help", "h", "format", "f"])
+const BARE = new Set(["help", "h", "format", "f", "force"])
 
 function parse(argv: string[]) {
   const rest: string[] = []

@@ -22,10 +22,15 @@ afterAll(() => {
   rmSync(stateDirectory, { recursive: true, force: true })
 })
 
-function run(args: string[], cwd?: string, stdin?: string) {
+function run(
+  args: string[],
+  cwd?: string,
+  stdin?: string,
+  extraEnvironment: Record<string, string | undefined> = {},
+) {
   return Bun.spawnSync([cli, ...args], {
     cwd,
-    env: environment,
+    env: { ...environment, ...extraEnvironment },
     stdin: stdin !== undefined ? Buffer.from(stdin) : undefined,
     stdout: "pipe",
     stderr: "pipe",
@@ -380,6 +385,130 @@ test("question save list get answer roundtrip", () => {
   expect(human).toContain("消すか")
 })
 
+test("question save records the session, worktree, and branch it was asked from", () => {
+  const root = workspace()
+  Bun.spawnSync(["git", "init", "--quiet", "--initial-branch", "feat/add-thing"], { cwd: root })
+  const created = JSON.parse(
+    run(
+      ["question", "save", "--title", "q", "--default", "x", "--answerBy", "1h"],
+      root,
+      undefined,
+      {
+        CLAUDE_CODE_SESSION_ID: "session-1",
+        CODEX_SESSION_ID: undefined,
+      },
+    ).stdout.toString(),
+  )
+  expect(created).toMatchObject({
+    session: "session-1",
+    worktree: realpathSync(root),
+    branch: "feat/add-thing",
+  })
+})
+
+test("question save --option is repeatable and --option none clears the list", () => {
+  const root = workspace()
+  const created = JSON.parse(
+    run(
+      [
+        "question",
+        "save",
+        "--title",
+        "q",
+        "--default",
+        "残す",
+        "--answerBy",
+        "1h",
+        "--option",
+        "残す",
+        "--option",
+        "消す, 本番だけ",
+      ],
+      root,
+    ).stdout.toString(),
+  )
+  expect(created.options).toEqual(["残す", "消す, 本番だけ"])
+  const cleared = JSON.parse(
+    run(["question", "save", "--id", "1", "--option", "none"], root).stdout.toString(),
+  )
+  expect(cleared.options).toEqual([])
+})
+
+test("question save refuses to ask the same open question twice unless --force", () => {
+  const root = workspace()
+  run(["question", "save", "--title", "消すか", "--default", "x", "--answerBy", "1h"], root)
+  const again = run(
+    ["question", "save", "--title", "消すか", "--default", "x", "--answerBy", "1h"],
+    root,
+  )
+  expect(again.exitCode).toBe(1)
+  expect(again.stderr.toString()).toContain(
+    'duplicate question: expected no open question titled "消すか" without an issue, actual question 1 is open',
+  )
+  const forced = run(
+    ["question", "save", "--title", "消すか", "--default", "x", "--answerBy", "1h", "--force"],
+    root,
+  )
+  expect(forced.exitCode).toBe(0)
+  expect(JSON.parse(forced.stdout.toString()).id).toBe("2")
+})
+
+test("question save warns when the question has neither a default nor a deadline", () => {
+  const root = workspace()
+  const blocking = run(["question", "save", "--title", "q"], root)
+  expect(blocking.exitCode).toBe(0)
+  expect(blocking.stderr.toString()).toContain(
+    "warning: question 1 has no --default and no --answerBy",
+  )
+  const timed = run(
+    ["question", "save", "--title", "r", "--default", "x", "--answerBy", "1h"],
+    root,
+  )
+  expect(timed.stderr.toString()).toBe("")
+})
+
+test("question answer replaces an existing answer only with --force", () => {
+  const root = workspace()
+  run(["question", "save", "--title", "q"], root)
+  run(["question", "answer", "1", "--body", "first"], root)
+  const again = run(["question", "answer", "1", "--body", "second"], root)
+  expect(again.exitCode).toBe(1)
+  expect(again.stderr.toString()).toContain(
+    "cannot answer question 1: expected status open or expired, actual answered",
+  )
+  const forced = run(["question", "answer", "1", "--body", "second", "--force"], root)
+  expect(JSON.parse(forced.stdout.toString()).answer).toBe("second")
+})
+
+test("question get and wait record when the agent first picked up the answer", () => {
+  const root = workspace()
+  run(["question", "save", "--title", "q"], root)
+  expect(
+    JSON.parse(run(["question", "get", "1"], root).stdout.toString()).acknowledgedAt,
+  ).toBeNull()
+  run(["question", "answer", "1", "--body", "yes"], root)
+  const picked = JSON.parse(run(["question", "wait", "1"], root).stdout.toString())
+  expect(picked.acknowledgedAt).toEqual(expect.any(String))
+  const again = JSON.parse(run(["question", "get", "1"], root).stdout.toString())
+  expect(again.acknowledgedAt).toBe(picked.acknowledgedAt)
+})
+
+test("issue save records the session, worktree, and branch it was saved from", () => {
+  const root = workspace()
+  Bun.spawnSync(["git", "init", "--quiet", "--initial-branch", "feat/fix-thing"], { cwd: root })
+  const created = JSON.parse(
+    run(["issue", "save", "--title", "topic"], root, undefined, {
+      CLAUDE_CODE_SESSION_ID: "session-2",
+      CODEX_SESSION_ID: undefined,
+    }).stdout.toString(),
+  )
+  expect(created).toMatchObject({
+    session: "session-2",
+    worktree: realpathSync(root),
+    branch: "feat/fix-thing",
+  })
+})
+
 test("question save --status canceled withdraws a question", () => {
   const root = workspace()
   run(["question", "save", "--title", "q"], root)
@@ -455,6 +584,20 @@ test("asking a question runs the notify command from config.yml with the questio
     event: "question.created",
     question: { id: "1", title: "消すか" },
   })
+  expect(payload.url).toMatch(/^http:\/\/127\.0\.0\.1:47800\/p\/yaru-cli-[^/]+\/dashboard#q-1$/)
+})
+
+test("the notify link uses publicUrl from config.yml so it opens on a phone", () => {
+  const root = workspace()
+  const received = join(root, "received.json")
+  writeFileSync(
+    join(root, ".yaru", "config.yml"),
+    `publicUrl: https://mac.example.ts.net\nnotify: cat > ${JSON.stringify(received)}\n`,
+  )
+  run(["question", "save", "--title", "消すか", "--default", "残す", "--answerBy", "1h"], root)
+  expect(JSON.parse(readFileSync(received, "utf8")).url).toMatch(
+    /^https:\/\/mac\.example\.ts\.net\/p\/yaru-cli-[^/]+\/dashboard#q-1$/,
+  )
 })
 
 test("a failing notify command warns but keeps the saved question", () => {

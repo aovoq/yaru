@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test"
 import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { answerQuestion, getQuestion, saveQuestion } from "./questions"
+import { answerQuestion, cancelQuestion, getQuestion, saveQuestion } from "./questions"
 import { init, saveComment, saveIssue } from "./store"
 import { createApp, serve } from "./web"
 
@@ -328,7 +328,60 @@ describe("web", () => {
     expect((await api.json()).error).toContain("not found")
     const page = await app.request("/?id=9")
     expect(page.status).toBe(404)
-    expect(await page.text()).toContain("not found")
+    expect(await page.text()).toContain("issue not found: 9")
+  })
+
+  test("the page API for a missing issue is 404 with the board data and the error", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "still here" })
+    const res = await createApp(store).request("/api/page?id=9")
+    expect(res.status).toBe(404)
+    const page = await res.json()
+    expect(page.error).toBe("issue not found: 9")
+    expect(page.current).toBeNull()
+    expect(page.issues.map((issue: { title: string }) => issue.title)).toEqual(["still here"])
+  })
+
+  test("a failed answer returning to the inbox names the workspace so the card is unambiguous", async () => {
+    const store = workspace()
+    saveQuestion(store, { title: "q" })
+    const app = createApp(store, { basePath: "/p/app", workspaceName: "app" })
+    const failed = await app.request("/questions/1/answer", {
+      method: "POST",
+      body: new URLSearchParams({ body: " ", returnTo: "/inbox" }),
+    })
+    const location = new URL(failed.headers.get("location")!, "http://localhost")
+    expect(location.pathname).toBe("/inbox")
+    expect(location.searchParams.get("workspace")).toBe("app")
+    expect(location.searchParams.get("q")).toBe("1")
+    expect(location.hash).toBe("#q-app-1")
+  })
+
+  test("a draft too long for a redirect URL is dropped but the error still returns", async () => {
+    const store = workspace()
+    saveQuestion(store, { title: "q" })
+    cancelQuestion(store, "1")
+    const res = await createApp(store).request("/questions/1/answer", {
+      method: "POST",
+      body: new URLSearchParams({ body: "あ".repeat(2000) }),
+    })
+    const location = new URL(res.headers.get("location")!, "http://localhost")
+    expect(location.searchParams.get("error")).toContain("actual canceled")
+    expect(location.searchParams.get("answer")).toBeNull()
+    expect(res.headers.get("location")!.length).toBeLessThan(2048)
+  })
+
+  test("a deep link to a missing issue still shows the board with the error", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "still here" })
+    const page = await createApp(store).request("/?status=todo&id=9")
+    expect(page.status).toBe(404)
+    const html = await page.text()
+    expect(html).toContain('id="yaru-initial-state"')
+    expect(html).toContain("still here")
+    expect(html).toContain("issue not found: 9")
+    expect(html).toContain('"error":"issue not found: 9"')
+    expect(html).toContain('"current":null')
   })
 
   test("board shows dueDate and marks overdue", async () => {
@@ -533,8 +586,8 @@ describe("web", () => {
       method: "POST",
       body: new URLSearchParams({ body: "消してよい" }),
     })
-    expect(res.status).toBe(302)
-    expect(res.headers.get("location")).toBe("/dashboard")
+    expect(res.status).toBe(303)
+    expect(res.headers.get("location")).toBe("/dashboard#q-1")
     expect(getQuestion(store, "1")).toMatchObject({ status: "answered", answer: "消してよい" })
   })
 
@@ -548,15 +601,169 @@ describe("web", () => {
     expect(getQuestion(store, "1").answer).toBe("Go with the default action: 残す")
   })
 
-  test("POST /questions/:id/answer with an empty body shows the error on the dashboard", async () => {
+  test("POST /questions/:id/answer with an empty body redirects back with the error", async () => {
     const store = workspace()
     saveQuestion(store, { title: "q" })
+    const app = createApp(store)
+    const res = await app.request("/questions/1/answer", {
+      method: "POST",
+      body: new URLSearchParams({ body: " " }),
+    })
+    expect(res.status).toBe(303)
+    const location = new URL(res.headers.get("location")!, "http://localhost")
+    expect(location.pathname).toBe("/dashboard")
+    expect(location.searchParams.get("error")).toContain(
+      "invalid answer: expected a non-empty string",
+    )
+    expect(location.searchParams.get("q")).toBe("1")
+    expect(location.hash).toBe("#q-1")
+    const page = await app.request(`${location.pathname}${location.search}`)
+    expect(page.status).toBe(200)
+    expect(await page.text()).toContain("invalid answer: expected a non-empty string")
+  })
+
+  test("a failed answer from the drawer returns to the issue with the error and the draft", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "topic" })
+    saveQuestion(store, { title: "q", issue: "1" })
+    cancelQuestion(store, "1")
     const res = await createApp(store).request("/questions/1/answer", {
       method: "POST",
-      body: new URLSearchParams({ body: "" }),
+      body: new URLSearchParams({
+        body: "書きかけの答え",
+        expectedStatus: "open",
+        returnTo: "/?status=todo&id=1",
+      }),
     })
-    expect(res.status).toBe(400)
-    expect(await res.text()).toContain("invalid answer: expected a non-empty string")
+    expect(res.status).toBe(303)
+    const location = new URL(res.headers.get("location")!, "http://localhost")
+    expect(location.pathname).toBe("/")
+    expect(location.searchParams.get("status")).toBe("todo")
+    expect(location.searchParams.get("id")).toBe("1")
+    expect(location.searchParams.get("error")).toContain("actual canceled")
+    expect(location.searchParams.get("q")).toBe("1")
+    expect(location.searchParams.get("answer")).toBe("書きかけの答え")
+  })
+
+  test("a stale tab cannot overwrite an answer given elsewhere, but an edit of that answer can", async () => {
+    const store = workspace()
+    saveQuestion(store, { title: "q" })
+    answerQuestion(store, "1", { body: "スマホで答えた" })
+    const app = createApp(store)
+    const stale = await app.request("/questions/1/answer", {
+      method: "POST",
+      body: new URLSearchParams({ body: "古いタブ", expectedStatus: "open" }),
+    })
+    expect(stale.status).toBe(303)
+    const location = new URL(stale.headers.get("location")!, "http://localhost")
+    expect(location.searchParams.get("error")).toContain(
+      "cannot answer question 1: expected status open or expired, actual answered",
+    )
+    expect(getQuestion(store, "1").answer).toBe("スマホで答えた")
+    await app.request("/questions/1/answer", {
+      method: "POST",
+      body: new URLSearchParams({ body: "直した", expectedStatus: "answered" }),
+    })
+    expect(getQuestion(store, "1").answer).toBe("直した")
+  })
+
+  test("the answer API returns 409 with the stored question on a conflict and replaces with force", async () => {
+    const store = workspace()
+    saveQuestion(store, { title: "q" })
+    answerQuestion(store, "1", { body: "first" })
+    const app = createApp(store)
+    const post = (input: Record<string, unknown>) =>
+      app.request("/api/questions/1/answer", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(input),
+      })
+    const conflict = await post({ body: "second", expectedStatus: "open" })
+    expect(conflict.status).toBe(409)
+    const payload = await conflict.json()
+    expect(payload.error).toContain("actual answered")
+    expect(payload.question).toMatchObject({ id: "1", answer: "first" })
+    const forced = await post({ body: "second", force: true })
+    expect(forced.status).toBe(200)
+    expect((await forced.json()).answer).toBe("second")
+  })
+
+  test("POST /questions/:id/cancel withdraws the question and returns to the page it came from", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "topic" })
+    saveQuestion(store, { title: "q", issue: "1" })
+    const res = await createApp(store).request("/questions/1/cancel", {
+      method: "POST",
+      body: new URLSearchParams({ returnTo: "/?id=1" }),
+    })
+    expect(res.status).toBe(303)
+    expect(res.headers.get("location")).toBe("/?id=1#q-1")
+    expect(getQuestion(store, "1").status).toBe("canceled")
+  })
+
+  test("canceling an answered question from a form redirects back with the error", async () => {
+    const store = workspace()
+    saveQuestion(store, { title: "q" })
+    answerQuestion(store, "1", { body: "yes" })
+    const res = await createApp(store).request("/questions/1/cancel", { method: "POST" })
+    expect(res.status).toBe(303)
+    const location = new URL(res.headers.get("location")!, "http://localhost")
+    expect(location.pathname).toBe("/dashboard")
+    expect(location.searchParams.get("error")).toBe(
+      "cannot cancel question 1: expected status open or expired, actual answered",
+    )
+    expect(getQuestion(store, "1").status).toBe("answered")
+  })
+
+  test("the cancel API withdraws a question and answers 409 for an answered one", async () => {
+    const store = workspace()
+    saveQuestion(store, { title: "a" })
+    saveQuestion(store, { title: "b" })
+    answerQuestion(store, "2", { body: "yes" })
+    const app = createApp(store)
+    const canceled = await app.request("/api/questions/1/cancel", { method: "POST" })
+    expect(canceled.status).toBe(200)
+    expect((await canceled.json()).status).toBe("canceled")
+    const conflict = await app.request("/api/questions/2/cancel", { method: "POST" })
+    expect(conflict.status).toBe(409)
+    expect((await app.request("/api/questions/9/cancel", { method: "POST" })).status).toBe(404)
+  })
+
+  test("answering may return to the cross-workspace inbox", async () => {
+    const store = workspace()
+    saveQuestion(store, { title: "q" })
+    const res = await createApp(store, { basePath: "/p/app", workspaceName: "app" }).request(
+      "/questions/1/answer",
+      { method: "POST", body: new URLSearchParams({ body: "yes", returnTo: "/inbox" }) },
+    )
+    expect(res.headers.get("location")).toBe("/inbox#q-app-1")
+  })
+
+  test("a failed comment returns to the issue with the error and the draft", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "topic" })
+    const res = await createApp(store).request("/comments", {
+      method: "POST",
+      body: new URLSearchParams({ issue: "1", body: "  ", status: "todo" }),
+    })
+    expect(res.status).toBe(303)
+    const location = new URL(res.headers.get("location")!, "http://localhost")
+    expect(location.pathname).toBe("/")
+    expect(location.searchParams.get("id")).toBe("1")
+    expect(location.searchParams.get("status")).toBe("todo")
+    expect(location.searchParams.get("error")).toContain(
+      "invalid body: expected a non-empty string",
+    )
+    expect(location.searchParams.get("comment")).toBe("  ")
+  })
+
+  test("the board shows an error passed back from a failed form", async () => {
+    const store = workspace()
+    saveIssue(store, { title: "topic" })
+    const html = await (
+      await createApp(store).request("/?id=1&error=invalid+body%3A+expected+a+non-empty+string")
+    ).text()
+    expect(html).toContain('"error":"invalid body: expected a non-empty string"')
   })
 
   test("questions API lists and answers", async () => {
@@ -645,7 +852,7 @@ describe("web", () => {
       method: "POST",
       body: new URLSearchParams({ body: "yes", returnTo: "/?status=todo&id=1" }),
     })
-    expect(res.headers.get("location")).toBe("/?status=todo&id=1")
+    expect(res.headers.get("location")).toBe("/?status=todo&id=1#q-1")
   })
 
   test("answering ignores a returnTo outside the board", async () => {
@@ -661,7 +868,7 @@ describe("web", () => {
         method: "POST",
         body: new URLSearchParams({ body: "yes", returnTo }),
       })
-      expect(res.headers.get("location")).toBe("/dashboard")
+      expect(res.headers.get("location")).toBe(`/dashboard#q-${id}`)
     }
   })
 

@@ -41,9 +41,10 @@ yaru comment save --id ID --body TEXT|-
 yaru question list [--status NAME] [--issue ID] [-f|--format]
 yaru question get <id> [-f|--format]
 yaru question save --title TEXT [--issue ID] [--priority NAME] [--default TEXT]
-                   [--answerBy WHEN] [--body TEXT|-] [-f|--format]
-yaru question save --id ID [--status open|canceled] [...same fields]
-yaru question answer <id> --body TEXT|-
+                   [--answerBy WHEN] [--option TEXT]... [--body TEXT|-] [--force]
+                   [-f|--format]
+yaru question save --id ID [--status open|canceled] [--option TEXT|none]... [...same fields]
+yaru question answer <id> --body TEXT|- [--force]
 yaru question wait <id> [--timeout DURATION] [--interval DURATION] [-f|--format]
 yaru serve [-p|--port 47800]
 ```
@@ -86,13 +87,30 @@ Ask the human asynchronously when a decision is theirs to make (product, cost, r
 - `--body` holds the context: options, trade-offs, and your recommendation. Keep it short enough to read on a phone.
 - Always give `--default` (the action you will take without an answer) and `--answerBy` (`30m`, `2h`, `1d`, or an ISO 8601 datetime), so the work never stalls on the human. Omit them only when there is no safe default; then say so in the body.
 - Link `--issue` when the question belongs to one.
+- When the answer is one of a few choices, give each as `--option TEXT` (repeat it, one line each) so the human can answer with one tap. Put your default among them.
+- Creating records where you asked from: `session` (your Claude Code or Codex session), `worktree`, and `branch`. The human uses them to tell parallel agents apart, so ask from the worktree you are working in.
+- Asking a question that is already open with the same title (and the same issue) fails and names the existing id. Wait on that one instead. `--force` asks again only when the earlier one is truly stale.
+- Creating without `--default` and `--answerBy` warns: the question blocks until the human answers.
 - Keep working on other things. Use `question wait <id>` (run it in the background) or check `question list --status answered` later.
 - `wait` exits 0 when answered, canceled, or expired, and 2 on `--timeout` (default 10m). On `expired`, proceed with the default action and record that in the issue.
 - An answer of `Go with the default action: ...` means the human approved the default.
+- `question get` and `question wait` record `acknowledgedAt` the first time they return an answer, so the human sees you picked it up.
 - Withdraw a question that no longer matters with `question save --id ID --status canceled`.
+- `question answer` on an answered question fails; `--force` replaces the answer. A canceled question cannot be answered.
 - status: `open`, `expired` (open past answerBy), `answered`, `canceled`.
 
-The human answers on the workspace dashboard (`/p/<name>/dashboard`), or in the drawer of the linked issue.
+#### Checkpoints
+
+Answers can arrive after you moved on. At every checkpoint (before committing, before marking an issue done, before starting the next issue), run `question list --status answered` and read each answer whose `acknowledgedAt` is null with `question get <id>`:
+
+- A late answer to an expired question: you already proceeded with the default. It is also posted on the linked issue as a comment starting with `Late answer to Q<id>`. If it contradicts the default, undo or adjust that work now and say so in the issue.
+- An answer the human changed after you read it: its `acknowledgedAt` is null again. Treat it as a new answer.
+
+The human answers on the workspace dashboard (`/p/<name>/dashboard`), in the drawer of the linked issue, or in the inbox of every workspace (`/inbox`).
+
+#### Notifications
+
+`notify: COMMAND` in `.yaru/config.yml` runs COMMAND with a JSON payload on stdin: `question.created` (when you ask), `question.expiring` (once, 15 minutes before answerBy), and `issue.stale` (an `in_progress` issue not updated for `staleAfter`, default 24h). The last two are sent by the running `yaru serve`. Each payload has a `url` that opens the question or issue; `publicUrl: URL` in config.yml replaces `http://127.0.0.1:47800` in it.
 
 ## Fields
 
@@ -102,6 +120,7 @@ The human answers on the workspace dashboard (`/p/<name>/dashboard`), or in the 
 - startedAt is set the first time status becomes `in_progress` and is kept.
 - completedAt is set when status becomes `done`, cleared when it leaves `done`.
 - canceledAt is set when status becomes `canceled`, cleared when it leaves `canceled`.
+- stale is derived on read: `in_progress` and not updated for `staleAfter` in `.yaru/config.yml` (`30m`, `2h`, `1d`; default `24h`). An invalid `staleAfter` is an error. Update a stale issue (a comment is not enough) or move it out of `in_progress`.
 
 Invalid values fail with expected vs actual. Do not retry the same invalid value.
 
@@ -110,5 +129,7 @@ Invalid values fail with expected vs actual. Do not retry the same invalid value
 1. Confirm `.yaru/config.yml` (walk up). If missing and the user wants a tracker here, `init`.
 2. `issue list` (and `get`) before creating, to avoid duplicates.
 3. Claim work with `--assignee me --status in_progress` before editing code. Skip issues assigned to someone else.
-4. Finish with `--status done`. Cancel with `--status canceled`.
-5. `serve` usually runs already (the user keeps one running for all workspaces). Start it only if the user asked for the board and it is not running. One `serve` shows every workspace yaru has been used in: `http://127.0.0.1:47800/` lists them, and each lives at `/p/<name>/` (dashboard at `/p/<name>/dashboard`).
+4. Mention the issue as `#<id>` in every commit message for it (e.g. `Fix login redirect (#12)`), so the board lists the commits on the issue.
+   In issue bodies, comments, and questions, `#<id>` becomes a link to that issue. Write `\#<id>` when the number is not an issue.
+5. Finish with `--status done`. Cancel with `--status canceled`.
+6. `serve` usually runs already (the user keeps one running for all workspaces). Start it only if the user asked for the board and it is not running. One `serve` shows every workspace yaru has been used in: `http://127.0.0.1:47800/` lists them, and each lives at `/p/<name>/` (dashboard at `/p/<name>/dashboard`).

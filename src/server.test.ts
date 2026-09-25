@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test"
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { getQuestion, saveQuestion } from "./questions"
+import { answerQuestion, getQuestion, saveQuestion } from "./questions"
 import { init, open, saveIssue } from "./store"
 import { createServerApp } from "./web"
 import { registerWorkspace } from "./workspaces"
@@ -76,7 +76,7 @@ describe("server", () => {
       method: "POST",
       body: new URLSearchParams({ body: "yes" }),
     })
-    expect(res.headers.get("location")).toBe("/p/AsukaTravel/dashboard")
+    expect(res.headers.get("location")).toBe("/p/AsukaTravel/dashboard#q-1")
     expect(getQuestion(asuka, "1").status).toBe("answered")
     expect(getQuestion(other, "1").status).toBe("open")
   })
@@ -88,7 +88,7 @@ describe("server", () => {
       method: "POST",
       body: new URLSearchParams({ body: "yes", returnTo: "/p/other/?id=1" }),
     })
-    expect(res.headers.get("location")).toBe("/p/AsukaTravel/dashboard")
+    expect(res.headers.get("location")).toBe("/p/AsukaTravel/dashboard#q-1")
   })
 
   test("the workspace API answers under its prefix", async () => {
@@ -115,5 +115,49 @@ describe("server", () => {
     const res = await app.request("/assets/app.js")
     expect(res.status).toBe(200)
     expect(res.headers.get("content-type")).toContain("javascript")
+  })
+
+  test("the inbox API merges every workspace's awaiting questions into the shared groups", async () => {
+    const { app, asuka, other } = server()
+    saveQuestion(asuka, { title: "blocking in asuka" })
+    saveQuestion(other, { title: "due later", defaultAction: "x", answerBy: "3h" })
+    saveQuestion(asuka, { title: "due soon", defaultAction: "x", answerBy: "1h" })
+    saveQuestion(other, { title: "no deadline", defaultAction: "x" })
+    saveQuestion(other, {
+      title: "proceeded",
+      defaultAction: "x",
+      answerBy: "2020-01-01T00:00:00Z",
+    })
+    saveQuestion(asuka, { title: "answered" })
+    answerQuestion(asuka, "3", { body: "yes" })
+    const res = await app.request("/api/inbox")
+    expect(res.status).toBe(200)
+    const inbox = await res.json()
+    const titles = (group: { question: { title: string } }[]) =>
+      group.map((item) => item.question.title)
+    expect(titles(inbox.groups.blocking)).toEqual(["blocking in asuka"])
+    expect(titles(inbox.groups.dueSoon)).toEqual(["due soon", "due later"])
+    expect(titles(inbox.groups.noDeadline)).toEqual(["no deadline"])
+    expect(titles(inbox.groups.proceeded)).toEqual(["proceeded"])
+    expect(inbox.groups.blocking[0]).toMatchObject({
+      workspace: "AsukaTravel",
+      basePath: "/p/AsukaTravel",
+      href: "/p/AsukaTravel/dashboard#q-1",
+      anchor: "q-AsukaTravel-1",
+    })
+    expect(inbox.workspaces).toEqual([
+      { slug: "AsukaTravel", basePath: "/p/AsukaTravel", awaiting: 2 },
+      { slug: "other", basePath: "/p/other", awaiting: 3 },
+    ])
+  })
+
+  test("inbox groups order questions across workspaces, not workspace by workspace", async () => {
+    const { app, asuka, other } = server()
+    saveQuestion(asuka, { title: "asuka later", defaultAction: "x", answerBy: "3h" })
+    saveQuestion(other, { title: "other sooner", defaultAction: "x", answerBy: "1h" })
+    const inbox = await (await app.request("/api/inbox")).json()
+    expect(
+      inbox.groups.dueSoon.map((item: { question: { title: string } }) => item.question.title),
+    ).toEqual(["other sooner", "asuka later"])
   })
 })
