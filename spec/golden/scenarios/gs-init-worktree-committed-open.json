@@ -1,0 +1,33 @@
+{
+  "name": "gs-init-worktree-committed-open",
+  "description": "config.yml を commit してある worktree から開くと、checkout のコピーではなく main の .yaru を登録する",
+  "setup": {
+    "files": [
+      {
+        "path": "README.md",
+        "content": "latch\n"
+      },
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      }
+    ],
+    "commits": [
+      {
+        "message": "initial"
+      }
+    ],
+    "worktrees": [
+      {
+        "name": "feature",
+        "branch": "feat/add-thing"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "workingDirectory": "worktree:feature"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-not-a-workspace",
+  "description": "初期化していない場所で issue list すると not a yaru workspace で失敗し、登録しない",
+  "steps": [
+    {
+      "arguments": ["issue", "list"]
+    }
+  ]
+}

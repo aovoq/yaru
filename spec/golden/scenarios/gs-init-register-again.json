@@ -1,0 +1,15 @@
+{
+  "name": "gs-init-register-again",
+  "description": "init のあとに issue list を 2 回開いても、登録は同じ root の 1 件のままである",
+  "steps": [
+    {
+      "arguments": ["init"]
+    },
+    {
+      "arguments": ["issue", "list"]
+    },
+    {
+      "arguments": ["issue", "list"]
+    }
+  ]
+}

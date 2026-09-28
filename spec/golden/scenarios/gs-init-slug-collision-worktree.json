@@ -1,0 +1,34 @@
+{
+  "name": "gs-init-slug-collision-worktree",
+  "description": "同じフォルダ名のサブディレクトリと linked worktree は、登録順に feature と feature-2 になる",
+  "setup": {
+    "files": [
+      {
+        "path": "feature/keep",
+        "content": "x\n"
+      }
+    ],
+    "commits": [
+      {
+        "message": "initial",
+        "paths": ["feature/keep"]
+      }
+    ],
+    "worktrees": [
+      {
+        "name": "feature",
+        "branch": "feat/add-thing"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["init"],
+      "workingDirectory": "feature"
+    },
+    {
+      "arguments": ["init"],
+      "workingDirectory": "worktree:feature"
+    }
+  ]
+}

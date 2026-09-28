@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-triple-dash",
+  "description": "---help はヘルプにならない。次の init をその値として消費し、コマンドが無いので全体のヘルプを終了コード 1 で出す",
+  "steps": [
+    {
+      "arguments": ["---help", "init"]
+    }
+  ]
+}

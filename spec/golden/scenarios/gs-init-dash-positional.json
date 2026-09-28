@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-dash-positional",
+  "description": "init のうしろの - は位置引数なので無視して初期化する",
+  "steps": [
+    {
+      "arguments": ["init", "-"]
+    }
+  ]
+}

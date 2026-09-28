@@ -1,0 +1,19 @@
+{
+  "name": "gs-init-invalid-now-date-only",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "invalid YARU_NOW: expected an ISO 8601 datetime such as 2026-09-28T12:00:00.000Z, actual \"2026-09-28\"\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

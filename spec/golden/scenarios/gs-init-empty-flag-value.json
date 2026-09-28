@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-empty-flag-value",
+  "description": "空文字はフラグの値として受け取る。init はそのフラグを unknown flag にする",
+  "steps": [
+    {
+      "arguments": ["init", "--foo", ""]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "gs-init-register-on-open",
+  "description": "config.yml だけがある場所を issue list で開くと登録する。issues ディレクトリは作らず、既定の JSON は空の一覧である",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "list"]
+    }
+  ]
+}

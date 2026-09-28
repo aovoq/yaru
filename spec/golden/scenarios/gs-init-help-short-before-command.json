@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-help-short-before-command",
+  "description": "コマンドより前の -h でもヘルプを出して終わり、うしろの init は実行しない",
+  "steps": [
+    {
+      "arguments": ["-h", "init"]
+    }
+  ]
+}

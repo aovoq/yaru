@@ -1,0 +1,17 @@
+{
+  "name": "gs-init-preserves-config",
+  "description": "config.yml が既にあると init は失敗し、中身も登録も変えない",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "keep\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["init"]
+    }
+  ]
+}
