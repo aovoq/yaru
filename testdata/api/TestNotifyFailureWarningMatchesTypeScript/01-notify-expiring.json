@@ -1,8 +1,6 @@
 {
   "payload": {
-    "warnings": [
-      "broken question 1: notify command failed: expected exit code 0, actual 3: boom"
-    ]
+    "warnings": ["broken question 1: notify command failed: expected exit code 0, actual 3: boom"]
   },
   "root": {
     ".yaru/config.yml": "notify: echo boom >&2; exit 3\n",

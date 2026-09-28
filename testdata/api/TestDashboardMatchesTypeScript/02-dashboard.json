@@ -71,9 +71,7 @@
           "inputTokens": 1000,
           "interruptions": 0,
           "lastActivityAt": "2026-09-28T11:00:00.000Z",
-          "models": [
-            "claude-haiku-4-5"
-          ],
+          "models": ["claude-haiku-4-5"],
           "outputTokens": 1000,
           "startedAt": "2026-09-28T11:00:00.000Z",
           "subagents": 0,

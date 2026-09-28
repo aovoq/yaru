@@ -1,0 +1,10 @@
+{
+  "payload": null,
+  "root": {
+    ".yaru/comments/1.md": "---\nid: 1\nissue: 1\nparent:\nauthor: Spec Author\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\n---\n\nnote\n",
+    ".yaru/config.yml": "",
+    ".yaru/events/1.jsonl": "{\"field\":\"title\",\"from\":\"Hello\",\"to\":\"Next\",\"by\":\"Spec Author\",\"session\":null,\"at\":\"2026-09-28T12:00:00.000Z\"}\n",
+    ".yaru/issues/1.md": "---\nid: 1\ntitle: Next\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nline\n\n"
+  },
+  "state": null
+}

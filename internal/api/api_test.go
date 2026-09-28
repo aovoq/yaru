@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -552,48 +551,12 @@ func TestMatchesTypeScriptFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	root := repoRoot(t)
-	command := exec.Command("bun", "-e", typeScriptOracle)
-	command.Dir = root
-	command.Env = append(os.Environ(),
-		"ORACLE_ROOT="+tsRoot,
-		"ORACLE_WEB="+filepath.Join(root, "src", "web.tsx"),
-		"ORACLE_STORE="+filepath.Join(root, "src", "store.ts"),
-		"YARU_NOW="+fixedNow,
-		"TZ=Asia/Tokyo",
-		"HOME="+home,
-		"YARU_STATE_DIR="+state,
-		"GIT_CONFIG_GLOBAL=/dev/null",
-		"GIT_CONFIG_NOSYSTEM=1",
-	)
-	output, err := command.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bun oracle: %v\n%s", err, output)
-	}
+	// TS 版の Web に同じ 3 つの保存 (issue の作成、題名の変更、コメント) を送ったあとの .yaru は、記録から書き戻す (testdata/api/README.md)
+	recordPath := filepath.Join(repositoryDirectory, "testdata", "api", t.Name(), "01-issue-and-comment.json")
+	record := readTypeScriptRecord(t, recordPath, recordReplacements(tsRoot, state))
+	restoreRecordedTree(t, tsRoot, record.Root, skipRootEntry)
 	compareTrees(t, filepath.Join(goRoot, ".yaru"), filepath.Join(tsRoot, ".yaru"))
 }
-
-const typeScriptOracle = `
-const root = process.env.ORACLE_ROOT
-const { createApp } = await import(process.env.ORACLE_WEB)
-process.chdir(root)
-const { open } = await import(process.env.ORACLE_STORE)
-const store = open(root)
-const app = createApp(store, { basePath: "/p/ts-app" })
-async function call(method, path, body) {
-  const response = await app.request("http://yaru.invalid" + path, {
-    method,
-    headers: body === undefined ? {} : { "content-type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
-  if (!response.ok) {
-    throw new Error(method + " " + path + " " + response.status + " " + (await response.text()))
-  }
-}
-await call("POST", "/api/issues", { title: "Hello", body: "line\n" })
-await call("POST", "/api/issues", { id: "1", title: "Next" })
-await call("POST", "/api/comments", { issue: "1", body: "note" })
-`
 
 // page_service_test.go が未知の view を直接送るときに、同じ用意を使う
 //
@@ -770,15 +733,6 @@ func writeQuestion(t *testing.T, root string) {
 	if err := os.WriteFile(filepath.Join(directory, "1.md"), []byte(text), 0o644); err != nil {
 		t.Fatal(err)
 	}
-}
-
-func repoRoot(t *testing.T) string {
-	t.Helper()
-	_, file, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("runtime.Caller failed")
-	}
-	return filepath.Dir(filepath.Dir(filepath.Dir(file)))
 }
 
 func compareTrees(t *testing.T, left string, right string) {

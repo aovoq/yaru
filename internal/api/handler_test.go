@@ -29,6 +29,9 @@ import (
 // テストが本物の ~/.local/state/yaru と HOME を触らないようにする。
 // docs/spec/yaru-format.md の「状態ディレクトリ」。src/web.tsx の JSON とフォーム。
 
+// repositoryDirectory はこのリポジトリの根。CLI のビルドと、testdata/api の記録を読むのに使う
+//
+//declscope:package
 var repositoryDirectory string
 
 // yaruBinary は cmd/yaru をビルドした CLI。golden (testdata/golden) で CLI の出力の同一性は確かめてある
@@ -183,140 +186,9 @@ func runYaru(t *testing.T, root string, stateDirectory string, args ...string) s
 	return stdout.String()
 }
 
-func runBun(t *testing.T, root string, stateDirectory string, variables map[string]string, script string) string {
-	t.Helper()
-	overrides := map[string]string{
-		"COMPARE_ROOT":   root,
-		"YARU_STATE_DIR": stateDirectory,
-		"COMPARE_STATE":  stateDirectory,
-	}
-	for name, value := range variables {
-		overrides[name] = value
-	}
-	command := exec.Command("bun", "-")
-	command.Dir = repositoryDirectory
-	command.Env = environmentWith(overrides)
-	command.Stdin = strings.NewReader(script)
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	command.Stdout = &stdout
-	command.Stderr = &stderr
-	if err := command.Run(); err != nil {
-		t.Fatalf("bun: %v\n%s\n%s", err, stdout.String(), stderr.String())
-	}
-	return stdout.String()
-}
-
-const webScript = `
-const root = process.env.COMPARE_ROOT
-const action = process.env.COMPARE_ACTION
-const { createApp, createServerApp } = await import("./src/web.tsx")
-const { open, saveIssue } = await import("./src/store.ts")
-const { saveQuestion, acknowledgeQuestion } = await import("./src/questions.ts")
-const { currentTime } = await import("./src/time.ts")
-const { notifyExpiringQuestions, notifyStaleIssues, notify } = await import("./src/notify.ts")
-const { readSessionHealth } = await import("./src/sessions.ts")
-const { readRepositoryState } = await import("./src/repository.ts")
-const { listQuestions } = await import("./src/questions.ts")
-const { listIssues } = await import("./src/store.ts")
-
-process.chdir(root)
-const now = currentTime()
-
-if (action === "seed-issue") {
-  const store = open(root)
-  saveIssue(store, { title: process.env.COMPARE_TITLE, status: process.env.COMPARE_STATUS || "todo" }, { now })
-  console.log("{}")
-  process.exit(0)
-}
-if (action === "seed-question") {
-  const store = open(root)
-  const input = { title: process.env.COMPARE_TITLE }
-  if (process.env.COMPARE_ISSUE) input.issue = process.env.COMPARE_ISSUE
-  if (process.env.COMPARE_ANSWER_BY) input.answerBy = process.env.COMPARE_ANSWER_BY
-  if (process.env.COMPARE_DEFAULT) input.defaultAction = process.env.COMPARE_DEFAULT
-  saveQuestion(store, input, now)
-  console.log("{}")
-  process.exit(0)
-}
-if (action === "acknowledge") {
-  acknowledgeQuestion(open(root), process.env.COMPARE_ID, now)
-  console.log("{}")
-  process.exit(0)
-}
-if (action === "inbox") {
-  const app = createServerApp(process.env.COMPARE_STATE)
-  const response = await app.request("/api/inbox")
-  console.log(JSON.stringify({ status: response.status, body: await response.text() }))
-  process.exit(0)
-}
-if (action === "dashboard") {
-  const store = open(root)
-  console.log(JSON.stringify({
-    questions: listQuestions(store, {}, now),
-    issues: listIssues(store, {}, now),
-    sessionHealth: readSessionHealth(store.root, { now }),
-    repository: readRepositoryState(store.root),
-    now: now.toISOString(),
-  }))
-  process.exit(0)
-}
-if (action === "notify-expiring") {
-  const warnings = await notifyExpiringQuestions(process.env.COMPARE_STATE, now, process.env.COMPARE_BASE)
-  console.log(JSON.stringify({ warnings }))
-  process.exit(0)
-}
-if (action === "notify-stale") {
-  const warnings = await notifyStaleIssues(process.env.COMPARE_STATE, now, process.env.COMPARE_BASE)
-  console.log(JSON.stringify({ warnings }))
-  process.exit(0)
-}
-if (action === "notify-created") {
-  const store = open(root)
-  const warning = notify(store, JSON.parse(process.env.COMPARE_JSON))
-  console.log(JSON.stringify({ warning }))
-  process.exit(0)
-}
-
-const store = open(root)
-const app = createApp(store, { basePath: "/p/" + process.env.COMPARE_SLUG, workspaceName: process.env.COMPARE_SLUG })
-let response
-if (action === "json-answer") {
-  response = await app.request("/api/questions/" + process.env.COMPARE_ID + "/answer", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: process.env.COMPARE_JSON,
-  })
-} else if (action === "form-answer") {
-  response = await app.request("/questions/" + process.env.COMPARE_ID + "/answer", {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: process.env.COMPARE_FORM,
-  })
-} else if (action === "json-cancel") {
-  response = await app.request("/api/questions/" + process.env.COMPARE_ID + "/cancel", { method: "POST" })
-} else if (action === "form-undo") {
-  response = await app.request("/questions/" + process.env.COMPARE_ID + "/undo", {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: process.env.COMPARE_FORM,
-  })
-} else if (action === "json-get") {
-  response = await app.request("/api/questions/" + process.env.COMPARE_ID)
-} else if (action === "json-list") {
-  response = await app.request("/api/questions" + (process.env.COMPARE_QUERY || ""))
-} else {
-  throw new Error("unknown action " + action)
-}
-console.log(JSON.stringify({ status: response.status, body: await response.text(), location: response.headers.get("location") }))
-`
-
-// TS 版の答えは testdata/api/<テスト名>/<番号>-<動作>.json に記録する。
-// YARU_RECORD_TYPESCRIPT=1 のときだけ TS 版 (bun) を動かして記録を書き、ふだんは記録を読む。
-// 記録には、動作の結果 (payload) と、動作の直後の TS 側のワークスペース (.git を除く) と状態ディレクトリ (workspaces.json を除く) を残す。
-// 読むときは、そのファイルをワークスペースと状態ディレクトリへ書き戻し、TS 版が動いたあとの状態を再現する。
-var recordTypeScript = os.Getenv("YARU_RECORD_TYPESCRIPT") == "1"
-
+// TS 版の答えは testdata/api/<テスト名>/<番号>-<動作>.json にある。取り方は testdata/api/README.md。
+// 記録には、動作の結果 (payload) と、動作の直後の TS 側のワークスペース (.git を除く) と状態ディレクトリ (workspaces.json を除く) がある。
+// そのファイルをワークスペースと状態ディレクトリへ書き戻し、TS 版が動いたあとの状態を再現する。
 var webActionCounts = map[string]int{}
 
 type typeScriptRecord struct {
@@ -339,20 +211,6 @@ func webAction(t *testing.T, root string, stateDirectory string, variables map[s
 	recordName := fmt.Sprintf("%02d-%s.json", webActionCounts[t.Name()], variables["COMPARE_ACTION"])
 	recordPath := filepath.Join(repositoryDirectory, "testdata", "api", t.Name(), recordName)
 	replacements := recordReplacements(root, stateDirectory)
-	if recordTypeScript {
-		stdout := runBun(t, root, stateDirectory, variables, webScript)
-		var payload map[string]any
-		if err := json.Unmarshal([]byte(stdout), &payload); err != nil {
-			t.Fatalf("decode bun output: %v\n%s", err, stdout)
-		}
-		record := typeScriptRecord{
-			Payload: payload,
-			Root:    readRecordedTree(t, root, skipRootEntry),
-			State:   readRecordedTree(t, stateDirectory, skipStateEntry),
-		}
-		writeTypeScriptRecord(t, recordPath, record, replacements)
-		return payload
-	}
 	record := readTypeScriptRecord(t, recordPath, replacements)
 	restoreRecordedTree(t, root, record.Root, skipRootEntry)
 	restoreRecordedTree(t, stateDirectory, record.State, skipStateEntry)
@@ -367,6 +225,8 @@ type pathReplacement struct {
 // recordReplacements は毎回変わる一時ディレクトリを、記録の中の置き換え文字と対応させる。
 // テストの一時ディレクトリ (t.TempDir が 001、002 と番号を振る親) を <TEMP> にする。番号は記録と再現で同じ順に振られる。
 // 実パス (/private/tmp/...) と、symlink を通した表記 (/tmp/...) の両方を替え、長いパスから先に替える
+//
+//declscope:package
 func recordReplacements(root string, stateDirectory string) []pathReplacement {
 	replacements := []pathReplacement{}
 	for _, directory := range []string{testTemporaryParent(root), testTemporaryParent(stateDirectory)} {
@@ -411,27 +271,7 @@ func isTemporaryNumber(name string) bool {
 	return true
 }
 
-func writeTypeScriptRecord(t *testing.T, path string, record typeScriptRecord, replacements []pathReplacement) {
-	t.Helper()
-	var buffer bytes.Buffer
-	encoder := json.NewEncoder(&buffer)
-	encoder.SetEscapeHTML(false)
-	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(record); err != nil {
-		t.Fatal(err)
-	}
-	text := buffer.String()
-	for _, replacement := range replacements {
-		text = strings.ReplaceAll(text, replacement.actual, replacement.placeholder)
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
-		t.Fatal(err)
-	}
-}
-
+//declscope:package
 func readTypeScriptRecord(t *testing.T, path string, replacements []pathReplacement) typeScriptRecord {
 	t.Helper()
 	content, err := os.ReadFile(path)
@@ -451,6 +291,8 @@ func readTypeScriptRecord(t *testing.T, path string, replacements []pathReplacem
 
 // ワークスペースでは git の中身と flock の .lock を記録しない
 // https://pubs.opengroup.org/onlinepubs/9699919799/functions/flock.html
+//
+//declscope:package
 func skipRootEntry(relative string, isDirectory bool) bool {
 	if isDirectory {
 		return relative == ".git"
@@ -504,6 +346,8 @@ func readRecordedTree(t *testing.T, directory string, skip func(relative string,
 }
 
 // restoreRecordedTree は記録のファイルを書き、記録に無いファイルを消す
+//
+//declscope:package
 func restoreRecordedTree(t *testing.T, directory string, files map[string]string, skip func(relative string, isDirectory bool) bool) {
 	t.Helper()
 	for relative := range readRecordedTree(t, directory, skip) {
