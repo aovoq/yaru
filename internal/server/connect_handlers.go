@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/aovoq/yaru/gen/yaru/v1/yaruv1connect"
+	"github.com/aovoq/yaru/internal/api"
+	"github.com/aovoq/yaru/internal/workspace"
 )
 
 // connect-go の既定は Connect と gRPC と gRPC-Web を全部受ける。ここではメディアタイプを先に限り、
@@ -22,53 +24,82 @@ var allowedConnectMediaTypes = map[string]struct{}{
 
 func newConnectMux(configuration Configuration) *http.ServeMux {
 	mux := http.NewServeMux()
-	issueHandler := configuration.Handlers.Issue
-	if issueHandler == nil {
-		issueHandler = yaruv1connect.UnimplementedIssueServiceHandler{}
+	if configuration.WireServices {
+		// 質問、dashboard、受信箱は 1 つの mux。パスは手続きのフルパスのまま。internal/api/handler.go
+		questionServices := api.Handler(workspace.StateDirectory())
+		mux.Handle("/yaru.v1.QuestionService/", questionServices)
+		mux.Handle("/yaru.v1.DashboardService/", questionServices)
+		mux.Handle("/yaru.v1.InboxService/", questionServices)
 	}
-	commentHandler := configuration.Handlers.Comment
-	if commentHandler == nil {
-		commentHandler = yaruv1connect.UnimplementedCommentServiceHandler{}
+	if configuration.Handlers.Issue != nil || !configuration.WireServices {
+		issueHandler := configuration.Handlers.Issue
+		if issueHandler == nil {
+			issueHandler = yaruv1connect.UnimplementedIssueServiceHandler{}
+		}
+		issuePath, issueHTTP := yaruv1connect.NewIssueServiceHandler(issueHandler)
+		mux.Handle(issuePath, issueHTTP)
+	} else {
+		mux.Handle(api.IssueMountPath, api.IssueHandler())
 	}
-	questionHandler := configuration.Handlers.Question
-	if questionHandler == nil {
-		questionHandler = yaruv1connect.UnimplementedQuestionServiceHandler{}
+	if configuration.Handlers.Comment != nil || !configuration.WireServices {
+		commentHandler := configuration.Handlers.Comment
+		if commentHandler == nil {
+			commentHandler = yaruv1connect.UnimplementedCommentServiceHandler{}
+		}
+		commentPath, commentHTTP := yaruv1connect.NewCommentServiceHandler(commentHandler)
+		mux.Handle(commentPath, commentHTTP)
+	} else {
+		mux.Handle(api.CommentMountPath, api.CommentHandler())
 	}
-	pageHandler := configuration.Handlers.Page
-	if pageHandler == nil {
-		pageHandler = yaruv1connect.UnimplementedPageServiceHandler{}
+	if configuration.Handlers.Page != nil || !configuration.WireServices {
+		pageHandler := configuration.Handlers.Page
+		if pageHandler == nil {
+			pageHandler = yaruv1connect.UnimplementedPageServiceHandler{}
+		}
+		pagePath, pageHTTP := yaruv1connect.NewPageServiceHandler(pageHandler)
+		mux.Handle(pagePath, pageHTTP)
+	} else {
+		mux.Handle(api.PageMountPath, api.PageHandler())
 	}
-	dashboardHandler := configuration.Handlers.Dashboard
-	if dashboardHandler == nil {
-		dashboardHandler = yaruv1connect.UnimplementedDashboardServiceHandler{}
+	if configuration.Handlers.Project != nil || !configuration.WireServices {
+		projectHandler := configuration.Handlers.Project
+		if projectHandler == nil {
+			projectHandler = yaruv1connect.UnimplementedProjectServiceHandler{}
+		}
+		projectPath, projectHTTP := yaruv1connect.NewProjectServiceHandler(projectHandler)
+		mux.Handle(projectPath, projectHTTP)
+	} else {
+		mux.Handle(api.ProjectMountPath, api.ProjectHandler())
 	}
-	projectHandler := configuration.Handlers.Project
-	if projectHandler == nil {
-		projectHandler = yaruv1connect.UnimplementedProjectServiceHandler{}
+	if configuration.Handlers.Question != nil || !configuration.WireServices {
+		questionHandler := configuration.Handlers.Question
+		if questionHandler == nil {
+			questionHandler = yaruv1connect.UnimplementedQuestionServiceHandler{}
+		}
+		questionPath, questionHTTP := yaruv1connect.NewQuestionServiceHandler(questionHandler)
+		mux.Handle(questionPath, questionHTTP)
 	}
-	inboxHandler := configuration.Handlers.Inbox
-	if inboxHandler == nil {
-		inboxHandler = yaruv1connect.UnimplementedInboxServiceHandler{}
+	if configuration.Handlers.Dashboard != nil || !configuration.WireServices {
+		dashboardHandler := configuration.Handlers.Dashboard
+		if dashboardHandler == nil {
+			dashboardHandler = yaruv1connect.UnimplementedDashboardServiceHandler{}
+		}
+		dashboardPath, dashboardHTTP := yaruv1connect.NewDashboardServiceHandler(dashboardHandler)
+		mux.Handle(dashboardPath, dashboardHTTP)
+	}
+	if configuration.Handlers.Inbox != nil || !configuration.WireServices {
+		inboxHandler := configuration.Handlers.Inbox
+		if inboxHandler == nil {
+			inboxHandler = yaruv1connect.UnimplementedInboxServiceHandler{}
+		}
+		inboxPath, inboxHTTP := yaruv1connect.NewInboxServiceHandler(inboxHandler)
+		mux.Handle(inboxPath, inboxHTTP)
 	}
 	watchHandler := configuration.Handlers.Watch
 	if watchHandler == nil {
 		watchHandler = &workspaceWatchService{pollInterval: configuration.WatchPoll, heartbeat: configuration.Heartbeat}
 	}
-	issuePath, issueHTTP := yaruv1connect.NewIssueServiceHandler(issueHandler)
-	commentPath, commentHTTP := yaruv1connect.NewCommentServiceHandler(commentHandler)
-	questionPath, questionHTTP := yaruv1connect.NewQuestionServiceHandler(questionHandler)
-	pagePath, pageHTTP := yaruv1connect.NewPageServiceHandler(pageHandler)
-	dashboardPath, dashboardHTTP := yaruv1connect.NewDashboardServiceHandler(dashboardHandler)
-	projectPath, projectHTTP := yaruv1connect.NewProjectServiceHandler(projectHandler)
-	inboxPath, inboxHTTP := yaruv1connect.NewInboxServiceHandler(inboxHandler)
 	watchPath, watchHTTP := yaruv1connect.NewWatchServiceHandler(watchHandler)
-	mux.Handle(issuePath, issueHTTP)
-	mux.Handle(commentPath, commentHTTP)
-	mux.Handle(questionPath, questionHTTP)
-	mux.Handle(pagePath, pageHTTP)
-	mux.Handle(dashboardPath, dashboardHTTP)
-	mux.Handle(projectPath, projectHTTP)
-	mux.Handle(inboxPath, inboxHTTP)
 	mux.Handle(watchPath, watchHTTP)
 	return mux
 }
