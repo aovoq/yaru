@@ -21,6 +21,9 @@ import (
 )
 
 // 時刻は docs/spec/yaru-format.md の「時刻」。この文字列は toISOString と同じ。
+// 質問のテストも同じ瞬間を使う。
+//
+//declscope:package
 const fixedNow = "2026-09-28T12:00:00.000Z"
 
 func TestIssueCreateMatchesSpecBytes(t *testing.T) {
