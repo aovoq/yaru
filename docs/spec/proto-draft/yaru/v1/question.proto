@@ -4,33 +4,32 @@ package yaru.v1;
 
 import "yaru/v1/common.proto";
 
-// 質問への回答と取り下げ。作成と acknowledge の HTTP は無いので、ここにも置かない。
+// 質問の読みと、回答、取り消し、取り下げ。作成と acknowledge は CLI だけで、RPC にはしない。
 service QuestionService {
-  // GET /api/questions (src/web.tsx:220)。
+  // GET /api/questions (src/web.tsx:221)。
   rpc ListQuestions(ListQuestionsRequest) returns (ListQuestionsResponse);
-  // GET /api/questions/:id (src/web.tsx:229)。
-  rpc GetQuestion(GetQuestionRequest) returns (Question);
-  // POST /api/questions/:id/answer (src/web.tsx:233)。
-  // フォームの POST /questions/:id/answer (src/web.tsx:132) も同じ answerQuestion を呼ぶ。
-  // フォームだけの useDefault、returnTo、next は入れない。useDefault の展開は呼び出し側 (routes.md の未決)。
-  rpc AnswerQuestion(AnswerQuestionRequest) returns (Question);
-  // フォームの POST /questions/:id/undo (src/web.tsx:173)。JSON の対は無い。
-  rpc UndoAnswer(UndoAnswerRequest) returns (Question);
-  // POST /api/questions/:id/cancel (src/web.tsx:244)。body は見ない。
-  // フォーム (src/web.tsx:196) の expectedStatus もサーバーは読まない。
-  rpc CancelQuestion(CancelQuestionRequest) returns (Question);
+  // GET /api/questions/:id (src/web.tsx:230)。
+  rpc GetQuestion(GetQuestionRequest) returns (GetQuestionResponse);
+  // POST /api/questions/:id/answer (src/web.tsx:234)。
+  // フォームの useDefault はここで展開しない。呼び出し側が本文を作る。
+  rpc AnswerQuestion(AnswerQuestionRequest) returns (AnswerQuestionResponse);
+  // フォームの POST /questions/:id/undo (src/web.tsx:174)。JSON の対は無い。
+  rpc UndoAnswer(UndoAnswerRequest) returns (UndoAnswerResponse);
+  // POST /api/questions/:id/cancel (src/web.tsx:245)。body は見ない。
+  rpc CancelQuestion(CancelQuestionRequest) returns (CancelQuestionResponse);
 }
 
 message ListQuestionsRequest {
   string workspace = 1;
-  // open, expired, answered, canceled。空なら絞らない (src/web.tsx:223、src/questions.ts:494)。
-  optional string status = 2;
+  // 未設定なら絞らない。
+  optional QuestionStatus status = 2;
   optional string issue = 3;
 }
 
+// 並びは compareQuestions (src/questions.ts:394)。now は expired を決めた時刻。
 message ListQuestionsResponse {
-  // 並びは compareQuestions (src/questions.ts:389)。
   repeated Question questions = 1;
+  string now = 2;
 }
 
 message GetQuestionRequest {
@@ -38,25 +37,45 @@ message GetQuestionRequest {
   string id = 2;
 }
 
+message GetQuestionResponse {
+  Question question = 1;
+  string now = 2;
+}
+
 message AnswerQuestionRequest {
   string workspace = 1;
   string id = 2;
-  // 空や空白だけは今は 400 (src/questions.ts:215-218)。
+  // 空や空白だけは InvalidArgument (src/questions.ts:220-223)。
   optional string body = 3;
-  // 描いたときの status。answered なら置き換え (src/questions.ts:198-204)。
-  optional string expected_status = 4;
-  // JSON は true のときだけ (src/web.tsx:239)。フォームの "1" は JSON では true にならない。
+  // 描いたときの状態。answered なら置き換え (src/questions.ts:203-209)。
+  optional QuestionStatus expected_status = 4;
+  // JSON は true のときだけ (src/web.tsx:240)。
   optional bool force = 5;
+}
+
+message AnswerQuestionResponse {
+  Question question = 1;
+  string now = 2;
 }
 
 message UndoAnswerRequest {
   string workspace = 1;
   string id = 2;
-  // 取り消したい答えの answeredAt。空なら比較しない (src/web.tsx:183、src/questions.ts:276)。
+  // 取り消したい answeredAt。未設定なら比較しない (src/web.tsx:184、src/questions.ts:281)。
   optional string answered_at = 3;
+}
+
+message UndoAnswerResponse {
+  Question question = 1;
+  string now = 2;
 }
 
 message CancelQuestionRequest {
   string workspace = 1;
   string id = 2;
+}
+
+message CancelQuestionResponse {
+  Question question = 1;
+  string now = 2;
 }

@@ -4,29 +4,30 @@ package yaru.v1;
 
 import "yaru/v1/common.proto";
 
-// dashboard の HTML が埋め込むデータ (src/web.tsx:423-445、src/dashboard.tsx:35-52)。
-// 同じ JSON を返す入口は今無い。?q= ?error= ?answer= ?answered= は SPA の URL が読む。
+// dashboard の HTML が埋め込むデータ (src/web.tsx:424-446、src/dashboard.tsx:35-52)。
+// 同じ JSON を返す入口は今無い。
 service DashboardService {
-  rpc GetDashboard(GetDashboardRequest) returns (Dashboard);
+  rpc GetDashboard(GetDashboardRequest) returns (GetDashboardResponse);
 }
 
 message GetDashboardRequest {
   string workspace = 1;
 }
 
-message Dashboard {
-  // フィルタなし。status は読んだ時刻で決まる (src/web.tsx:436)。
+// now は質問の expired と issue の遅れを決めた時刻。画面の相対時刻はこれを使う。
+message GetDashboardResponse {
   repeated Question questions = 1;
-  // フィルタなし。並びは updatedAt の新しい順 (src/web.tsx:437、src/store.ts:208)。
   repeated Issue issues = 2;
   SessionHealth session_health = 3;
   // git でなければ未設定。JSON では null (src/repository.ts:26-27)。
   optional RepositoryState repository = 4;
+  string now = 5;
 }
 
 // Claude Code のセッションの数。本文は読まない (src/sessions.ts:9-48)。
-// int64 を proto JSON で文字列にするかは未決 (routes.md)。
+// 件数は int32。2^31-1 を超える値は表さない。
 message SessionHealth {
+  // ログのディレクトリ。画面に出してよいかは未決 (ユーザー)。
   optional string directory = 1;
   int32 window_days = 2;
   repeated SessionSummary sessions = 3;
@@ -40,30 +41,30 @@ message SessionSummary {
   optional string started_at = 4;
   optional string last_activity_at = 5;
   repeated string models = 6;
-  int64 assistant_messages = 7;
-  int64 input_tokens = 8;
-  int64 cache_creation_tokens = 9;
-  int64 cache_read_tokens = 10;
-  int64 output_tokens = 11;
+  int32 assistant_messages = 7;
+  int32 input_tokens = 8;
+  int32 cache_creation_tokens = 9;
+  int32 cache_read_tokens = 10;
+  int32 output_tokens = 11;
   double cost_usd = 12;
-  int64 unpriced_messages = 13;
-  int64 tool_uses = 14;
-  int64 tool_results = 15;
-  int64 tool_errors = 16;
-  int64 interruptions = 17;
-  int64 subagents = 18;
+  int32 unpriced_messages = 13;
+  int32 tool_uses = 14;
+  int32 tool_results = 15;
+  int32 tool_errors = 16;
+  int32 interruptions = 17;
+  int32 subagents = 18;
 }
 
 message SessionTotals {
-  int64 sessions = 1;
+  int32 sessions = 1;
   double cost_usd = 2;
-  int64 unpriced_messages = 3;
-  int64 assistant_messages = 4;
+  int32 unpriced_messages = 3;
+  int32 assistant_messages = 4;
   optional double cache_read_ratio = 5;
-  int64 tool_results = 6;
-  int64 tool_errors = 7;
+  int32 tool_results = 6;
+  int32 tool_errors = 7;
   optional double tool_error_ratio = 8;
-  int64 interruptions = 9;
+  int32 interruptions = 9;
 }
 
 // dashboard の git (src/repository.ts:13-20)。最近のコミットは 10 件 (src/repository.ts:22)。

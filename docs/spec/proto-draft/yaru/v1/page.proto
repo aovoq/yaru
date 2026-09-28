@@ -4,50 +4,53 @@ package yaru.v1;
 
 import "yaru/v1/common.proto";
 
-// 板の 1 画面分。GET /api/page と、板の HTML が埋め込む PageData (src/web.tsx:370、src/page.ts:63)。
+// 板 1 画面。GET /api/page と、板の HTML が埋め込む PageData (src/web.tsx:371、src/page.ts:64)。
 service PageService {
-  rpc GetPage(GetPageRequest) returns (Page);
+  // 無い id でも NotFound にしない。error を入れた板を返す。揃え方は routes.md。
+  rpc GetPage(GetPageRequest) returns (GetPageResponse);
 }
 
-// query の名前は板の URL (src/page.ts:93-109、src/page.ts:164-173)。
-// comment、q、answer はサーバーが PageData に入れず、クライアントが URL から読む (src/client/state.ts:233)。
+// query は板の URL (src/page.ts:95-110、src/page.ts:165-174)。
+// comment、q、answer はサーバーが PageData に入れない (src/client/state.ts:233)。
 message GetPageRequest {
   string workspace = 1;
   optional string query = 2;
   // issue の id、または new。
   optional string id = 3;
-  optional string status = 4;
+  optional IssueStatus status = 4;
   optional string assignee = 5;
   optional string label = 6;
-  // 今は文字列 "1" のときだけ true (src/page.ts:99)。
+  // 今は文字列 "1" のときだけ true (src/page.ts:100)。
   optional bool awaiting = 7;
-  optional string sort = 8;
-  optional string group = 9;
-  optional string completed = 10;
-  optional string view = 11;
-  optional string new_status = 12;
+  optional IssueSort sort = 8;
+  optional IssueGroup group = 9;
+  optional CompletedVisibility completed = 10;
+  optional IssueView view = 11;
+  optional IssueStatus new_status = 12;
   optional string new_parent = 13;
   optional string new_label = 14;
   optional string new_assignee = 15;
-  // 失敗したフォームの ?error=。issue が無いときの error より優先する (src/web.tsx:715-716)。
+  // 失敗したフォームの ?error=。無い issue の error より優先する (src/web.tsx:719-720)。
   optional string error = 16;
 }
 
-// issue ごとの、答えを待っている質問のまとまり (src/page.ts:55-61)。
+// issue ごとの答え待ち (src/page.ts:56-62)。
 message AwaitingSummary {
   int32 count = 1;
   int32 expired = 2;
   optional string soonest_answer_by = 3;
 }
 
-// 応答に入る見せ方。依頼と違い、done と canceled の列では completed が all になる (src/page.ts:103-109)。
+// 応答の見せ方。done と canceled の列では completed が all になる (src/page.ts:104-110)。
 message IssueDisplay {
-  string sort = 1;
-  string group = 2;
-  string completed = 3;
+  IssueSort sort = 1;
+  IssueGroup group = 2;
+  CompletedVisibility completed = 3;
 }
 
-message Page {
+// TS の PageData では questions と awaitingQuestionCount は省略可能 (src/page.ts:73、src/page.ts:88)。
+// getPageData は常に入れる。この message も常に入れる。
+message GetPageResponse {
   repeated Issue issues = 1;
   repeated Issue all = 2;
   string query = 3;
@@ -55,21 +58,21 @@ message Page {
   repeated Comment comments = 5;
   repeated Question questions = 6;
   repeated IssueEvent events = 7;
-  // id が数字の issue だけ埋まる (src/page.ts:135-138)。
+  // id が数字の issue だけ埋まる (src/page.ts:136-139)。
   repeated RepositoryCommit commits = 8;
-  optional string status = 9;
+  optional IssueStatus status = 9;
   optional string assignee = 10;
   optional string label = 11;
   bool awaiting = 12;
-  // キーは issue id (src/page.ts:82)。
+  // キーは issue id (src/page.ts:83)。
   map<string, AwaitingSummary> awaiting_by_issue = 13;
   IssueDisplay display = 14;
-  // board か list (src/page.ts:48-51)。
-  string view = 15;
+  IssueView view = 15;
   string base_path = 16;
   int32 awaiting_question_count = 17;
   string viewer = 18;
-  // 無い issue のとき "issue not found: <id>"。?error= が有ればそちら (src/web.tsx:714-716)。
-  // 今の HTTP はこのとき 404 だが本文は Page のまま。Connect の status は未決。
+  // 無い issue なら "issue not found: <id>"。?error= があればそちら (src/web.tsx:718-720)。
   optional string error = 19;
+  // この板の期限と stale を決めた時刻。ISO 8601。画面はブラウザの時計を使わない。
+  string now = 20;
 }

@@ -6,30 +6,33 @@ import "yaru/v1/common.proto";
 
 // コメント。元の入口は /api/comments と、スクリプト無しの POST /comments。
 service CommentService {
-  // GET /api/comments (src/web.tsx:384)。issue が空なら今は 400。
+  // GET /api/comments (src/web.tsx:385)。issue が空なら InvalidArgument。
   rpc ListComments(ListCommentsRequest) returns (ListCommentsResponse);
-  // POST /api/comments (src/web.tsx:390)。画面は {issue, body} を送る (src/client/issue/use-comment-posting.ts:38-42)。
-  // POST /comments (src/web.tsx:395) は同じ保存で、失敗を 303 の query に載せる。
-  rpc SaveComment(SaveCommentRequest) returns (Comment);
+  // POST /api/comments (src/web.tsx:391)。画面は issue と body を送る。
+  rpc SaveComment(SaveCommentRequest) returns (SaveCommentResponse);
 }
 
 message ListCommentsRequest {
   string workspace = 1;
-  // 空は不可 (src/web.tsx:386)。
+  // 空は不可 (src/web.tsx:387)。
   string issue = 2;
 }
 
+// 裸の配列を包む。古い順 (src/store.ts:651)。
 message ListCommentsResponse {
-  // 古い順 (src/store.ts:650)。
   repeated Comment comments = 1;
 }
 
 message SaveCommentRequest {
   string workspace = 1;
-  // 有れば更新。画面は送らない (src/store.ts:662)。
+  // 有れば更新。画面は送らない (src/store.ts:663)。
   optional string id = 2;
   optional string issue = 3;
-  // 有れば親の issue を使い、issue は見ない (src/store.ts:677-678)。画面のフォームは送らない。
+  // 有れば親の issue を使い、issue は見ない (src/store.ts:678-679)。
   optional string parent = 4;
   optional string body = 5;
+}
+
+message SaveCommentResponse {
+  Comment comment = 1;
 }

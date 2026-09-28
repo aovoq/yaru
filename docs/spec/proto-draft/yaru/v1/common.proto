@@ -2,23 +2,101 @@ syntax = "proto3";
 
 package yaru.v1;
 
-// yaru serve の JSON を Connect RPC に写す下書き。生成先の proto/ ではない。
-// 読み方と未決は docs/spec/routes.md。go_package は P0-layout が決めるまで付けない。
-// JSON の null と、キーが無いことは区別していない (routes.md の未決)。時刻は今の JSON と同じ ISO 8601 の文字列。
+// Connect の下書き。生成先の proto/ ではない。
+// 手続きに idempotency_level = NO_SIDE_EFFECTS を付けない。全部 POST にする。
+// 読み方は docs/spec/routes.md。go_package は P0-layout まで付けない。
+// 時刻は ISO 8601 の文字列。int64 は使わない。
 
-// issue 1 件。GET /api/issues/:id の本文そのもの (src/web.tsx:375)。
-// フィールドの意味は src/store.ts:19-43。
+// 文字列の配列。未設定と、空の配列を区別するために包む。
+message StringList {
+  // 中身。空でも、message 自体がセットされていれば「空」である。
+  repeated string values = 1;
+}
+
+// issue の状態。JSON の名前は ISSUE_STATUS_TODO のようになる。今の "todo" との対応は routes.md。
+enum IssueStatus {
+  ISSUE_STATUS_UNSPECIFIED = 0;
+  ISSUE_STATUS_BACKLOG = 1;
+  ISSUE_STATUS_TODO = 2;
+  ISSUE_STATUS_IN_PROGRESS = 3;
+  ISSUE_STATUS_DONE = 4;
+  ISSUE_STATUS_CANCELED = 5;
+}
+
+// 優先度。出力で未設定なら優先度なし。UNSPECIFIED は保存のクリアにだけ使う。
+enum IssuePriority {
+  ISSUE_PRIORITY_UNSPECIFIED = 0;
+  ISSUE_PRIORITY_URGENT = 1;
+  ISSUE_PRIORITY_HIGH = 2;
+  ISSUE_PRIORITY_MEDIUM = 3;
+  ISSUE_PRIORITY_LOW = 4;
+}
+
+// 板の並べ方。空の指定は UNSPECIFIED で、既定は priority。
+enum IssueSort {
+  ISSUE_SORT_UNSPECIFIED = 0;
+  ISSUE_SORT_PRIORITY = 1;
+  ISSUE_SORT_UPDATED = 2;
+  ISSUE_SORT_CREATED = 3;
+  ISSUE_SORT_DUE = 4;
+}
+
+// 板のまとめ方。既定は status。
+enum IssueGroup {
+  ISSUE_GROUP_UNSPECIFIED = 0;
+  ISSUE_GROUP_STATUS = 1;
+  ISSUE_GROUP_PRIORITY = 2;
+  ISSUE_GROUP_LABEL = 3;
+  ISSUE_GROUP_NONE = 4;
+}
+
+// 終わった issue の見せ方。既定は recent。
+enum CompletedVisibility {
+  COMPLETED_VISIBILITY_UNSPECIFIED = 0;
+  COMPLETED_VISIBILITY_HIDE = 1;
+  COMPLETED_VISIBILITY_RECENT = 2;
+  COMPLETED_VISIBILITY_ALL = 3;
+}
+
+// 板の見た目。既定は list。今の parseView は未知の文字列を list に落とすが、RPC は InvalidArgument にする。
+enum IssueView {
+  ISSUE_VIEW_UNSPECIFIED = 0;
+  ISSUE_VIEW_LIST = 1;
+  ISSUE_VIEW_BOARD = 2;
+}
+
+// 質問の状態。読む時刻で決まり、ファイルの status ではない。
+enum QuestionStatus {
+  QUESTION_STATUS_UNSPECIFIED = 0;
+  QUESTION_STATUS_OPEN = 1;
+  QUESTION_STATUS_EXPIRED = 2;
+  QUESTION_STATUS_ANSWERED = 3;
+  QUESTION_STATUS_CANCELED = 4;
+}
+
+// 本文 patch の種類。今の op 文字列 (src/store.ts:72-78)。
+enum PatchOpKind {
+  PATCH_OP_KIND_UNSPECIFIED = 0;
+  PATCH_OP_KIND_REPLACE = 1;
+  PATCH_OP_KIND_INSERT_BEFORE = 2;
+  PATCH_OP_KIND_INSERT_AFTER = 3;
+  PATCH_OP_KIND_PREPEND = 4;
+  PATCH_OP_KIND_APPEND = 5;
+  PATCH_OP_KIND_REPLACE_RANGE = 6;
+}
+
+// issue 1 件。フィールドの意味は src/store.ts:20-44。
 message Issue {
   string id = 1;
   string title = 2;
-  // backlog, todo, in_progress, done, canceled (src/store.ts:118)。
-  // 読み書きとも resolveStatus がこの 5 つ以外を拒む (src/store.ts:431-436、src/store.ts:811)。
-  // 壊れたファイルは一覧から省く (src/store.ts:182-186)。
-  string status = 3;
+  // backlog, todo, in_progress, done, canceled。未知は読まない (src/store.ts:432-437)。
+  IssueStatus status = 3;
+  // 無いときは未設定。JSON の null と同じ。
   optional string assignee = 4;
   repeated string labels = 5;
   optional string due_date = 6;
-  optional string priority = 7;
+  // 無いときは未設定。UNSPECIFIED は出さない。
+  optional IssuePriority priority = 7;
   optional string parent = 8;
   repeated string blocks = 9;
   repeated string blocked_by = 10;
@@ -31,36 +109,32 @@ message Issue {
   optional string session = 17;
   optional string worktree = 18;
   optional string branch = 19;
-  // 読むたびに決め、ファイルには書かない (src/store.ts:40)。
+  // 読むたびに決め、ファイルには書かない (src/store.ts:41)。
   bool stale = 20;
-  // 生の Markdown。画面が描く (docs/migration/PLAN.md)。
+  // 生の Markdown。画面が描く。
   string body = 21;
 }
 
-// 属性の変更 1 件。GET /api/page の events (src/page.ts:74、src/issue-events.ts:26-35)。
-// from と to は文字列、文字列の配列、または null (src/issue-events.ts:24)。
-// proto にその共用体が無いので、下書きは oneof にする。両方未設定が JSON の null。空の配列は list をセットして values を空にする。
-// この分け方自体は未決 (docs/spec/routes.md)。
+// 属性の変更 1 件。from と to は文字列、文字列の配列、または null (src/issue-events.ts:24-35)。
 message IssueEvent {
+  // title, status, assignee, labels, dueDate, priority, parent, blocks。
   string field = 1;
+  // 未設定なら null。文字列なら text。配列なら list。空の配列は空の list。
   oneof from_value {
     string from_text = 2;
-    IssueEventList from_list = 3;
+    StringList from_list = 3;
   }
+  // from_value と同じ。
   oneof to_value {
     string to_text = 4;
-    IssueEventList to_list = 5;
+    StringList to_list = 5;
   }
   string by = 6;
   optional string session = 7;
   string at = 8;
 }
 
-message IssueEventList {
-  repeated string values = 1;
-}
-
-// コメント 1 件。POST /api/comments の本文そのもの (src/web.tsx:390、src/store.ts:52-60)。
+// コメント 1 件 (src/store.ts:53-61)。
 message Comment {
   string id = 1;
   string issue = 2;
@@ -71,15 +145,13 @@ message Comment {
   string body = 7;
 }
 
-// 質問 1 件。GET /api/questions/:id の本文そのもの (src/web.tsx:229、src/questions.ts:31-57)。
-// status はファイルに書かず、読む時刻で決める (src/questions.ts:22)。
+// 質問 1 件 (src/questions.ts:32-58)。
 message Question {
   string id = 1;
   string title = 2;
-  // open, expired, answered, canceled (src/questions.ts:25)。
-  string status = 3;
+  QuestionStatus status = 3;
   optional string issue = 4;
-  optional string priority = 5;
+  optional IssuePriority priority = 5;
   optional string default_action = 6;
   optional string answer_by = 7;
   repeated string options = 8;
@@ -98,17 +170,14 @@ message Question {
   string body = 21;
 }
 
-// 衝突のとき JSON API が返す形 (src/web.tsx:89)。Connect のコードへの写し方は未決。
+// 質問の失敗に添える details。Connect の status message が今の error 文で、ここには保存されている質問を入れる。
 message QuestionConflict {
-  string error = 1;
-  Question question = 2;
+  Question question = 1;
 }
 
-// 本文の patch 1 件。POST /api/issues の patch (src/store.ts:71-77)。
-// JSON 名が snake_case のままかどうかは未決。下書きは json_name を付けない。
+// 本文 patch の 1 件 (src/store.ts:72-78)。
 message PatchOperation {
-  // replace, insert_before, insert_after, prepend, append, replace_range (src/store.ts:869-876)。
-  string op = 1;
+  PatchOpKind kind = 1;
   optional string old_string = 2;
   optional string new_string = 3;
   optional bool replace_all = 4;
@@ -118,12 +187,30 @@ message PatchOperation {
   optional string to = 8;
 }
 
-// git のコミット。dashboard の commits と、issue 画面の commits が同じ形 (src/repository.ts:4-11、src/repository.ts:73)。
+// patch の列。1 件から 50 件 (src/store.ts:885-886)。
+message PatchList {
+  repeated PatchOperation operations = 1;
+}
+
+// blocks の差分。blocks の全置換とは同時に渡せないので、oneof の片方に置く。
+message BlockDelta {
+  optional StringList add_blocks = 1;
+  optional StringList remove_blocks = 2;
+  optional StringList add_blocked_by = 3;
+  optional StringList remove_blocked_by = 4;
+}
+
+// 優先度の更新。message が未設定なら変えない。priority が UNSPECIFIED なら消す。
+message IssuePriorityUpdate {
+  IssuePriority priority = 1;
+}
+
+// git のコミット (src/repository.ts:4-11)。
 message RepositoryCommit {
   string hash = 1;
   string subject = 2;
   string author = 3;
   string committed_at = 4;
-  // upstream が無いときは未設定。JSON では null (src/repository.ts:9-10)。
+  // upstream が無いときは未設定。JSON の null。
   optional bool pushed = 5;
 }

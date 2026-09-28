@@ -2,19 +2,31 @@ syntax = "proto3";
 
 package yaru.v1;
 
-// 板と dashboard の SSE。GET /events (src/web.tsx:302)。
-// https://html.spec.whatwg.org/multipage/server-sent-events.html
-// 今の data は常に change で、クライアントは到着だけを見る (src/client/use-page-controller.ts:96、src/ui/live-page.ts:176)。
-// 接続時に .yaru/questions/ を作る副作用を残すかは未決 (src/web.tsx:321-324)。
-// : ping と : connected はストリームの message にしない。
+// 板と dashboard のライブ更新。今の GET /events (src/web.tsx:303)。
+// つないだだけで .yaru/questions は作らない。issues、questions、comments の変化は、ディレクトリが後からできても change にする。
 service WatchService {
-  rpc WatchWorkspace(WatchWorkspaceRequest) returns (stream WatchEvent);
+  // 全ワークスペースを 1 本にはしない。今の SSE はワークスペースの中にある。
+  rpc WatchWorkspace(WatchWorkspaceRequest) returns (stream WatchWorkspaceResponse);
 }
 
 message WatchWorkspaceRequest {
-  // 今の SSE はワークスペースの createApp の中にある (src/web.tsx:302)。全ワークスペースを 1 本にはしない。
   string workspace = 1;
 }
 
-// 1 件が、ファイルが変わったという合図。フィールドは無い。
-message WatchEvent {}
+// つないだらすぐ ready。変化は change。約 5 秒ごとに heartbeat (今の : ping)。
+message WatchWorkspaceResponse {
+  oneof event {
+    WatchReady ready = 1;
+    WatchChange change = 2;
+    WatchHeartbeat heartbeat = 3;
+  }
+}
+
+// 接続できた合図。クライアントはこれを受けたら取り直す。
+message WatchReady {}
+
+// ファイルが変わった合図。中身は載らない。今の data は文字 change。
+message WatchChange {}
+
+// 接続を維持する合図。取り直しはしない。
+message WatchHeartbeat {}
