@@ -4,17 +4,22 @@ import { HIT_AREA } from "./hit-area"
 // 画面のボタンの見た目をそろえる。種類 (variant)・大きさ (size)・寄せ方 (align)・カーソル (cursor) だけを選び、クラスを直接並べない
 // size は md が画面の主な操作に使う高さ (sm の幅より狭い画面では指で押しやすい 44px、広い画面では 36px)、sm が一覧や見出しに置く小さい高さ (28px)、
 // xs が属性の行の中に置く小さな文字のボタン、inline が枠も余白も高さも持たず、字の大きさも周りに合わせるボタン
+// inline は余白を持たないので、地の色や枠のある種類と組むと字が縁に触れてはみ出して見える。字だけの種類 (text・plain) とだけ組める
 // variant の text (薄い色) と plain (本文の色) は、「Add description…」や属性の値のように文字だけで押せるボタンに使う
 // 44px は Apple の Human Interface Guidelines の押せる大きさ https://developer.apple.com/design/human-interface-guidelines/accessibility#Buttons-and-controls
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "text" | "plain"
 export type ButtonSize = "sm" | "md" | "xs" | "inline"
+export type InlineButtonVariant = "text" | "plain"
+export type BoxButtonSize = Exclude<ButtonSize, "inline">
 export type ButtonAlign = "center" | "start"
 export type ButtonCursor = "pointer" | "text"
 
 // focus の枠は地に対して 6:1 以上ある primary-hover を不透明のまま使う (focus-ring.ts と同じ理由)
 const BASE =
   "inline-flex items-center gap-1.5 font-sans no-underline transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary-hover disabled:cursor-default disabled:opacity-50"
+
+export const INLINE_VARIANTS: readonly InlineButtonVariant[] = ["text", "plain"]
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary:
@@ -49,11 +54,40 @@ const CURSORS: Record<ButtonCursor, string> = {
   text: "cursor-text",
 }
 
+type ButtonClassOptions = { align?: ButtonAlign; cursor?: ButtonCursor }
+
+// 種類と大きさの組み合わせ。inline は字だけの種類とだけ組める
+export type ButtonAppearance =
+  | { variant?: ButtonVariant; size?: BoxButtonSize }
+  | { variant: InlineButtonVariant; size: "inline" }
+
+export function buttonClass(
+  variant: InlineButtonVariant,
+  size: "inline",
+  extra?: string,
+  options?: ButtonClassOptions,
+): string
+export function buttonClass(
+  variant: ButtonVariant,
+  size: BoxButtonSize,
+  extra?: string,
+  options?: ButtonClassOptions,
+): string
 export function buttonClass(
   variant: ButtonVariant,
   size: ButtonSize,
   extra = "",
-  options: { align?: ButtonAlign; cursor?: ButtonCursor } = {},
+  options: ButtonClassOptions = {},
+): string {
+  return classesFor(variant, size, extra, options)
+}
+
+// 組み合わせの確かめは buttonClass と ButtonAppearance の型が受け持つので、ここは広い引数のままクラスを並べる
+function classesFor(
+  variant: ButtonVariant,
+  size: ButtonSize,
+  extra: string,
+  options: ButtonClassOptions,
 ): string {
   return [
     BASE,
@@ -76,14 +110,13 @@ export function Button({
   class: extra = "",
   type = "button",
   ...props
-}: JSX.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: ButtonVariant
-  size?: ButtonSize
-  align?: ButtonAlign
-  cursor?: ButtonCursor
-  class?: string
-}) {
+}: JSX.ButtonHTMLAttributes<HTMLButtonElement> &
+  ButtonAppearance & {
+    align?: ButtonAlign
+    cursor?: ButtonCursor
+    class?: string
+  }) {
   return (
-    <button {...props} type={type} class={buttonClass(variant, size, extra, { align, cursor })} />
+    <button {...props} type={type} class={classesFor(variant, size, extra, { align, cursor })} />
   )
 }

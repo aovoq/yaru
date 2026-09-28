@@ -16,7 +16,12 @@ import { RelationKindSwitch } from "./client/issue/relation-kind-switch"
 import { Alert } from "./components/alert"
 import { ConfirmDialog } from "./components/confirm-dialog"
 import { Avatar } from "./components/avatar"
-import { Button, type ButtonSize, type ButtonVariant } from "./components/button"
+import {
+  Button,
+  type BoxButtonSize,
+  type ButtonVariant,
+  INLINE_VARIANTS,
+} from "./components/button"
 import { IconButton } from "./components/icon-button"
 import { InlineInput } from "./components/inline-input"
 import { InlineSelect } from "./components/inline-select"
@@ -304,7 +309,7 @@ html[data-resizing] #sidebar-resizer {
 `
 
 const BUTTON_VARIANTS: ButtonVariant[] = ["primary", "secondary", "ghost", "text", "plain"]
-const BUTTON_SIZES: ButtonSize[] = ["sm", "md", "xs", "inline"]
+const BOX_BUTTON_SIZES: BoxButtonSize[] = ["sm", "md", "xs"]
 
 let cached: Promise<string> | undefined
 
@@ -790,12 +795,17 @@ async function sampleHtml(): Promise<string> {
   const primitives = (
     <>
       {BUTTON_VARIANTS.flatMap((variant) =>
-        BUTTON_SIZES.map((size) => (
+        BOX_BUTTON_SIZES.map((size) => (
           <Button variant={variant} size={size}>
             x
           </Button>
         )),
       )}
+      {INLINE_VARIANTS.map((variant) => (
+        <Button variant={variant} size="inline">
+          x
+        </Button>
+      ))}
       <Button align="start" cursor="text">
         x
       </Button>
