@@ -1,0 +1,26 @@
+# Go の lint の設定。パッケージの間の境界は depguard、ファイルの中の境界は declscope (別に動かす)、使われていないコードは unused で確かめる
+# https://golangci-lint.run/usage/configuration/
+version: "2"
+linters:
+  enable:
+    - depguard
+    - unused
+    - govet
+    - errcheck
+    - staticcheck
+  settings:
+    depguard:
+      rules:
+        # データの層は HTTP と画面を知らない。API や端末の都合がデータの形に漏れないようにする
+        store-has-no-transport:
+          files:
+            - "**/internal/store/**"
+            - "**/internal/questions/**"
+          deny:
+            - pkg: net/http
+              desc: the data layer must not depend on HTTP
+            - pkg: connectrpc.com/connect
+              desc: the data layer must not depend on Connect RPC
+formatters:
+  enable:
+    - gofmt

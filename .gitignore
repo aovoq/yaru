@@ -4,3 +4,5 @@ node_modules/
 *.tgz
 
 REPORT.md
+.bin/
+.direnv/
