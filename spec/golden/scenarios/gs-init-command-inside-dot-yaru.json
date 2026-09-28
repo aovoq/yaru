@@ -1,0 +1,13 @@
+{
+  "name": "gs-init-command-inside-dot-yaru",
+  "description": ".yaru ディレクトリの中から開くと、親のワークスペースを使い、登録は親の 1 件のままである",
+  "steps": [
+    {
+      "arguments": ["init"]
+    },
+    {
+      "arguments": ["issue", "list"],
+      "workingDirectory": ".yaru"
+    }
+  ]
+}

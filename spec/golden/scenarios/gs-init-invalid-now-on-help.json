@@ -1,0 +1,10 @@
+{
+  "name": "gs-init-invalid-now-on-help",
+  "description": "YARU_NOW が日時でないときは --help より前に失敗し、ヘルプは出ない",
+  "steps": [
+    {
+      "arguments": ["--help"],
+      "now": "yesterday"
+    }
+  ]
+}

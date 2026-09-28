@@ -1,0 +1,24 @@
+{
+  "name": "gs-init-slug-special",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": "my project#1",
+      "stdout": "initialized <WORKSPACE>/my project#1/.yaru\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"my-project-1\",\n      \"root\": \"<WORKSPACE>/my project#1\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-missing-flag-value-next-short",
+  "description": "値の位置に短いフラグがあると、それを値にせず missing value になる",
+  "steps": [
+    {
+      "arguments": ["init", "--foo", "-b"]
+    }
+  ]
+}

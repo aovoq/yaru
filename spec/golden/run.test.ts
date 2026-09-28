@@ -554,6 +554,8 @@ test("the main worktree is refused", () => {
   }
 })
 
+// 場面が増えると全件の照合が既定の 5 秒を超える。待ち時間はミリ秒
+// https://bun.com/docs/cli/test
 test("recorded scenarios match the TypeScript CLI", async () => {
   const previous = process.env.YARU_BIN
   delete process.env.YARU_BIN
@@ -565,7 +567,7 @@ test("recorded scenarios match the TypeScript CLI", async () => {
     if (previous === undefined) delete process.env.YARU_BIN
     else process.env.YARU_BIN = previous
   }
-})
+}, 120_000)
 
 function restoreEnvironment(previous: {
   bin: string | undefined

@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-help-on-init",
+  "description": "init --help は初期化しない。init 専用の説明は無く、全体のヘルプを終了コード 0 で出す",
+  "steps": [
+    {
+      "arguments": ["init", "--help"]
+    }
+  ]
+}

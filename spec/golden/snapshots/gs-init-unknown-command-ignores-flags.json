@@ -1,0 +1,19 @@
+{
+  "name": "gs-init-unknown-command-ignores-flags",
+  "steps": [
+    {
+      "arguments": ["nope", "--foo", "bar"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown command: nope\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

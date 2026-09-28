@@ -1,0 +1,10 @@
+{
+  "name": "gs-init-now-without-millis",
+  "description": "小数秒の無い YARU_NOW は受け、init は成功する",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00Z"
+    }
+  ]
+}

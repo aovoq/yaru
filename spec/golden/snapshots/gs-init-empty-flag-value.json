@@ -1,0 +1,19 @@
+{
+  "name": "gs-init-empty-flag-value",
+  "steps": [
+    {
+      "arguments": ["init", "--foo", ""],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --foo\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

@@ -1,0 +1,30 @@
+{
+  "name": "gs-init-worktree-not-a-workspace",
+  "description": "どちらの .yaru も無い linked worktree から開くと not a yaru workspace で失敗し、登録しない",
+  "setup": {
+    "files": [
+      {
+        "path": "README.md",
+        "content": "latch\n"
+      }
+    ],
+    "commits": [
+      {
+        "message": "initial",
+        "paths": ["README.md"]
+      }
+    ],
+    "worktrees": [
+      {
+        "name": "feature",
+        "branch": "feat/add-thing"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "workingDirectory": "worktree:feature"
+    }
+  ]
+}

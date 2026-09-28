@@ -1,0 +1,36 @@
+{
+  "name": "gs-init-worktree-init-alone",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": "worktree:feature",
+      "stdout": "initialized <WORKTREE:feature>/.yaru\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "list"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": "worktree:feature",
+      "stdout": "{\n  \"issues\": [],\n  \"hasNextPage\": false\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"feature\",\n      \"root\": \"<WORKTREE:feature>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

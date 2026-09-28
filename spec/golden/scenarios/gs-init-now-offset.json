@@ -1,0 +1,10 @@
+{
+  "name": "gs-init-now-offset",
+  "description": "タイムゾーン付きの YARU_NOW は受け、init は成功する。init の出力に時刻は出ない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T09:00:00+09:00"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-help-wins-over-format",
+  "description": "--format と --help が両方あるとヘルプが勝ち、終了コード 0 で全体のヘルプを出す",
+  "steps": [
+    {
+      "arguments": ["--format", "--help"]
+    }
+  ]
+}
