@@ -258,9 +258,11 @@ html[data-sidebar="closed"] #sidebar {
   background: none;
   font-size: var(--text-small);
 }
+/* 引用は片側の線で飾らず、地を少し明るくして囲む。答えの箱 (surface-2) の中でも見分けられるよう、面の色ではなく重ねる色にする */
 .markdown blockquote {
-  padding-left: 12px;
-  border-left: 2px solid var(--color-hairline-strong);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--color-ink) 4%, transparent);
   color: var(--color-ink-subtle);
 }
 .markdown table {

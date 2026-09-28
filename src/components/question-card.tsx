@@ -74,9 +74,7 @@ export function QuestionCard({
             {question.defaultAction ? (
               <DefaultAction label="Default" action={question.defaultAction} />
             ) : null}
-            {question.answer !== null ? (
-              <Markdown source={question.answer} compact class="border-l-2 border-primary pl-2.5" />
-            ) : null}
+            {question.answer !== null ? <AnswerBlock answer={question.answer} /> : null}
           </div>
         </Collapsible>
       </Card>
@@ -256,6 +254,16 @@ function DefaultAction({ label, action }: { label: string; action: string }) {
       <span class="text-micro mr-1.5 text-ink-tertiary">{label}</span>
       {action}
     </p>
+  )
+}
+
+// 答えた内容。既定の行動 (DefaultAction) と同じ箱に「Answer」の見出しを付ける。答えは Markdown なので見出しの下の段に描く
+function AnswerBlock({ answer }: { answer: string }) {
+  return (
+    <div class="rounded-md border border-hairline bg-surface-2 px-2.5 py-2">
+      <span class="text-micro text-ink-tertiary">Answer</span>
+      <Markdown source={answer} compact />
+    </div>
   )
 }
 

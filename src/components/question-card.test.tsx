@@ -117,6 +117,18 @@ test("an answered question folds into one line that opens to the full answer", (
   expect(html).not.toContain("<textarea")
 })
 
+// 答えは既定の行動 (Default) と同じ箱に「Answer」の見出しを付けて見せ、左の線で飾らない
+test("an answered question shows the answer in the same box as the default, without a left bar", () => {
+  const html = card({
+    status: "answered",
+    answer: "はい",
+    answeredBy: "human",
+    answeredAt: "2026-09-26T11:00:00.000Z",
+  })
+  expect(html).toMatch(/<span[^>]*>Answer<\/span>/)
+  expect(html).not.toContain("border-l-2")
+})
+
 test("an answered question tells whether the agent has picked up the answer", () => {
   const answered = {
     status: "answered" as const,

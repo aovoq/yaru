@@ -63,3 +63,17 @@ test("every Tailwind class written in the source is drawn in the stylesheet samp
   }
   expect(await classesMissingFromSamples(tokens)).toEqual([])
 })
+
+// 片側だけに引く飾りの線 (左の帯・左の罫) は使わない。状態は地の色・枠全体・言葉で示す
+// issue 画面の属性の列の区切り (lg:border-l) は飾りではなく領域の境目なので除く
+test("no component decorates an edge with a one-sided accent bar", async () => {
+  const offenders: string[] = []
+  for await (const file of new Glob("**/*.{ts,tsx}").scan(import.meta.dir)) {
+    if (/\.test\.tsx?$/.test(file)) continue
+    const source = await Bun.file(`${import.meta.dir}/${file}`).text()
+    for (const pattern of [/shadow-\[inset_\d+px_0_/g, /\bborder-l-\d/g, /border-left:/g]) {
+      for (const match of source.matchAll(pattern)) offenders.push(`${file}: ${match[0]}`)
+    }
+  }
+  expect(offenders).toEqual([])
+})

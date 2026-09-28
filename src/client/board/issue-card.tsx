@@ -15,7 +15,7 @@ import { StaleMarker } from "../../components/stale-marker"
 
 // 板の列に並べる issue の 1 枚。押すと issue を開き、引きずると別の列へ移せる
 // 右クリックのメニュー (data-id) と、j / k で選んだ印 (aria-selected) もこの要素に付ける
-// 選んだカードは一覧の行 (issue-row.tsx) と同じく、左端の 2px の primary の帯と一段明るい面で示す
+// 選んだカードは primary の枠と一段明るい面で示す。片側だけの飾りの帯は付けない
 // 列が状態でないとき (優先度やラベルで分けたとき) は、落としても状態しか変えられないので引きずれなくし、状態のアイコンをカードに出す
 // Card は a として描けないので、枠と面のクラスはここで持つ
 // まとめて選んだカード (data-bulk-selected) は primary を薄く敷き、枠も primary にする
@@ -60,7 +60,7 @@ export function IssueCard({
         aria-selected={selected ? "true" : undefined}
         onDragStart={draggable ? onDragStart : undefined}
         onDragEnd={draggable ? onDragEnd : undefined}
-        class={`block cursor-pointer rounded-lg border border-hairline bg-surface-2 p-3 text-ink no-underline shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.03)] transition-colors select-none hover:border-hairline-strong hover:bg-surface-3 aria-selected:border-primary/60 aria-selected:bg-surface-3 aria-selected:shadow-[inset_2px_0_0_0_var(--color-primary)] data-[bulk-selected]:border-primary/60 data-[bulk-selected]:bg-primary/15 ${FOCUS_RING}`}
+        class={`block cursor-pointer rounded-lg border border-hairline bg-surface-2 p-3 text-ink no-underline shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.03)] transition-colors select-none hover:border-hairline-strong hover:bg-surface-3 aria-selected:border-primary/60 aria-selected:bg-surface-3 data-[bulk-selected]:border-primary/60 data-[bulk-selected]:bg-primary/15 ${FOCUS_RING}`}
       >
         <div class={`flex items-center gap-2 ${selecting ? "pr-6" : "[@media(hover:none)]:pr-6"}`}>
           {showStatus ? <StatusIcon status={issue.status} /> : null}
