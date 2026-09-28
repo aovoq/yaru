@@ -1,0 +1,36 @@
+{
+  "name": "gs-init-format-rejects-value",
+  "steps": [
+    {
+      "arguments": ["issue", "list", "--format", "human"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: human\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "-f", "human"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: human\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [
+    {
+      "path": "config.yml",
+      "content": "keep\n"
+    }
+  ],
+  "state": []
+}

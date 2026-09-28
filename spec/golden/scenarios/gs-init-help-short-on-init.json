@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-help-short-on-init",
+  "description": "init -h は初期化せず、全体のヘルプを終了コード 0 で出す",
+  "steps": [
+    {
+      "arguments": ["init", "-h"]
+    }
+  ]
+}

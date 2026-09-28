@@ -1,0 +1,19 @@
+{
+  "name": "gs-init-unknown-flag-short",
+  "steps": [
+    {
+      "arguments": ["init", "-x", "bar"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: -x\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

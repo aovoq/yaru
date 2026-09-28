@@ -1,0 +1,34 @@
+{
+  "name": "gs-init-worktree-init-alone",
+  "description": "main に .yaru が無い linked worktree で init すると、worktree 側に作り、登録の root も worktree である",
+  "setup": {
+    "files": [
+      {
+        "path": "README.md",
+        "content": "latch\n"
+      }
+    ],
+    "commits": [
+      {
+        "message": "initial",
+        "paths": ["README.md"]
+      }
+    ],
+    "worktrees": [
+      {
+        "name": "feature",
+        "branch": "feat/add-thing"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["init"],
+      "workingDirectory": "worktree:feature"
+    },
+    {
+      "arguments": ["issue", "list"],
+      "workingDirectory": "worktree:feature"
+    }
+  ]
+}

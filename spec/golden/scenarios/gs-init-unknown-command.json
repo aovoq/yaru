@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-unknown-command",
+  "description": "未知のコマンドは unknown command を標準エラーへ出し、終了コード 1 で終わる",
+  "steps": [
+    {
+      "arguments": ["nope"]
+    }
+  ]
+}

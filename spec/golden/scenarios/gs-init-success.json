@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-success",
+  "description": "yaru init は issues と comments と空の config.yml と questions/.gitignore を作り、slug workspace で登録する。events は作らない",
+  "steps": [
+    {
+      "arguments": ["init"]
+    }
+  ]
+}

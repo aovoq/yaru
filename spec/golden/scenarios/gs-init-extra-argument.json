@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-extra-argument",
+  "description": "init の余分な位置引数は無視して初期化する",
+  "steps": [
+    {
+      "arguments": ["init", "extra", "more"]
+    }
+  ]
+}

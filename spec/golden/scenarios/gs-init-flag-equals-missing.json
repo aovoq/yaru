@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-flag-equals-missing",
+  "description": "--title=hello は title への代入にならない。値の無いフラグ --title=hello として missing value になる",
+  "steps": [
+    {
+      "arguments": ["init", "--title=hello"]
+    }
+  ]
+}

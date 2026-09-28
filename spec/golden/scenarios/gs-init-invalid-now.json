@@ -1,0 +1,10 @@
+{
+  "name": "gs-init-invalid-now",
+  "description": "YARU_NOW が日時でないときは、init より前に失敗し .yaru も登録も作らない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "yesterday"
+    }
+  ]
+}

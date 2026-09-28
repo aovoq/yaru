@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-unknown-flag-without-command",
+  "description": "コマンドが無い --foo bar は未知のフラグにせず、全体のヘルプを終了コード 1 で出す",
+  "steps": [
+    {
+      "arguments": ["--foo", "bar"]
+    }
+  ]
+}

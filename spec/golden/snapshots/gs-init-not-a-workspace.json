@@ -1,0 +1,19 @@
+{
+  "name": "gs-init-not-a-workspace",
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "not a yaru workspace (run yaru init)\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

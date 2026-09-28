@@ -1,0 +1,10 @@
+{
+  "name": "gs-init-now-long-fraction",
+  "description": "小数秒が 3 桁より長い YARU_NOW は受け、init は成功する",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.123456Z"
+    }
+  ]
+}

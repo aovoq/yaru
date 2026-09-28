@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-help-blocked-by-missing-value",
+  "description": "--help より前に値の無い --port があると、ヘルプは出さず missing value で終了コード 1 になる",
+  "steps": [
+    {
+      "arguments": ["--help", "--port"]
+    }
+  ]
+}

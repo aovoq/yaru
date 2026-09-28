@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-unknown-command-with-help",
+  "description": "未知のコマンドでも --help があればコマンドは実行せず、全体のヘルプを終了コード 0 で出す",
+  "steps": [
+    {
+      "arguments": ["nope", "--help"]
+    }
+  ]
+}
