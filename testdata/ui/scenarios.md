@@ -45,7 +45,7 @@
 
 ## fixture との対応
 
-`testdata/ui/fixture/make-fixture.sh` がワークスペースを 3 つ作る。題名と id は `$ROOT/manifest.json`。各ワークスペースには、リポジトリの外で `bun src/index.ts` が JSX を読むための `tsconfig.json` と `node_modules` のリンクがある。これは画面のデータの一部ではなく、`.gitignore` に入れてコミットしない。
+`testdata/ui/fixture/make-fixture.sh` がワークスペースを 3 つ作る。題名と id は `$ROOT/manifest.json`。CLI は `YARU_BIN` の実行ファイルで、無ければ worktree の `cmd/yaru` を `$ROOT/bin/yaru` にビルドして使う。
 
 | キー                        | 役割                                                                                                          |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------- |

@@ -1,6 +1,6 @@
 #!/bin/sh
 # 画面の確認用ワークスペースを、リポジトリの外に作る。
-# issue、コメント、質問、コミットは、この worktree の yaru (src/index.ts) で書く。
+# issue、コメント、質問、コミットは、この worktree の cmd/yaru をビルドした実行ファイルで書く。YARU_BIN を渡すと、それを使う。
 # 質問の期限と、止まった issue、7 日より前に終わった issue は、作ったあとに frontmatter の時刻だけをずらす。
 # ずらす前の createdAt も、ずらした時刻も、同じ YARU_NOW から数える。既定は 2026-09-28T12:00:00.000Z。
 # 使い方: testdata/ui/fixture/make-fixture.sh [出力先] [--state-dir 登録先] [--force]
@@ -12,7 +12,7 @@ set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 WORKTREE=$(CDPATH= cd -- "$SCRIPT_DIR/../../.." && pwd)
-YARU_BIN="$WORKTREE/src/index.ts"
+YARU_BIN=${YARU_BIN:-}
 FORCE=0
 ROOT=""
 STATE_DIR_ARG=""
@@ -67,12 +67,16 @@ if [ -e "$ROOT" ] && [ ! -d "$ROOT" -o -n "$(ls -A "$ROOT" 2>/dev/null)" ]; then
   rm -rf "$ROOT"
 fi
 
-if [ ! -f "$YARU_BIN" ]; then
-  echo "yaru entry was not found: $YARU_BIN" >&2
+mkdir -p "$ROOT"
+
+if [ -z "$YARU_BIN" ]; then
+  YARU_BIN=$ROOT/bin/yaru
+  (cd "$WORKTREE" && go build -o "$YARU_BIN" ./cmd/yaru)
+fi
+if [ ! -x "$YARU_BIN" ]; then
+  echo "yaru executable was not found: $YARU_BIN" >&2
   exit 1
 fi
-
-mkdir -p "$ROOT"
 ROOT=$(CDPATH= cd -- "$ROOT" && pwd -P)
 case "$ROOT" in
   "$WORKTREE"|"$WORKTREE"/*)
@@ -96,7 +100,7 @@ fi
 CLOCK=2026-09-28T12:00:00.000Z
 
 iso_shift() {
-  bun -e '
+  node -e '
     const clock = new Date(process.argv[1])
     const match = process.argv[2].match(/^([+-])(\d+)([hd])$/)
     if (Number.isNaN(clock.getTime()) || !match) {
@@ -110,7 +114,7 @@ iso_shift() {
 }
 
 local_day() {
-  bun -e '
+  node -e '
     const clock = new Date(process.argv[1])
     const match = process.argv[2].match(/^([+-])(\d+)$/)
     if (Number.isNaN(clock.getTime()) || !match) process.exit(1)
@@ -124,7 +128,7 @@ local_day() {
 }
 
 set_field() {
-  bun -e '
+  node -e '
     const fs = require("node:fs")
     const file = process.argv[1]
     const key = process.argv[2]
@@ -148,7 +152,7 @@ in_ws() {
     cd "$workspace"
     env -u CLAUDE_CODE_SESSION_ID -u CODEX_SESSION_ID \
       YARU_STATE_DIR="$STATE_DIR" YARU_NOW="$CLOCK" \
-      bun "$YARU_BIN" "$@"
+      "$YARU_BIN" "$@"
   )
 }
 
@@ -166,7 +170,7 @@ id_of() {
     exit 1
   fi
   rm -f "$err"
-  printf '%s' "$out" | bun -e '
+  printf '%s' "$out" | node -e '
     let text = ""
     process.stdin.on("data", (chunk) => { text += chunk })
     process.stdin.on("end", () => {
@@ -185,18 +189,11 @@ prepare_git() {
   git init -b main "$workspace" >/dev/null
   git -C "$workspace" config user.name Fixture
   git -C "$workspace" config user.email fixture@example.test
-  # bun は実行時のカレントディレクトリの tsconfig で JSX を決める。
-  # カレントをリポジトリにすると、worktree の .yaru を読んでしまう。
-  # なのでワークスペース側に tsconfig と node_modules のリンクを置き、yaru の cwd はここにする。
-  ln -s "$WORKTREE/tsconfig.json" "$workspace/tsconfig.json"
-  ln -s "$WORKTREE/node_modules" "$workspace/node_modules"
-  printf '%s\n' '/node_modules' '/tsconfig.json' >"$workspace/.gitignore"
 }
 
 commit_yaru() {
   workspace=$1
   message=$2
-  git -C "$workspace" add -- .gitignore
   find "$workspace/.yaru" -type f ! -path '*/questions/*' | while IFS= read -r file; do
     relative=${file#"$workspace/"}
     git -C "$workspace" add -- "$relative"
@@ -244,7 +241,7 @@ BLOCKING=$(
     cat "$blocking_err" >&2
     exit 1
   fi
-  printf '%s' "$out" | bun -e '
+  printf '%s' "$out" | node -e '
     let text = ""
     process.stdin.on("data", (chunk) => { text += chunk })
     process.stdin.on("end", () => {
@@ -291,7 +288,7 @@ in_ws "$EMPTY" init >/dev/null
 commit_yaru "$EMPTY" "Initialize an empty workspace"
 
 slug_of() {
-  bun -e '
+  node -e '
     const fs = require("node:fs")
     const registry = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
     const found = registry.workspaces.find((workspace) => workspace.root === process.argv[2])
@@ -335,7 +332,7 @@ env \
   COMMENT="$COMMENT" \
   REPLY="$REPLY" \
   DONE_ISSUE="$DONE_ISSUE" \
-  bun -e '
+  node -e '
     const fs = require("node:fs")
     const env = process.env
     const manifest = {

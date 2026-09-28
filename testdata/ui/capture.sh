@@ -46,7 +46,11 @@ fi
 
 # shellcheck disable=SC1091
 . "$ROOT/fixture.env"
-YARU_BIN=${YARU_BIN:-$WORKTREE/src/index.ts}
+YARU_BIN=${YARU_BIN:-}
+if [ -z "$YARU_BIN" ]; then
+  YARU_BIN=$ROOT/bin/yaru
+  (cd "$WORKTREE" && go build -o "$YARU_BIN" ./cmd/yaru)
+fi
 SHOTS=$ROOT/shots
 mkdir -p "$SHOTS/1280" "$SHOTS/390"
 LOG=$ROOT/serve.log
@@ -57,7 +61,7 @@ COPY=""
 COPY_MAIN=""
 COPY_STATE=""
 
-bun -e '
+node -e '
   const fs = require("node:fs")
   const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
   const line = (key, value) => key + "=" + JSON.stringify(String(value))
@@ -169,7 +173,7 @@ ab() {
 }
 
 remove_tree() {
-  bun -e 'require("node:fs").rmSync(process.argv[1], { recursive: true, force: true })' "$1"
+  node -e 'require("node:fs").rmSync(process.argv[1], { recursive: true, force: true })' "$1"
 }
 
 sweep_copies() {
@@ -181,7 +185,7 @@ sweep_copies() {
     done <"$ROOT/copies.list"
     rm -f "$ROOT/copies.list"
   fi
-  bun -e '
+  node -e '
     const fs = require("node:fs")
     const path = require("node:path")
     const dirs = new Set([process.env.TMPDIR || "/tmp", "/tmp", "/private/tmp"])
@@ -258,7 +262,7 @@ start_serve() {
   cd "$root"
   env -u CLAUDE_CODE_SESSION_ID -u CODEX_SESSION_ID \
     YARU_STATE_DIR="$state" YARU_NOW="$now" \
-    bun "$YARU_BIN" serve -p "$PORT" >"$LOG" 2>&1 &
+    "$YARU_BIN" serve -p "$PORT" >"$LOG" 2>&1 &
   echo $! >"$PID_FILE"
   SERVE_NOW=$now
   wait_port "$PORT"
@@ -274,7 +278,7 @@ use_copy() {
   echo "$COPY" >>"$ROOT/copies.list"
   cp -a "$PRISTINE/ui-fixture" "$PRISTINE/ui-fixture-done" "$PRISTINE/ui-fixture-empty" "$COPY/"
   mkdir -p "$COPY/state"
-  bun -e '
+  node -e '
     const fs = require("node:fs")
     const path = require("node:path")
     const registry = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
@@ -294,7 +298,7 @@ yaru_copy() {
     cd "$COPY_MAIN"
     env -u CLAUDE_CODE_SESSION_ID -u CODEX_SESSION_ID \
       YARU_STATE_DIR="$COPY_STATE" YARU_NOW="$SERVE_NOW" \
-      bun "$YARU_BIN" "$@"
+      "$YARU_BIN" "$@"
   )
 }
 
@@ -310,7 +314,7 @@ step() {
 scroll_sel() {
   sel=$1
   # eval は同じ文書では大域の const を残す。板はページを読み直さずに移るので、関数で包む。
-  script=$(bun -e 'process.stdout.write("(() => { const el = document.querySelector(" + JSON.stringify(process.argv[1]) + "); if (!el) throw new Error(" + JSON.stringify("missing " + process.argv[1]) + "); el.scrollIntoView({ block: \"center\", inline: \"nearest\" }) })()")' "$sel")
+  script=$(node -e 'process.stdout.write("(() => { const el = document.querySelector(" + JSON.stringify(process.argv[1]) + "); if (!el) throw new Error(" + JSON.stringify("missing " + process.argv[1]) + "); el.scrollIntoView({ block: \"center\", inline: \"nearest\" }) })()")' "$sel")
   printf '%s\n' "$script" | ab eval --stdin >"$ROOT/step.out" 2>"$ROOT/step.err"
 }
 
@@ -329,7 +333,7 @@ assert_clock() {
     FAILED=1
     return 1
   }
-  if ! printf '%s' "$actual" | bun -e '
+  if ! printf '%s' "$actual" | node -e '
     let raw = ""
     process.stdin.on("data", (chunk) => { raw += chunk })
     process.stdin.on("end", () => {
@@ -352,7 +356,7 @@ assert_clock() {
 
 scroll_text() {
   text=$1
-  script=$(bun -e 'const needle = JSON.stringify(process.argv[1]); process.stdout.write("(() => { const needle = " + needle + "; const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let node = null; let found = null; while ((node = walker.nextNode())) { if (!node.textContent || !node.textContent.includes(needle)) continue; const parent = node.parentElement; if (!parent || parent.closest(\"script, style\")) continue; found = parent; break } if (!found) throw new Error(\"missing \" + needle); found.scrollIntoView({ block: \"center\", inline: \"nearest\" }) })()")' "$text")
+  script=$(node -e 'const needle = JSON.stringify(process.argv[1]); process.stdout.write("(() => { const needle = " + needle + "; const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let node = null; let found = null; while ((node = walker.nextNode())) { if (!node.textContent || !node.textContent.includes(needle)) continue; const parent = node.parentElement; if (!parent || parent.closest(\"script, style\")) continue; found = parent; break } if (!found) throw new Error(\"missing \" + needle); found.scrollIntoView({ block: \"center\", inline: \"nearest\" }) })()")' "$text")
   printf '%s\n' "$script" | ab eval --stdin >"$ROOT/step.out" 2>"$ROOT/step.err"
 }
 
@@ -385,7 +389,7 @@ click_el() {
     return 1
   fi
   box=$(ab get box "$sel" --json 2>/dev/null || true)
-  point=$(printf '%s' "$box" | bun -e '
+  point=$(printf '%s' "$box" | node -e '
     let text = ""
     process.stdin.on("data", (chunk) => { text += chunk })
     process.stdin.on("end", () => {
@@ -1368,12 +1372,10 @@ start_empty_serve() {
   empty_cwd=$(mktemp -d "${TMPDIR:-/tmp}/yaru-ui-empty-cwd.XXXXXX")
   echo "$empty_state" >>"$ROOT/copies.list"
   echo "$empty_cwd" >>"$ROOT/copies.list"
-  ln -s "$WORKTREE/tsconfig.json" "$empty_cwd/tsconfig.json"
-  ln -s "$WORKTREE/node_modules" "$empty_cwd/node_modules"
   cd "$empty_cwd"
   env -u CLAUDE_CODE_SESSION_ID -u CODEX_SESSION_ID \
     YARU_STATE_DIR="$empty_state" YARU_NOW="$YARU_NOW" \
-    bun "$YARU_BIN" serve -p "$EMPTY_PORT" >"$ROOT/serve-empty.log" 2>&1 &
+    "$YARU_BIN" serve -p "$EMPTY_PORT" >"$ROOT/serve-empty.log" 2>&1 &
   echo $! >"$EMPTY_PID_FILE"
   cd "$PRISTINE/ui-fixture"
   if ! wait_port "$EMPTY_PORT"; then
