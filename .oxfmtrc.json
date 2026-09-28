@@ -1,5 +1,5 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "semi": false,
-  "ignorePatterns": ["DESIGN.md"]
+  "ignorePatterns": ["DESIGN.md", "web/src/gen"]
 }
