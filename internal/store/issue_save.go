@@ -12,16 +12,16 @@ import (
 // SaveIssue は issue を作るか更新する。書く前に staleAfter を読み、不正なら何も書かない。
 // 作成だけではイベントを足さない。src/store.ts:248-315、docs/spec/yaru-format.md の「issue」。
 func SaveIssue(space workspace.Workspace, input SaveInput, options SaveOptions) (Issue, error) {
-	moment, err := currentMoment(options.Now)
+	moment, err := issueCurrentMoment(options.Now)
 	if err != nil {
 		return Issue{}, err
 	}
-	nowISO := isoTimestamp(moment)
+	nowISO := issueIsoTimestamp(moment)
 	staleAfter, err := ReadStaleAfter(space)
 	if err != nil {
 		return Issue{}, err
 	}
-	gitAuthor, err := currentGitName()
+	gitAuthor, err := issueCurrentGitName()
 	if err != nil {
 		return Issue{}, err
 	}
@@ -30,11 +30,11 @@ func SaveIssue(space workspace.Workspace, input SaveInput, options SaveOptions) 
 		session = options.Provenance.Session
 	}
 	eventContext := IssueEventContext{By: gitAuthor, Session: session, At: nowISO}
-	assignee, err := resolveAssignee(input.Assignee)
+	assignee, err := issueResolveAssignee(input.Assignee)
 	if err != nil {
 		return Issue{}, err
 	}
-	dueDate, err := resolveDueDate(input.DueDate)
+	dueDate, err := issueResolveDueDate(input.DueDate)
 	if err != nil {
 		return Issue{}, err
 	}
@@ -48,7 +48,7 @@ func SaveIssue(space workspace.Workspace, input SaveInput, options SaveOptions) 
 		if input.Status.Value != nil {
 			text = *input.Status.Value
 		}
-		status, err = resolveStatus(text)
+		status, err = issueResolveStatus(text)
 		if err != nil {
 			return Issue{}, err
 		}
@@ -61,10 +61,10 @@ func SaveIssue(space workspace.Workspace, input SaveInput, options SaveOptions) 
 		}
 	}
 	if input.PatchSet && input.Body.Set {
-		return Issue{}, errString("cannot pass body and patch together")
+		return Issue{}, issueErrString("cannot pass body and patch together")
 	}
 	if input.PatchSet && input.ID == "" {
-		return Issue{}, errString("patch is only valid when updating an existing issue")
+		return Issue{}, issueErrString("patch is only valid when updating an existing issue")
 	}
 	all, err := loadRawIssues(space)
 	if err != nil {
@@ -94,7 +94,7 @@ func updateIssue(
 	path := issuePath(space, input.ID)
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
-			return Issue{}, errString("issue not found: " + input.ID)
+			return Issue{}, issueErrString("issue not found: " + input.ID)
 		}
 		return Issue{}, err
 	}
@@ -103,44 +103,44 @@ func updateIssue(
 		return Issue{}, err
 	}
 	if input.Title.Set {
-		if input.Title.Value == nil || javascriptTrim(*input.Title.Value) == "" {
+		if input.Title.Value == nil || issueJavascriptTrim(*input.Title.Value) == "" {
 			actual := "null"
 			if input.Title.Value != nil {
-				quoted, quoteErr := quoteJavaScript(*input.Title.Value)
+				quoted, quoteErr := issueQuoteJavaScript(*input.Title.Value)
 				if quoteErr != nil {
 					return Issue{}, quoteErr
 				}
 				actual = quoted
 			}
-			return Issue{}, errString("invalid title: expected a non-empty string, actual " + actual)
+			return Issue{}, issueErrString("invalid title: expected a non-empty string, actual " + actual)
 		}
 	}
 	nextStatus := current.Status
 	if input.Status.Set {
 		nextStatus = status
 	}
-	times := statusTimestamps(&current, nextStatus, nowISO)
+	times := issueStatusTimestamps(&current, nextStatus, nowISO)
 	parent := current.Parent
 	if input.Parent.Set {
-		parent, err = resolveParent(input.ID, input.Parent, all)
+		parent, err = issueResolveParent(input.ID, input.Parent, all)
 		if err != nil {
 			return Issue{}, err
 		}
 	}
-	relations, err := resolveBlocks(input.ID, current.Blocks, input, all)
+	relations, err := issueResolveBlocks(input.ID, current.Blocks, input, all)
 	if err != nil {
 		return Issue{}, err
 	}
 	next := current
 	if input.Title.Set {
-		next.Title = javascriptTrim(*input.Title.Value)
+		next.Title = issueJavascriptTrim(*input.Title.Value)
 	}
 	next.Status = nextStatus
 	if assignee.Set {
 		next.Assignee = assignee.Value
 	}
 	if input.Labels.Set {
-		next.Labels = copyStrings(optionalSlice(input.Labels))
+		next.Labels = issueCopyStrings(issueOptionalSlice(input.Labels))
 	}
 	if dueDate.Set {
 		next.DueDate = dueDate.Value
@@ -154,7 +154,7 @@ func updateIssue(
 	next.CompletedAt = times.completedAt
 	next.CanceledAt = times.canceledAt
 	if input.PatchSet {
-		body, patchErr := applyPatch(current.Body, patch)
+		body, patchErr := issueApplyPatch(current.Body, patch)
 		if patchErr != nil {
 			return Issue{}, patchErr
 		}
@@ -168,13 +168,13 @@ func updateIssue(
 		next.Worktree = options.Provenance.Worktree
 		next.Branch = options.Provenance.Branch
 	}
-	if err := writeReplace(path, formatIssue(next)); err != nil {
+	if err := issueWriteReplace(path, formatIssue(next)); err != nil {
 		return Issue{}, err
 	}
 	if err := AppendIssueEvents(space, next.ID, DiffIssue(current, next), eventContext); err != nil {
 		return Issue{}, err
 	}
-	if err := writeBlockOwners(space, relations.owners, nowISO, eventContext); err != nil {
+	if err := issueWriteBlockOwners(space, relations.owners, nowISO, eventContext); err != nil {
 		return Issue{}, err
 	}
 	return readDerivedIssue(space, next.ID, moment, staleAfter)
@@ -204,24 +204,24 @@ func createIssue(
 			return Issue{}, err
 		}
 		if input.Parent.Set {
-			created.Parent, err = resolveParent(created.ID, input.Parent, all)
+			created.Parent, err = issueResolveParent(created.ID, input.Parent, all)
 			if err != nil {
 				return Issue{}, err
 			}
 		}
-		relations, err := resolveBlocks(created.ID, nil, input, all)
+		relations, err := issueResolveBlocks(created.ID, nil, input, all)
 		if err != nil {
 			return Issue{}, err
 		}
 		created.Blocks = relations.blocks
-		err = writeCreate(issuePath(space, created.ID), formatIssue(created))
+		err = issueWriteCreate(issuePath(space, created.ID), formatIssue(created))
 		if err != nil {
-			if isExist(err) {
+			if issueIsExist(err) {
 				continue
 			}
 			return Issue{}, err
 		}
-		if err := writeBlockOwners(space, relations.owners, nowISO, eventContext); err != nil {
+		if err := issueWriteBlockOwners(space, relations.owners, nowISO, eventContext); err != nil {
 			return Issue{}, err
 		}
 		return readDerivedIssue(space, created.ID, moment, staleAfter)
@@ -238,16 +238,16 @@ func newIssue(
 	nowISO string,
 	provenance *Provenance,
 ) (Issue, error) {
-	if !input.Title.Set || input.Title.Value == nil || javascriptTrim(*input.Title.Value) == "" {
-		return Issue{}, errString("title is required when creating an issue")
+	if !input.Title.Set || input.Title.Value == nil || issueJavascriptTrim(*input.Title.Value) == "" {
+		return Issue{}, issueErrString("title is required when creating an issue")
 	}
 	if !input.Status.Set {
 		status = "todo"
 	}
-	times := statusTimestamps(nil, status, nowISO)
+	times := issueStatusTimestamps(nil, status, nowISO)
 	issue := Issue{
 		ID:          issueID,
-		Title:       javascriptTrim(*input.Title.Value),
+		Title:       issueJavascriptTrim(*input.Title.Value),
 		Status:      status,
 		Labels:      []string{},
 		Blocks:      []string{},
@@ -263,7 +263,7 @@ func newIssue(
 		issue.Assignee = assignee.Value
 	}
 	if input.Labels.Set {
-		issue.Labels = copyStrings(optionalSlice(input.Labels))
+		issue.Labels = issueCopyStrings(issueOptionalSlice(input.Labels))
 	}
 	if dueDate.Set {
 		issue.DueDate = dueDate.Value
@@ -282,44 +282,44 @@ func newIssue(
 	return issue, nil
 }
 
-type statusTimes struct {
+type issueStatusTimes struct {
 	startedAt   *string
 	completedAt *string
 	canceledAt  *string
 }
 
-func statusTimestamps(current *Issue, status string, nowISO string) statusTimes {
-	times := statusTimes{}
+func issueStatusTimestamps(current *Issue, status string, nowISO string) issueStatusTimes {
+	times := issueStatusTimes{}
 	if current != nil && current.StartedAt != nil {
 		times.startedAt = current.StartedAt
 	} else if status == "in_progress" {
-		times.startedAt = stringPointer(nowISO)
+		times.startedAt = issueStringPointer(nowISO)
 	}
 	if status == "done" {
 		if current != nil && current.Status == "done" {
 			times.completedAt = current.CompletedAt
 		} else {
-			times.completedAt = stringPointer(nowISO)
+			times.completedAt = issueStringPointer(nowISO)
 		}
 	}
 	if status == "canceled" {
 		if current != nil && current.Status == "canceled" {
 			times.canceledAt = current.CanceledAt
 		} else {
-			times.canceledAt = stringPointer(nowISO)
+			times.canceledAt = issueStringPointer(nowISO)
 		}
 	}
 	return times
 }
 
-func resolveParent(issueID string, value Optional[string], all []Issue) (*string, error) {
+func issueResolveParent(issueID string, value Optional[string], all []Issue) (*string, error) {
 	resolved := BlankToNull(value)
 	if !resolved.Set || resolved.Value == nil {
 		return nil, nil
 	}
 	parent := *resolved.Value
 	if parent == issueID {
-		return nil, errString("invalid parent: an issue cannot be its own parent, actual " + issueID)
+		return nil, issueErrString("invalid parent: an issue cannot be its own parent, actual " + issueID)
 	}
 	found := false
 	for _, issue := range all {
@@ -329,15 +329,15 @@ func resolveParent(issueID string, value Optional[string], all []Issue) (*string
 		}
 	}
 	if !found {
-		return nil, errString("invalid parent: issue not found: " + parent)
+		return nil, issueErrString("invalid parent: issue not found: " + parent)
 	}
-	if isDescendant(all, parent, issueID) {
-		return nil, errString("invalid parent: cycle: " + parent + " is a descendant of " + issueID)
+	if issueIsDescendant(all, parent, issueID) {
+		return nil, issueErrString("invalid parent: cycle: " + parent + " is a descendant of " + issueID)
 	}
-	return stringPointer(parent), nil
+	return issueStringPointer(parent), nil
 }
 
-func isDescendant(all []Issue, node string, ancestor string) bool {
+func issueIsDescendant(all []Issue, node string, ancestor string) bool {
 	byID := map[string]Issue{}
 	for _, issue := range all {
 		byID[issue.ID] = issue
@@ -364,27 +364,27 @@ func isDescendant(all []Issue, node string, ancestor string) bool {
 	return false
 }
 
-type blockRelations struct {
+type issueBlockRelations struct {
 	blocks []string
-	owners []blockOwner
+	owners []issueBlockOwner
 }
 
-type blockOwner struct {
+type issueBlockOwner struct {
 	id     string
 	blocks []string
 }
 
-func resolveBlocks(issueID string, currentBlocks []string, input SaveInput, all []Issue) (blockRelations, error) {
-	addBlocks, addSet := optionalList(input.AddBlocks)
-	removeBlocks, removeSet := optionalList(input.RemoveBlocks)
-	addBlockedBy, addBySet := optionalList(input.AddBlockedBy)
-	removeBlockedBy, removeBySet := optionalList(input.RemoveBlockedBy)
+func issueResolveBlocks(issueID string, currentBlocks []string, input SaveInput, all []Issue) (issueBlockRelations, error) {
+	addBlocks, addSet := issueOptionalList(input.AddBlocks)
+	removeBlocks, removeSet := issueOptionalList(input.RemoveBlocks)
+	addBlockedBy, addBySet := issueOptionalList(input.AddBlockedBy)
+	removeBlockedBy, removeBySet := issueOptionalList(input.RemoveBlockedBy)
 	if input.Blocks.Set && (addSet || removeSet || addBySet || removeBySet) {
-		return blockRelations{}, errString("cannot pass blocks with addBlocks, removeBlocks, addBlockedBy, or removeBlockedBy")
+		return issueBlockRelations{}, issueErrString("cannot pass blocks with addBlocks, removeBlocks, addBlockedBy, or removeBlockedBy")
 	}
-	blocks := copyStrings(currentBlocks)
+	blocks := issueCopyStrings(currentBlocks)
 	if input.Blocks.Set {
-		blocks = uniqueStrings(optionalSlice(input.Blocks))
+		blocks = issueUniqueStrings(issueOptionalSlice(input.Blocks))
 	} else {
 		if removeSet {
 			remove := map[string]struct{}{}
@@ -400,18 +400,18 @@ func resolveBlocks(issueID string, currentBlocks []string, input SaveInput, all 
 			blocks = filtered
 		}
 		if addSet {
-			blocks = uniqueStrings(append(copyStrings(blocks), addBlocks...))
+			blocks = issueUniqueStrings(append(issueCopyStrings(blocks), addBlocks...))
 		}
 	}
 
 	graph := map[string][]string{}
 	for _, issue := range all {
-		graph[issue.ID] = copyStrings(issue.Blocks)
+		graph[issue.ID] = issueCopyStrings(issue.Blocks)
 	}
 	if _, ok := graph[issueID]; !ok {
 		graph[issueID] = []string{}
 	}
-	graph[issueID] = copyStrings(blocks)
+	graph[issueID] = issueCopyStrings(blocks)
 
 	owners := map[string][]string{}
 	ownerOrder := []string{}
@@ -421,20 +421,20 @@ func resolveBlocks(issueID string, currentBlocks []string, input SaveInput, all 
 		}
 		for _, issue := range all {
 			if issue.ID == id {
-				copied := copyStrings(issue.Blocks)
+				copied := issueCopyStrings(issue.Blocks)
 				owners[id] = copied
 				ownerOrder = append(ownerOrder, id)
 				return copied, nil
 			}
 		}
-		return nil, errString("invalid block: issue not found: " + id)
+		return nil, issueErrString("invalid block: issue not found: " + id)
 	}
 
 	if removeBySet {
 		for _, id := range removeBlockedBy {
 			current, err := ownerBlocks(id)
 			if err != nil {
-				return blockRelations{}, err
+				return issueBlockRelations{}, err
 			}
 			filtered := []string{}
 			for _, block := range current {
@@ -447,22 +447,22 @@ func resolveBlocks(issueID string, currentBlocks []string, input SaveInput, all 
 		}
 	}
 	if addBySet {
-		for _, id := range uniqueStrings(addBlockedBy) {
+		for _, id := range issueUniqueStrings(addBlockedBy) {
 			if id == issueID {
-				return blockRelations{}, errString("invalid block: an issue cannot block itself, actual " + issueID)
+				return issueBlockRelations{}, issueErrString("invalid block: an issue cannot block itself, actual " + issueID)
 			}
 			current, err := ownerBlocks(id)
 			if err != nil {
-				return blockRelations{}, err
+				return issueBlockRelations{}, err
 			}
-			next := uniqueStrings(append(copyStrings(current), issueID))
+			next := issueUniqueStrings(append(issueCopyStrings(current), issueID))
 			owners[id] = next
 			graph[id] = next
 		}
 	}
 	for _, to := range blocks {
 		if to == issueID {
-			return blockRelations{}, errString("invalid block: an issue cannot block itself, actual " + issueID)
+			return issueBlockRelations{}, issueErrString("invalid block: an issue cannot block itself, actual " + issueID)
 		}
 		found := false
 		for _, issue := range all {
@@ -472,33 +472,33 @@ func resolveBlocks(issueID string, currentBlocks []string, input SaveInput, all 
 			}
 		}
 		if !found {
-			return blockRelations{}, errString("invalid block: issue not found: " + to)
+			return issueBlockRelations{}, issueErrString("invalid block: issue not found: " + to)
 		}
 	}
 	newEdges := [][2]string{}
 	for _, to := range blocks {
-		if !containsString(currentBlocks, to) {
+		if !issueContainsString(currentBlocks, to) {
 			newEdges = append(newEdges, [2]string{issueID, to})
 		}
 	}
 	if addBySet {
-		for _, id := range uniqueStrings(addBlockedBy) {
+		for _, id := range issueUniqueStrings(addBlockedBy) {
 			newEdges = append(newEdges, [2]string{id, issueID})
 		}
 	}
 	for _, edge := range newEdges {
-		if hasPath(graph, edge[1], edge[0]) {
-			return blockRelations{}, errString("invalid block: cycle: " + edge[0] + " already blocked by " + edge[1])
+		if issueHasPath(graph, edge[1], edge[0]) {
+			return issueBlockRelations{}, issueErrString("invalid block: cycle: " + edge[0] + " already blocked by " + edge[1])
 		}
 	}
-	ownerList := make([]blockOwner, 0, len(ownerOrder))
+	ownerList := make([]issueBlockOwner, 0, len(ownerOrder))
 	for _, id := range ownerOrder {
-		ownerList = append(ownerList, blockOwner{id: id, blocks: owners[id]})
+		ownerList = append(ownerList, issueBlockOwner{id: id, blocks: owners[id]})
 	}
-	return blockRelations{blocks: blocks, owners: ownerList}, nil
+	return issueBlockRelations{blocks: blocks, owners: ownerList}, nil
 }
 
-func hasPath(graph map[string][]string, from string, to string) bool {
+func issueHasPath(graph map[string][]string, from string, to string) bool {
 	seen := map[string]struct{}{}
 	stack := []string{from}
 	for len(stack) > 0 {
@@ -516,7 +516,7 @@ func hasPath(graph map[string][]string, from string, to string) bool {
 	return false
 }
 
-func writeBlockOwners(space workspace.Workspace, owners []blockOwner, nowISO string, eventContext IssueEventContext) error {
+func issueWriteBlockOwners(space workspace.Workspace, owners []issueBlockOwner, nowISO string, eventContext IssueEventContext) error {
 	for _, owner := range owners {
 		path := issuePath(space, owner.id)
 		issue, err := readIssue(path, owner.id)
@@ -524,9 +524,9 @@ func writeBlockOwners(space workspace.Workspace, owners []blockOwner, nowISO str
 			return err
 		}
 		next := issue
-		next.Blocks = copyStrings(owner.blocks)
+		next.Blocks = issueCopyStrings(owner.blocks)
 		next.UpdatedAt = nowISO
-		if err := writeReplace(path, formatIssue(next)); err != nil {
+		if err := issueWriteReplace(path, formatIssue(next)); err != nil {
 			return err
 		}
 		if err := AppendIssueEvents(space, owner.id, DiffIssue(issue, next), eventContext); err != nil {
@@ -536,14 +536,14 @@ func writeBlockOwners(space workspace.Workspace, owners []blockOwner, nowISO str
 	return nil
 }
 
-func optionalList(value Optional[[]string]) ([]string, bool) {
+func issueOptionalList(value Optional[[]string]) ([]string, bool) {
 	if !value.Set {
 		return nil, false
 	}
-	return optionalSlice(value), true
+	return issueOptionalSlice(value), true
 }
 
-func optionalSlice(value Optional[[]string]) []string {
+func issueOptionalSlice(value Optional[[]string]) []string {
 	if value.Value == nil {
 		return []string{}
 	}

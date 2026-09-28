@@ -11,10 +11,10 @@ import (
 // 本文の部分更新。失敗した操作があると、それより前の操作もファイルには残さない。
 // src/store.ts:870-991、docs/spec/yaru-format.md の「本文」。
 
-const patchOperationMinimum = 1
-const patchOperationMaximum = 50
+const issuePatchOperationMinimum = 1
+const issuePatchOperationMaximum = 50
 
-var patchOperations = []string{"replace", "insert_before", "insert_after", "prepend", "append", "replace_range"}
+var issuePatchOperations = []string{"replace", "insert_before", "insert_after", "prepend", "append", "replace_range"}
 
 // PatchOp は本文へ順に適用する 1 操作。src/store.ts:72-78
 type PatchOp struct {
@@ -29,24 +29,24 @@ type PatchOp struct {
 }
 
 // absent は JSON のオブジェクトにキーが無いこと。null とは分けて、TS の undefined に合わせる。
-type absent struct{}
+type issueAbsent struct{}
 
 // ParsePatch は 1 件から 50 件の操作配列だけを受ける。src/store.ts:879-928
 func ParsePatch(value any) ([]PatchOp, error) {
-	items, ok := sliceItems(value)
+	items, ok := issueSliceItems(value)
 	if !ok {
-		actual, err := actualValue(value)
+		actual, err := issueActualValue(value)
 		if err != nil {
 			return nil, err
 		}
-		return nil, errString("invalid patch: expected a JSON array of operations, actual " + actual)
+		return nil, issueErrString("invalid patch: expected a JSON array of operations, actual " + actual)
 	}
-	if len(items) < patchOperationMinimum || len(items) > patchOperationMaximum {
+	if len(items) < issuePatchOperationMinimum || len(items) > issuePatchOperationMaximum {
 		return nil, fmt.Errorf("invalid patch: expected 1 to 50 operations, actual %d", len(items))
 	}
 	operations := make([]PatchOp, 0, len(items))
 	for _, item := range items {
-		operation, err := parsePatchOp(item)
+		operation, err := issueParsePatchOp(item)
 		if err != nil {
 			return nil, err
 		}
@@ -55,33 +55,33 @@ func ParsePatch(value any) ([]PatchOp, error) {
 	return operations, nil
 }
 
-func parsePatchOp(value any) (PatchOp, error) {
-	object, ok := objectFields(value)
+func issueParsePatchOp(value any) (PatchOp, error) {
+	object, ok := issueObjectFields(value)
 	if !ok {
-		actual, err := actualValue(value)
+		actual, err := issueActualValue(value)
 		if err != nil {
 			return PatchOp{}, err
 		}
-		return PatchOp{}, errString("invalid patch: expected an operation object, actual " + actual)
+		return PatchOp{}, issueErrString("invalid patch: expected an operation object, actual " + actual)
 	}
 	op, exists := object["op"]
 	opText, opIsString := op.(string)
 	if !exists || !opIsString {
-		return PatchOp{}, errString("invalid patch: op is required")
+		return PatchOp{}, issueErrString("invalid patch: op is required")
 	}
 	switch opText {
 	case "replace":
-		oldString, err := requiredText(object, "old_string", "replace", 1)
+		oldString, err := issueRequiredText(object, "old_string", "replace", 1)
 		if err != nil {
 			return PatchOp{}, err
 		}
-		newString, err := requiredText(object, "new_string", "replace", 0)
+		newString, err := issueRequiredText(object, "new_string", "replace", 0)
 		if err != nil {
 			return PatchOp{}, err
 		}
 		operation := PatchOp{Op: opText, OldString: oldString, NewString: newString}
 		if _, present := object["replace_all"]; present {
-			replaceAll, err := requiredBoolean(object, "replace_all", "replace")
+			replaceAll, err := issueRequiredBoolean(object, "replace_all", "replace")
 			if err != nil {
 				return PatchOp{}, err
 			}
@@ -89,44 +89,44 @@ func parsePatchOp(value any) (PatchOp, error) {
 		}
 		return operation, nil
 	case "insert_before", "insert_after":
-		anchor, err := requiredText(object, "anchor", opText, 1)
+		anchor, err := issueRequiredText(object, "anchor", opText, 1)
 		if err != nil {
 			return PatchOp{}, err
 		}
-		text, err := requiredText(object, "text", opText, 1)
+		text, err := issueRequiredText(object, "text", opText, 1)
 		if err != nil {
 			return PatchOp{}, err
 		}
 		return PatchOp{Op: opText, Anchor: anchor, Text: text}, nil
 	case "prepend", "append":
-		text, err := requiredText(object, "text", opText, 1)
+		text, err := issueRequiredText(object, "text", opText, 1)
 		if err != nil {
 			return PatchOp{}, err
 		}
 		return PatchOp{Op: opText, Text: text}, nil
 	case "replace_range":
-		from, err := requiredText(object, "from", "replace_range", 1)
+		from, err := issueRequiredText(object, "from", "replace_range", 1)
 		if err != nil {
 			return PatchOp{}, err
 		}
-		to, err := requiredText(object, "to", "replace_range", 1)
+		to, err := issueRequiredText(object, "to", "replace_range", 1)
 		if err != nil {
 			return PatchOp{}, err
 		}
-		newString, err := requiredText(object, "new_string", "replace_range", 0)
+		newString, err := issueRequiredText(object, "new_string", "replace_range", 0)
 		if err != nil {
 			return PatchOp{}, err
 		}
 		return PatchOp{Op: opText, From: from, To: to, NewString: newString}, nil
 	default:
-		return PatchOp{}, errString("invalid patch: expected op " + JoinOr(patchOperations) + ", actual " + opText)
+		return PatchOp{}, issueErrString("invalid patch: expected op " + JoinOr(issuePatchOperations) + ", actual " + opText)
 	}
 }
 
-func applyPatch(body string, operations []PatchOp) (string, error) {
+func issueApplyPatch(body string, operations []PatchOp) (string, error) {
 	content := body
 	for _, operation := range operations {
-		next, err := applyPatchOp(content, operation)
+		next, err := issueApplyPatchOp(content, operation)
 		if err != nil {
 			return "", err
 		}
@@ -135,23 +135,23 @@ func applyPatch(body string, operations []PatchOp) (string, error) {
 	return content, nil
 }
 
-func applyPatchOp(content string, operation PatchOp) (string, error) {
+func issueApplyPatchOp(content string, operation PatchOp) (string, error) {
 	switch operation.Op {
 	case "replace":
-		count := matchCount(content, operation.OldString)
+		count := issueMatchCount(content, operation.OldString)
 		if operation.ReplaceAll {
 			if count < 1 {
 				return "", fmt.Errorf("patch replace: old_string must match the current body at least once, expected 1 or more matches, actual %d", count)
 			}
 			return strings.ReplaceAll(content, operation.OldString, operation.NewString), nil
 		}
-		if err := requireUnique(count, "replace", "old_string"); err != nil {
+		if err := issueRequireUnique(count, "replace", "old_string"); err != nil {
 			return "", err
 		}
 		index := strings.Index(content, operation.OldString)
 		return content[:index] + operation.NewString + content[index+len(operation.OldString):], nil
 	case "insert_before", "insert_after":
-		if err := requireUnique(matchCount(content, operation.Anchor), operation.Op, "anchor"); err != nil {
+		if err := issueRequireUnique(issueMatchCount(content, operation.Anchor), operation.Op, "anchor"); err != nil {
 			return "", err
 		}
 		index := strings.Index(content, operation.Anchor)
@@ -165,13 +165,13 @@ func applyPatchOp(content string, operation PatchOp) (string, error) {
 	case "append":
 		return content + operation.Text, nil
 	default:
-		if err := requireUnique(matchCount(content, operation.From), "replace_range", "from"); err != nil {
+		if err := issueRequireUnique(issueMatchCount(content, operation.From), "replace_range", "from"); err != nil {
 			return "", err
 		}
 		fromIndex := strings.Index(content, operation.From)
 		afterFrom := fromIndex + len(operation.From)
 		rest := content[afterFrom:]
-		toCount := matchCount(rest, operation.To)
+		toCount := issueMatchCount(rest, operation.To)
 		if toCount != 1 {
 			return "", fmt.Errorf("patch replace_range: to must match the current body exactly once after from, expected 1 match, actual %d", toCount)
 		}
@@ -180,14 +180,14 @@ func applyPatchOp(content string, operation PatchOp) (string, error) {
 	}
 }
 
-func requireUnique(count int, op string, field string) error {
+func issueRequireUnique(count int, op string, field string) error {
 	if count != 1 {
 		return fmt.Errorf("patch %s: %s must match the current body exactly once, expected 1 match, actual %d", op, field, count)
 	}
 	return nil
 }
 
-func matchCount(haystack string, needle string) int {
+func issueMatchCount(haystack string, needle string) int {
 	if needle == "" {
 		return 0
 	}
@@ -204,11 +204,11 @@ func matchCount(haystack string, needle string) int {
 	return count
 }
 
-func requiredText(object map[string]any, key string, op string, minimum int) (string, error) {
-	field := lookupField(object, key)
+func issueRequiredText(object map[string]any, key string, op string, minimum int) (string, error) {
+	field := issueLookupField(object, key)
 	text, ok := field.(string)
 	if !ok || len([]rune(text)) < minimum {
-		actual, err := actualValue(field)
+		actual, err := issueActualValue(field)
 		if err != nil {
 			return "", err
 		}
@@ -216,37 +216,37 @@ func requiredText(object map[string]any, key string, op string, minimum int) (st
 		if minimum > 0 {
 			kind = "non-empty string"
 		}
-		return "", errString("invalid patch " + op + ": " + key + " must be a " + kind + ", actual " + actual)
+		return "", issueErrString("invalid patch " + op + ": " + key + " must be a " + kind + ", actual " + actual)
 	}
 	return text, nil
 }
 
-func requiredBoolean(object map[string]any, key string, op string) (bool, error) {
-	field := lookupField(object, key)
+func issueRequiredBoolean(object map[string]any, key string, op string) (bool, error) {
+	field := issueLookupField(object, key)
 	value, ok := field.(bool)
 	if !ok {
-		actual, err := actualValue(field)
+		actual, err := issueActualValue(field)
 		if err != nil {
 			return false, err
 		}
-		return false, errString("invalid patch " + op + ": " + key + " must be a boolean, actual " + actual)
+		return false, issueErrString("invalid patch " + op + ": " + key + " must be a boolean, actual " + actual)
 	}
 	return value, nil
 }
 
-func lookupField(object map[string]any, key string) any {
+func issueLookupField(object map[string]any, key string) any {
 	value, ok := object[key]
 	if !ok {
-		return absent{}
+		return issueAbsent{}
 	}
 	return value
 }
 
-func sliceItems(value any) ([]any, bool) {
+func issueSliceItems(value any) ([]any, bool) {
 	if value == nil {
 		return nil, false
 	}
-	if _, ok := value.(absent); ok {
+	if _, ok := value.(issueAbsent); ok {
 		return nil, false
 	}
 	reflected := reflect.ValueOf(value)
@@ -260,7 +260,7 @@ func sliceItems(value any) ([]any, bool) {
 	return items, true
 }
 
-func objectFields(value any) (map[string]any, bool) {
+func issueObjectFields(value any) (map[string]any, bool) {
 	if value == nil {
 		return nil, false
 	}
@@ -278,8 +278,8 @@ func objectFields(value any) (map[string]any, bool) {
 	return object, true
 }
 
-func actualValue(value any) (string, error) {
-	if _, ok := value.(absent); ok {
+func issueActualValue(value any) (string, error) {
+	if _, ok := value.(issueAbsent); ok {
 		return "undefined", nil
 	}
 	if value == nil {
@@ -287,14 +287,14 @@ func actualValue(value any) (string, error) {
 	}
 	switch typed := value.(type) {
 	case string:
-		return quoteJavaScript(typed)
+		return issueQuoteJavaScript(typed)
 	case bool:
 		if typed {
 			return "true", nil
 		}
 		return "false", nil
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
-		return formatJavaScriptNumber(asFloatUnchecked(typed)), nil
+		return issueFormatJavaScriptNumber(issueAsFloatUnchecked(typed)), nil
 	}
 	reflected := reflect.ValueOf(value)
 	switch reflected.Kind() {
@@ -307,7 +307,7 @@ func actualValue(value any) (string, error) {
 	}
 }
 
-func asFloatUnchecked(value any) float64 {
-	number, _ := asFloat(value)
+func issueAsFloatUnchecked(value any) float64 {
+	number, _ := issueAsFloat(value)
 	return number
 }
