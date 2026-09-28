@@ -106,9 +106,9 @@ func (application *httpApplication) serve(responseWriter http.ResponseWriter, re
 	}
 	switch request.URL.Path {
 	case "/":
-		application.serveSPA(responseWriter, request)
+		application.serveSPA(responseWriter, request, http.StatusOK)
 	case "/inbox":
-		application.serveSPA(responseWriter, request)
+		application.serveSPA(responseWriter, request, http.StatusOK)
 	case "/terminal":
 		application.serveTerminalDocument(responseWriter, request)
 	case "/manifest.webmanifest":
@@ -133,7 +133,14 @@ func (application *httpApplication) serve(responseWriter http.ResponseWriter, re
 		if application.serveStatic(responseWriter, request) {
 			return
 		}
-		writeBody(responseWriter, request, http.StatusNotFound, plainTextUTF8, []byte("not found"))
+		if keepsPlainNotFound(request.URL.Path) {
+			writeBody(responseWriter, request, http.StatusNotFound, plainTextUTF8, []byte("not found"))
+			return
+		}
+		// 画面の経路に当たらない GET は、404 のまま SPA の index を返す。中央の 404 が出る。
+		// src/web.tsx:494-500。docs/spec/routes.md の「SPA が受け取る path」。
+		// https://www.rfc-editor.org/rfc/rfc9110#section-15.5.5
+		application.serveSPA(responseWriter, request, http.StatusNotFound)
 	}
 }
 
@@ -161,7 +168,7 @@ func (application *httpApplication) serveTerminalDocument(responseWriter http.Re
 	if secured, ok := responseWriter.(*securedResponse); ok {
 		secured.policy = terminalContentSecurityPolicy
 	}
-	application.serveSPA(responseWriter, request)
+	application.serveSPA(responseWriter, request, http.StatusOK)
 }
 
 func currentUserName() (string, error) {
@@ -200,19 +207,29 @@ func workspacePageSlug(urlPath string) (string, bool) {
 
 func (application *httpApplication) serveWorkspacePage(responseWriter http.ResponseWriter, request *http.Request, slug string) {
 	if _, found := workspace.Find(request.Context(), slug, stateDirectory()); !found {
-		message := "workspace not found: " + showHeaderValue(slug)
-		writeBody(responseWriter, request, http.StatusNotFound, plainTextUTF8, []byte(message))
+		// 登録の無い slug も画面の 404。文は SPA が path から出す。src/web.tsx:566-573。
+		// docs/spec/routes.md の「SPA が受け取る path」
+		application.serveSPA(responseWriter, request, http.StatusNotFound)
 		return
 	}
-	application.serveSPA(responseWriter, request)
+	application.serveSPA(responseWriter, request, http.StatusOK)
 }
 
-func (application *httpApplication) serveSPA(responseWriter http.ResponseWriter, request *http.Request) {
+func (application *httpApplication) serveSPA(responseWriter http.ResponseWriter, request *http.Request, status int) {
 	body, found := readDistFile(application.dist, "index.html")
 	if !found {
 		body = []byte(fallbackIndexHTML)
 	}
-	writeBody(responseWriter, request, http.StatusOK, "text/html; charset=utf-8", body)
+	writeBody(responseWriter, request, status, "text/html; charset=utf-8", body)
+}
+
+// keepsPlainNotFound は、画面ではない 404 を text/plain のままにする。
+// API と、拡張子のある静的ファイルが無いとき。docs/spec/routes.md の「静的配信に残すもの」
+func keepsPlainNotFound(urlPath string) bool {
+	if urlPath == "/api" || strings.HasPrefix(urlPath, "/api/") {
+		return true
+	}
+	return path.Ext(path.Clean(urlPath)) != ""
 }
 
 func (application *httpApplication) serveStatic(responseWriter http.ResponseWriter, request *http.Request) bool {
