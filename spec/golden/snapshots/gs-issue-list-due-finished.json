@@ -1,0 +1,187 @@
+{
+  "name": "gs-issue-list-due-finished",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "initialized <WORKSPACE>/.yaru\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Late todo",
+        "--status",
+        "todo",
+        "--dueDate",
+        "2026-09-27"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:01:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"Late todo\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": \"2026-09-27\",\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:01:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:01:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Late backlog",
+        "--status",
+        "backlog",
+        "--dueDate",
+        "2026-09-27"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:02:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"2\",\n  \"title\": \"Late backlog\",\n  \"status\": \"backlog\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": \"2026-09-27\",\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:02:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:02:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Late progress",
+        "--status",
+        "in_progress",
+        "--dueDate",
+        "2026-09-27"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:03:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"3\",\n  \"title\": \"Late progress\",\n  \"status\": \"in_progress\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": \"2026-09-27\",\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": \"2026-09-28T12:03:00.000Z\",\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:03:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:03:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Late done",
+        "--status",
+        "done",
+        "--dueDate",
+        "2026-09-27"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:04:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"4\",\n  \"title\": \"Late done\",\n  \"status\": \"done\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": \"2026-09-27\",\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": \"2026-09-28T12:04:00.000Z\",\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:04:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:04:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Late canceled",
+        "--status",
+        "canceled",
+        "--dueDate",
+        "2026-09-27"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:05:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"5\",\n  \"title\": \"Late canceled\",\n  \"status\": \"canceled\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": \"2026-09-27\",\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": \"2026-09-28T12:05:00.000Z\",\n  \"createdAt\": \"2026-09-28T12:05:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:05:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "list", "--due", "overdue"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"issues\": [\n    {\n      \"id\": \"3\",\n      \"title\": \"Late progress\",\n      \"status\": \"in_progress\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": \"2026-09-27\",\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": \"2026-09-28T12:03:00.000Z\",\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T12:03:00.000Z\",\n      \"updatedAt\": \"2026-09-28T12:03:00.000Z\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"stale\": false,\n      \"body\": \"\"\n    },\n    {\n      \"id\": \"2\",\n      \"title\": \"Late backlog\",\n      \"status\": \"backlog\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": \"2026-09-27\",\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T12:02:00.000Z\",\n      \"updatedAt\": \"2026-09-28T12:02:00.000Z\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"stale\": false,\n      \"body\": \"\"\n    },\n    {\n      \"id\": \"1\",\n      \"title\": \"Late todo\",\n      \"status\": \"todo\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": \"2026-09-27\",\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T12:01:00.000Z\",\n      \"updatedAt\": \"2026-09-28T12:01:00.000Z\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"stale\": false,\n      \"body\": \"\"\n    }\n  ],\n  \"hasNextPage\": false\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "list", "--due", "overdue", "--format"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "3  in_progress   -             2026-09-27  -       Late progress\n2  backlog       -             2026-09-27  -       Late backlog\n1  todo          -             2026-09-27  -       Late todo\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": "comments",
+      "content": "",
+      "directory": true
+    },
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues/1.md",
+      "content": "---\nid: 1\ntitle: Late todo\nstatus: todo\nassignee:\nlabels:\ndueDate: 2026-09-27\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:01:00.000Z\nupdatedAt: 2026-09-28T12:01:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "issues/2.md",
+      "content": "---\nid: 2\ntitle: Late backlog\nstatus: backlog\nassignee:\nlabels:\ndueDate: 2026-09-27\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:02:00.000Z\nupdatedAt: 2026-09-28T12:02:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "issues/3.md",
+      "content": "---\nid: 3\ntitle: Late progress\nstatus: in_progress\nassignee:\nlabels:\ndueDate: 2026-09-27\npriority:\nparent:\nblocks:\nstartedAt: 2026-09-28T12:03:00.000Z\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:03:00.000Z\nupdatedAt: 2026-09-28T12:03:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "issues/4.md",
+      "content": "---\nid: 4\ntitle: Late done\nstatus: done\nassignee:\nlabels:\ndueDate: 2026-09-27\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt: 2026-09-28T12:04:00.000Z\ncanceledAt:\ncreatedAt: 2026-09-28T12:04:00.000Z\nupdatedAt: 2026-09-28T12:04:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "issues/5.md",
+      "content": "---\nid: 5\ntitle: Late canceled\nstatus: canceled\nassignee:\nlabels:\ndueDate: 2026-09-27\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt: 2026-09-28T12:05:00.000Z\ncreatedAt: 2026-09-28T12:05:00.000Z\nupdatedAt: 2026-09-28T12:05:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "questions/.gitignore",
+      "content": "*\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

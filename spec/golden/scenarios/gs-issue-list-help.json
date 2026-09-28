@@ -1,0 +1,38 @@
+{
+  "name": "gs-issue-list-help",
+  "description": "yaru issue list の --help と -h、コマンドより前の --help が同じ一覧ヘルプを出して終了コード 0 になることを記録する。ワークスペースは要らない。yaru help issue list は全体のヘルプ、yaru issue --help は issue のヘルプになる。",
+  "steps": [
+    {
+      "arguments": ["issue", "list", "--help"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "-h"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["--help", "issue", "list"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["-h", "issue", "list"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "--help", "list"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "-h", "--status", "todo"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["help", "issue", "list"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "--help"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

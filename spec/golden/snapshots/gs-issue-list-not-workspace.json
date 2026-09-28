@@ -1,0 +1,43 @@
+{
+  "name": "gs-issue-list-not-workspace",
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "not a yaru workspace (run yaru init)\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--due", "late", "--status", "nope", "--limit", "0"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "not a yaru workspace (run yaru init)\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--format"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "not a yaru workspace (run yaru init)\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

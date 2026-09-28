@@ -1,0 +1,90 @@
+{
+  "name": "gs-issue-list-page",
+  "description": "yaru issue list の --limit と --cursor が、絞ったあとの並びを切ることを記録する。cursor は直前ページの印でなくても、今の結果にある id ならその次から返す。最後の id の次は空で、hasNextPage が false のときは cursor を出さない。件数と同じ limit も cursor を出さない。01 は 1、000250 は 250 になる。繰り返すと最初の値だけを使う。--format はページの印を出さず、空のページは (none) である。",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "TodoA", "--status", "todo"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "TodoB", "--status", "todo"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "TodoC", "--status", "todo"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "DoneD", "--status", "done"],
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--limit", "2"],
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--limit", "2", "--cursor", "3"],
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--limit", "2", "--cursor", "1"],
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--cursor", "2"],
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--limit", "4"],
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--limit", "3"],
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--limit", "01"],
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--limit", "000250"],
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--limit", "1", "--limit", "4"],
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--cursor", "3", "--cursor", "1"],
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "todo", "--limit", "2"],
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "todo", "--limit", "2", "--cursor", "2"],
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "done", "--limit", "2"],
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--format", "--limit", "1"],
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--format", "--limit", "1", "--cursor", "1"],
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--format", "--limit", "2"],
+      "now": "2026-09-28T12:30:00.000Z"
+    }
+  ]
+}

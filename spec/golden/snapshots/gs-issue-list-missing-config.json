@@ -1,0 +1,24 @@
+{
+  "name": "gs-issue-list-missing-config",
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "not a yaru workspace (run yaru init)\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [
+    {
+      "path": "issues/1.md",
+      "content": "---\nid: 1\ntitle: Hidden\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+    }
+  ],
+  "state": []
+}

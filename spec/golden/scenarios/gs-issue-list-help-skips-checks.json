@@ -1,0 +1,26 @@
+{
+  "name": "gs-issue-list-help-skips-checks",
+  "description": "--help があると、未知のフラグや --status があっても一覧せずヘルプを出して終了コード 0 になることを記録する。値の無い --status のあとに --help があると、ヘルプより先に missing value になる。",
+  "steps": [
+    {
+      "arguments": ["issue", "list", "--help", "--bogus", "x"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "todo", "--help"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--bogus", "x", "--help"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "--help"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--help", "--limit"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

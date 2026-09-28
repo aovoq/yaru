@@ -1,0 +1,86 @@
+{
+  "name": "gs-issue-list-status",
+  "description": "yaru issue list の --status が backlog、todo、in_progress、done、canceled を絞り込むことを記録する。前後の空白は無視する。空文字は絞らない。繰り返すと最初の値だけを使う。違う綴り、none、空白付きの不正値は終了コード 1 である。",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Backlog item", "--status", "backlog"],
+      "now": "2026-09-28T12:01:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Todo item", "--status", "todo"],
+      "now": "2026-09-28T12:02:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Progress item", "--status", "in_progress"],
+      "now": "2026-09-28T12:03:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Done item", "--status", "done"],
+      "now": "2026-09-28T12:04:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Canceled item", "--status", "canceled"],
+      "now": "2026-09-28T12:05:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "backlog"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "todo"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "in_progress"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "done"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "canceled"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", " todo "],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "canceled "],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", ""],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "done", "--status", "todo"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "done", "--format"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "backlog", "--status", "nope"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", " nope "],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "Todo"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "none"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

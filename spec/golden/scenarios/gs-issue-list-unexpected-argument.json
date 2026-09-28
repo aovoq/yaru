@@ -1,0 +1,50 @@
+{
+  "name": "gs-issue-list-unexpected-argument",
+  "description": "yaru issue list に位置引数があると終了コード 1 になることを記録する。--format と -f は値を取らないので、続けた語も位置引数になる。-- のあと、大文字の LIST、-ff、余分な語も位置引数である。不正な --limit より先に位置引数で失敗する。ワークスペースは開かない。",
+  "steps": [
+    {
+      "arguments": ["issue", "list", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "help"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--", "--limit", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--format", "json"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "-f", "table"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "LIST"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--limit", "1", "extra"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--limit", "0", "extra"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--due", "late", "extra"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "-ff"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "-status"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "name": "gs-issue-list-parent",
+  "description": "yaru issue list の --parent が、その id を親に持つ issue だけを残すことを記録する。孫は含まない。none は親が無い issue である。居ない id はエラーにせず空になる。NONE、空白、空文字は none にしない。繰り返すと最初の値だけを使う。",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Parent"],
+      "now": "2026-09-28T12:01:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Child", "--parent", "1"],
+      "now": "2026-09-28T12:02:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Grandchild", "--parent", "2"],
+      "now": "2026-09-28T12:03:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Orphan"],
+      "now": "2026-09-28T12:04:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--parent", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--parent", "2"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--parent", "none"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--parent", "99"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--parent", ""],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--parent", " none"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--parent", "NONE"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--parent", "none", "--parent", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--parent", "1", "--parent", "none"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--parent", "1", "--format"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--parent", "99", "--format"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

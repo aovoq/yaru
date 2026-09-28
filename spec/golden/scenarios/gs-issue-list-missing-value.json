@@ -1,0 +1,50 @@
+{
+  "name": "gs-issue-list-missing-value",
+  "description": "値の要るフラグに値が無いと、終了コード 1 で missing value になることを記録する。--status、--assignee、--label、--query、--due、--parent、--limit、--cursor、知らない -x、= で値を付けただけの --status=todo を含む。ワークスペースは開かない。",
+  "steps": [
+    {
+      "arguments": ["issue", "list", "--status"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--label"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--due"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--parent"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--limit"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--cursor"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "-x"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status=todo"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--foo"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

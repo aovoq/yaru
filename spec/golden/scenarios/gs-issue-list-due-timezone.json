@@ -1,0 +1,67 @@
+{
+  "name": "gs-issue-list-due-timezone",
+  "description": "--due overdue の今日が手順の TZ の暦日であることを記録する。2026-09-28T20:00:00.000Z は東京では 2026-09-29、ロサンゼルスでは 2026-09-28 である。2026-09-28T06:00:00.000Z は東京では 2026-09-28、ロサンゼルスでは 2026-09-27 である。done はどちらの時間帯でも期限切れにしない。",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T20:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Sep26", "--dueDate", "2026-09-26"],
+      "now": "2026-09-28T12:01:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Sep27", "--dueDate", "2026-09-27"],
+      "now": "2026-09-28T12:02:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Sep28", "--dueDate", "2026-09-28"],
+      "now": "2026-09-28T12:03:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Sep29", "--dueDate", "2026-09-29"],
+      "now": "2026-09-28T12:04:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "DoneSep26",
+        "--status",
+        "done",
+        "--dueDate",
+        "2026-09-26"
+      ],
+      "now": "2026-09-28T12:05:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--due", "overdue"],
+      "now": "2026-09-28T20:00:00.000Z",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      }
+    },
+    {
+      "arguments": ["issue", "list", "--due", "overdue"],
+      "now": "2026-09-28T20:00:00.000Z",
+      "environment": {
+        "TZ": "America/Los_Angeles"
+      }
+    },
+    {
+      "arguments": ["issue", "list", "--due", "overdue"],
+      "now": "2026-09-28T06:00:00.000Z",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      }
+    },
+    {
+      "arguments": ["issue", "list", "--due", "overdue"],
+      "now": "2026-09-28T06:00:00.000Z",
+      "environment": {
+        "TZ": "America/Los_Angeles"
+      }
+    }
+  ]
+}

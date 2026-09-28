@@ -1,0 +1,22 @@
+{
+  "name": "gs-issue-list-invalid-now",
+  "description": "YARU_NOW が ISO 8601 の日時でないとき、yaru issue list は引数を見る前に終了コード 1 になることを記録する。日付だけ、存在しない日、文言、不正な時刻と同時の未知フラグを含む。",
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "now": "yesterday"
+    },
+    {
+      "arguments": ["issue", "list"],
+      "now": "2026-09-28"
+    },
+    {
+      "arguments": ["issue", "list"],
+      "now": "2026-02-30T00:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--bogus", "x"],
+      "now": "not-a-time"
+    }
+  ]
+}
