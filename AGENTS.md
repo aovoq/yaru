@@ -75,10 +75,10 @@
 
 ## 変更したあと
 
-- `bun run fmt`、`bun run typecheck`、`bun test` を全て通すこと
-- 使われている `yaru` は `dist/yaru.js` なので、変更を反映するには必ず次の 2 つを行うこと
-  - `bun run build`
-  - `launchctl kickstart -k gui/$(id -u)/com.aovoq.yaru-serve` (常駐の `yaru serve` は画面のスクリプトを起動中ずっと持ち続けるため)
+- `bun run fmt`、`nix develop --command make go-check`、`cd web && npm run build && npm test` を全て通すこと
+- 使われている `yaru` は `~/.local/bin/yaru` (Go の実行ファイル 1 つ、画面を同梱) なので、変更を反映するには `make install` を行うこと
+  - 画面のビルド、Go のビルド、置き換え、`launchctl kickstart -k gui/$(id -u)/com.aovoq.yaru-serve` をまとめて行う
+  - 常駐の `yaru serve` は起動中ずっと古い実行ファイルを持ち続けるため、kickstart が要る
 - 常駐の設定は `~/dotfiles/home/modules/yaru.nix` にある。スマホからは Tailscale (`tailscale serve`) 経由で開く。`funnel` で公開しないこと
 - 同じリポジトリで他のエージェントも作業しているので、コミットの前に `git log` と `git diff` で自分の変更だけかを確かめること
 
