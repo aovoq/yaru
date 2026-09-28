@@ -13,12 +13,13 @@ import { labelColors as workspaceLabelColors } from "../components/tint"
 import { createYaruClients } from "../connect/client"
 import type { BoardQuery } from "../route"
 import { IssueActionsContext } from "../board/context-menu/issue-actions"
+import { BoardIssuePanel } from "../issue/board-issue-panel"
 import { useBoardInteractions } from "./use-board-interactions"
 import { usePageController } from "./use-page-controller"
 import { useSidebarPreference } from "./use-sidebar-preference"
 
 // 板の画面の組み立て。データの初回は GetPage、その後は WatchWorkspace (docs/spec/routes.md の「ライブ更新」)
-// issue の本文の画面は別の担当。開いているあいだ板を inert にするため、枠だけ置く
+// 開いている issue の中身は BoardIssuePanel。開いているあいだ板の本体だけを inert にする
 // 親の App が pt-safe を持つので、板は viewport いっぱいに固定し、切り欠きの余白は見出しとサイドバーが自分で取る
 
 export function BoardScreen({
@@ -158,17 +159,30 @@ export function BoardScreen({
               )}
             </div>
           </div>
-          {state.current ? (
-            <aside
-              id="issue-view"
-              role="dialog"
-              aria-labelledby="issue-view-title"
-              class="issue-view fixed inset-y-0 right-0 left-0 z-20 flex flex-col bg-canvas"
-            >
-              <h1 id="issue-view-title" class="sr-only">
-                {state.current.id ? `#${state.current.id} ${state.current.title}` : "New issue"}
-              </h1>
-            </aside>
+          {state.current && now ? (
+            <BoardIssuePanel
+              workspace={slug}
+              issue={state.current}
+              all={state.all}
+              filters={filters}
+              comments={state.comments}
+              questions={state.questions ?? []}
+              events={state.events}
+              commits={state.commits}
+              viewer={state.viewer}
+              now={now}
+              draftDirty={state.draftDirty}
+              saveState={state.saveState}
+              returnedDrafts={state.returnedDrafts}
+              error={state.requestError ?? state.error}
+              onChange={controller.changeDraft}
+              onCommit={controller.commitField}
+              onSave={controller.saveCurrent}
+              onRetry={() => void controller.retrySave()}
+              onPatchIssue={controller.patchIssue}
+              onNavigate={interactions.navigate}
+              onOpenMenu={interactions.issueActions.openIssueMenuAt}
+            />
           ) : null}
           {interactions.overlays}
         </div>
