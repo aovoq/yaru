@@ -1,11 +1,11 @@
 import { RelativeTime } from "../components/relative-time"
 import { Section } from "../components/section"
-import type { Commit } from "./model"
+import type { RepositoryCommit } from "../domain/repository"
 
 // この issue に関わるコミットを新しい順に並べる。まだ送っていないものは点を primary の色にし、読み上げの文も付ける
 // 送ったかどうかが分からないときは点も data-pushed も付けない
 
-export function Commits({ commits, now }: { commits: Commit[]; now: Date }) {
+export function Commits({ commits, now }: { commits: RepositoryCommit[]; now: Date }) {
   if (commits.length === 0) return null
   return (
     <Section title="Commits" count={commits.length}>

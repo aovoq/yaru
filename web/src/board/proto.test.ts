@@ -11,13 +11,8 @@ import {
 } from "../gen/yaru/v1/common_pb"
 import type { GetPageResponse } from "../gen/yaru/v1/page_pb"
 import { SaveRejectedError } from "./save-error"
-import {
-  errorFromSave,
-  issueFromProto,
-  pageFromResponse,
-  pageRequestFromHref,
-  saveIssueRequest,
-} from "./proto"
+import { issueFromProto } from "../domain/from-proto"
+import { errorFromSave, pageFromResponse, pageRequestFromHref, saveIssueRequest } from "./proto"
 
 test("pageRequestFromHref maps the board query onto GetPage enums", () => {
   expect(

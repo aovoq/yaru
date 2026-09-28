@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "preact/hooks"
-import type { Comment } from "./model"
+import type { Comment } from "../domain/comment"
 
 // コメントを保存し、ページを読み直さずに活動欄へ足す
 // 送ったコメントは、次の読み直しで同じ id が入ってくるまで手元で並べておく

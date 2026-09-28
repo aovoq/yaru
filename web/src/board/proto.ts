@@ -1,7 +1,6 @@
 import { create } from "@bufbuild/protobuf"
 import { Code, ConnectError } from "@connectrpc/connect"
-import type { Issue as DomainIssue, Priority } from "../domain/issue"
-import type { Question, QuestionStatus } from "../domain/question"
+import type { Issue as DomainIssue } from "../domain/issue"
 import { shouldRetryConnectError } from "../connect/client"
 import {
   CompletedVisibility,
@@ -11,18 +10,12 @@ import {
   IssueStatus,
   IssueView,
   PatchOpKind,
-  QuestionStatus as ProtoQuestionStatus,
   BlockDeltaSchema,
   IssuePriorityUpdateSchema,
   PatchListSchema,
   PatchOperationSchema,
   StringListSchema,
   type PatchList,
-  type Comment as ProtoComment,
-  type Issue as ProtoIssue,
-  type IssueEvent as ProtoIssueEvent,
-  type Question as ProtoQuestion,
-  type RepositoryCommit as ProtoCommit,
 } from "../gen/yaru/v1/common_pb"
 import type { GetPageResponse } from "../gen/yaru/v1/page_pb"
 import { GetPageRequestSchema } from "../gen/yaru/v1/page_pb"
@@ -35,16 +28,15 @@ import {
   type IssueGroup as GroupName,
   type IssueSort as SortName,
 } from "./display"
-import type {
-  AwaitingSummary,
-  Comment,
-  IssueCommit,
-  IssueEvent,
-  PageData,
-  SaveInput,
-  ViewMode,
-} from "./page-data"
+import type { AwaitingSummary, PageData, SaveInput, ViewMode } from "./page-data"
 import { SaveRejectedError } from "./save-error"
+import {
+  commentFromProto,
+  commitFromProto,
+  eventFromProto,
+  issueFromProto,
+  questionFromProto,
+} from "../domain/from-proto"
 
 // 画面の文字列と proto の enum を対応させる (docs/spec/routes.md の「列挙の名前」)
 // 列挙に無い文字列は RPC が InvalidArgument にする。enum では送れないので、送る前に同じ結果になる誤りにする
@@ -55,7 +47,6 @@ const SORT_NAMES = ["priority", "updated", "created", "due"] as const
 const GROUP_NAMES = ["status", "priority", "label", "none"] as const
 const COMPLETED_NAMES = ["hide", "recent", "all"] as const
 const VIEW_NAMES = ["list", "board"] as const
-const QUESTION_NAMES = ["open", "expired", "answered", "canceled"] as const
 
 const STATUS_ENUM: Record<(typeof STATUS_NAMES)[number], IssueStatus> = {
   backlog: IssueStatus.BACKLOG,
@@ -95,13 +86,6 @@ const COMPLETED_ENUM: Record<(typeof COMPLETED_NAMES)[number], CompletedVisibili
 const VIEW_ENUM: Record<(typeof VIEW_NAMES)[number], IssueView> = {
   list: IssueView.LIST,
   board: IssueView.BOARD,
-}
-
-const QUESTION_ENUM: Record<(typeof QUESTION_NAMES)[number], QuestionStatus> = {
-  open: "open",
-  expired: "expired",
-  answered: "answered",
-  canceled: "canceled",
 }
 
 export function pageRequestFromHref(workspace: string, href: string) {
@@ -170,32 +154,6 @@ export function pageFromResponse(response: GetPageResponse): PageData {
     viewer: response.viewer,
     ...(response.error !== undefined ? { error: response.error } : {}),
     now: response.now,
-  }
-}
-
-export function issueFromProto(message: ProtoIssue): DomainIssue {
-  return {
-    id: message.id,
-    title: message.title,
-    status: statusName(message.status),
-    assignee: message.assignee ?? null,
-    labels: message.labels,
-    dueDate: message.dueDate ?? null,
-    priority: priorityName(message.priority),
-    parent: message.parent ?? null,
-    blocks: message.blocks,
-    blockedBy: message.blockedBy,
-    children: message.children,
-    startedAt: message.startedAt ?? null,
-    completedAt: message.completedAt ?? null,
-    canceledAt: message.canceledAt ?? null,
-    createdAt: message.createdAt,
-    updatedAt: message.updatedAt,
-    session: message.session ?? null,
-    worktree: message.worktree ?? null,
-    branch: message.branch ?? null,
-    stale: message.stale,
-    body: message.body,
   }
 }
 
@@ -282,73 +240,6 @@ export function errorFromLoad(error: unknown): Error {
   return new Error(`request failed: expected an Error, actual ${String(error)}`)
 }
 
-function commentFromProto(message: ProtoComment): Comment {
-  return {
-    id: message.id,
-    issue: message.issue,
-    parent: message.parent ?? null,
-    author: message.author,
-    createdAt: message.createdAt,
-    updatedAt: message.updatedAt,
-    body: message.body,
-  }
-}
-
-function questionFromProto(message: ProtoQuestion): Question {
-  return {
-    id: message.id,
-    title: message.title,
-    status: questionStatusName(message.status),
-    issue: message.issue ?? null,
-    priority: priorityName(message.priority),
-    defaultAction: message.defaultAction ?? null,
-    answerBy: message.answerBy ?? null,
-    options: message.options,
-    author: message.author,
-    session: message.session ?? null,
-    worktree: message.worktree ?? null,
-    branch: message.branch ?? null,
-    answer: message.answer ?? null,
-    answeredBy: message.answeredBy ?? null,
-    answeredAt: message.answeredAt ?? null,
-    acknowledgedAt: message.acknowledgedAt ?? null,
-    notifiedExpiringAt: message.notifiedExpiringAt ?? null,
-    canceledAt: message.canceledAt ?? null,
-    createdAt: message.createdAt,
-    updatedAt: message.updatedAt,
-    body: message.body,
-  }
-}
-
-function eventFromProto(message: ProtoIssueEvent): IssueEvent {
-  return {
-    field: message.field,
-    from: eventValue(message.fromValue),
-    to: eventValue(message.toValue),
-    by: message.by,
-    session: message.session ?? null,
-    at: message.at,
-  }
-}
-
-function eventValue(
-  value: ProtoIssueEvent["fromValue"] | ProtoIssueEvent["toValue"],
-): IssueEvent["from"] {
-  if (value.case === "fromText" || value.case === "toText") return value.value
-  if (value.case === "fromList" || value.case === "toList") return value.value.values
-  return null
-}
-
-function commitFromProto(message: ProtoCommit): IssueCommit {
-  return {
-    hash: message.hash,
-    subject: message.subject,
-    author: message.author,
-    committedAt: message.committedAt,
-    pushed: message.pushed ?? null,
-  }
-}
-
 function statusName(status: IssueStatus): string {
   const name = STATUS_NAMES.find((candidate) => STATUS_ENUM[candidate] === status)
   if (!name) {
@@ -362,34 +253,6 @@ function statusName(status: IssueStatus): string {
 function statusFilterName(status: IssueStatus | undefined): string | undefined {
   if (status === undefined || status === IssueStatus.UNSPECIFIED) return undefined
   return statusName(status)
-}
-
-function priorityName(priority: IssuePriority | undefined): Priority | null {
-  if (priority === undefined || priority === IssuePriority.UNSPECIFIED) return null
-  const name = PRIORITY_NAMES.find((candidate) => PRIORITY_ENUM[candidate] === priority)
-  if (!name) {
-    throw new Error(
-      `invalid priority: expected ${joinChoices(PRIORITY_NAMES)}, actual ${statusNameOrNumber(priority)}`,
-    )
-  }
-  return name
-}
-
-function questionStatusName(status: ProtoQuestionStatus): QuestionStatus {
-  const name = QUESTION_NAMES.find((candidate) => protoQuestionStatus(candidate) === status)
-  if (!name) {
-    throw new Error(
-      `invalid question status: expected ${joinChoices(QUESTION_NAMES)}, actual ${statusNameOrNumber(status)}`,
-    )
-  }
-  return QUESTION_ENUM[name]
-}
-
-function protoQuestionStatus(name: (typeof QUESTION_NAMES)[number]): ProtoQuestionStatus {
-  if (name === "open") return ProtoQuestionStatus.OPEN
-  if (name === "expired") return ProtoQuestionStatus.EXPIRED
-  if (name === "answered") return ProtoQuestionStatus.ANSWERED
-  return ProtoQuestionStatus.CANCELED
 }
 
 function displayFromProto(display: GetPageResponse["display"]): PageData["display"] {

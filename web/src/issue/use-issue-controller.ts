@@ -21,11 +21,11 @@ import {
   pageHref,
   withoutReturnedParams,
 } from "./filters"
-import type { Comment, DraftField, SaveInput } from "./model"
+import type { Comment } from "../domain/comment"
+import type { DraftField, SaveInput } from "./model"
+import { commentFromProto, issueFromProto } from "../domain/from-proto"
 import {
-  commentFromProto,
   getPageInit,
-  issueFromProto,
   pageFromResponse,
   saveIssueInit,
   serverNow,

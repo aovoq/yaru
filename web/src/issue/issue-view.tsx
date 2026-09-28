@@ -16,16 +16,10 @@ import { pageHref } from "./filters"
 import { IssueViewHeader } from "./issue-view-header"
 import { KeyProperties } from "./key-properties"
 import { MoreProperties } from "./more-properties"
-import type {
-  Comment,
-  Commit,
-  DraftField,
-  IssueEvent,
-  PageFilters,
-  ReturnedDrafts,
-  SaveInput,
-  SaveState,
-} from "./model"
+import type { Comment } from "../domain/comment"
+import type { IssueEvent } from "../domain/issue-event"
+import type { RepositoryCommit } from "../domain/repository"
+import type { DraftField, PageFilters, ReturnedDrafts, SaveInput, SaveState } from "./model"
 import type { RelationKind } from "./relation-kind-switch"
 import { Relations } from "./relations"
 import { SubIssues } from "./sub-issues"
@@ -45,7 +39,7 @@ export type IssueViewProps = {
   comments: Comment[]
   questions: Question[]
   events: IssueEvent[]
-  commits: Commit[]
+  commits: RepositoryCommit[]
   viewer?: string
   now: Date
   draftDirty: boolean

@@ -5,7 +5,8 @@ import { ActivityChangeIcon } from "./activity-change-icon"
 import { ActivityComment } from "./activity-comment"
 import { ActivityEvent } from "./activity-event"
 import { activityEntries, describeIssueEvent } from "./activity-entries"
-import type { Comment, IssueEvent } from "./model"
+import type { Comment } from "../domain/comment"
+import type { IssueEvent } from "../domain/issue-event"
 
 // 出来事・属性の変更・コメントを 1 本の流れで見せる。軸の線は ol の ::before で描く
 

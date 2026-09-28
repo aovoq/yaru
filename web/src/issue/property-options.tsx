@@ -7,7 +7,7 @@ import { LabelDot } from "../components/label-dot"
 import { labelColors } from "../components/tint"
 import { PRIORITIES, type Issue } from "../domain/issue"
 import { issueColumns, priorityLabel, statusLabel } from "./filters"
-import type { Comment } from "./model"
+import type { Comment } from "../domain/comment"
 
 // issue 画面の属性の選択の面に並べる候補
 // 値の無いことを選べる属性 (優先度・担当者・親) は、先頭に「無し」の候補を value "" で置く。保存では "" が null になる

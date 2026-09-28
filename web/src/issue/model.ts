@@ -1,37 +1,10 @@
+import type { Comment } from "../domain/comment"
 import type { Issue, Priority } from "../domain/issue"
+import type { IssueEvent } from "../domain/issue-event"
 import type { Question } from "../domain/question"
+import type { RepositoryCommit } from "../domain/repository"
 
 // issue 画面が読む形。proto の message は proto.ts でこの形に直す
-
-export type Comment = {
-  id: string
-  issue: string
-  parent: string | null
-  author: string
-  createdAt: string
-  updatedAt: string
-  body: string
-}
-
-export type Commit = {
-  hash: string
-  subject: string
-  author: string
-  committedAt: string
-  pushed: boolean | null
-}
-
-// 属性の変更の前後。文字列、文字列の配列、または null (src/issue-events.ts)
-export type IssueEventValue = string | string[] | null
-
-export type IssueEvent = {
-  field: string
-  from: IssueEventValue
-  to: IssueEventValue
-  by: string
-  session: string | null
-  at: string
-}
 
 export type DraftField =
   | "title"
@@ -90,7 +63,7 @@ export type IssuePage = {
   comments: Comment[]
   questions: Question[]
   events: IssueEvent[]
-  commits: Commit[]
+  commits: RepositoryCommit[]
   status?: string
   assignee?: string
   label?: string

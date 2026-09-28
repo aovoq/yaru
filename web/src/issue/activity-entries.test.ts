@@ -1,6 +1,7 @@
 import { expect, test } from "vitest"
 import { activityEntries, describeIssueEvent } from "./activity-entries"
-import { BLANK_ISSUE, type IssueEvent } from "./model"
+import type { IssueEvent } from "../domain/issue-event"
+import { BLANK_ISSUE } from "./model"
 
 function event(overrides: Partial<IssueEvent>): IssueEvent {
   return {

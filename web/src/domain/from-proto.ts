@@ -1,5 +1,13 @@
-import { IssuePriority, IssueStatus, QuestionStatus } from "../gen/yaru/v1/common_pb"
+import {
+  IssuePriority,
+  IssueStatus,
+  QuestionStatus,
+  type Comment as ProtoComment,
+  type IssueEvent as ProtoIssueEvent,
+} from "../gen/yaru/v1/common_pb"
+import type { Comment } from "./comment"
 import type { Issue, Priority } from "./issue"
+import type { IssueEvent, IssueEventValue } from "./issue-event"
 import type { Question, QuestionStatus as QuestionStatusName } from "./question"
 import type { RepositoryCommit, RepositoryState } from "./repository"
 import {
@@ -9,8 +17,9 @@ import {
   type SessionTotals,
 } from "./session"
 
-// Connect の返事を、画面の部品が読む形へ写す。未設定の optional は null
-// 状態の数は proto の enum。未知の質問状態は答え待ちに出さない (canceled として扱う)
+// Connect の返事を、画面の部品が読む形へ写す。板・issue・Dashboard・受信箱はここだけを使う
+// 未設定の optional は null。状態の数は proto の enum (docs/spec/routes.md の「列挙の名前」)
+// 画面とサーバーは同じ実行ファイルから配るので、知らない enum の値は食い違いとしてエラーにする
 
 export type QuestionLike = {
   id: string
@@ -169,6 +178,29 @@ export function issueFromProto(message: IssueLike): Issue {
   }
 }
 
+export function commentFromProto(message: ProtoComment): Comment {
+  return {
+    id: message.id,
+    issue: message.issue,
+    parent: message.parent ?? null,
+    author: message.author,
+    createdAt: message.createdAt,
+    updatedAt: message.updatedAt,
+    body: message.body,
+  }
+}
+
+export function eventFromProto(message: ProtoIssueEvent): IssueEvent {
+  return {
+    field: message.field,
+    from: eventValue(message.fromValue),
+    to: eventValue(message.toValue),
+    by: message.by,
+    session: message.session ?? null,
+    at: message.at,
+  }
+}
+
 export function sessionHealthFromProto(message: SessionHealthLike | undefined): SessionHealth {
   if (message === undefined) return emptySessionHealth()
   const totals = message.totals
@@ -241,7 +273,7 @@ function sessionSummaryFromProto(message: SessionSummaryLike): SessionSummary {
   }
 }
 
-function commitFromProto(message: {
+export function commitFromProto(message: {
   hash: string
   subject: string
   author: string
@@ -257,6 +289,14 @@ function commitFromProto(message: {
   }
 }
 
+function eventValue(
+  value: ProtoIssueEvent["fromValue"] | ProtoIssueEvent["toValue"],
+): IssueEventValue {
+  if (value.case === "fromText" || value.case === "toText") return value.value
+  if (value.case === "fromList" || value.case === "toList") return value.value.values
+  return null
+}
+
 function questionStatusFromProto(status: number): QuestionStatusName {
   switch (status) {
     case QuestionStatus.OPEN:
@@ -268,7 +308,9 @@ function questionStatusFromProto(status: number): QuestionStatusName {
     case QuestionStatus.CANCELED:
       return "canceled"
     default:
-      return "canceled"
+      throw new Error(
+        `invalid question status: expected open, expired, answered, or canceled, actual ${status}`,
+      )
   }
 }
 
@@ -285,12 +327,18 @@ function issueStatusFromProto(status: number): string {
     case IssueStatus.CANCELED:
       return "canceled"
     default:
-      return "unspecified"
+      throw new Error(
+        `invalid issue status: expected backlog, todo, in_progress, done, or canceled, actual ${status}`,
+      )
   }
 }
 
+// 0 (UNSPECIFIED) と未設定は「優先度なし」
 function priorityFromProto(priority: number | undefined): Priority | null {
   switch (priority) {
+    case undefined:
+    case IssuePriority.UNSPECIFIED:
+      return null
     case IssuePriority.URGENT:
       return "urgent"
     case IssuePriority.HIGH:
@@ -300,6 +348,6 @@ function priorityFromProto(priority: number | undefined): Priority | null {
     case IssuePriority.LOW:
       return "low"
     default:
-      return null
+      throw new Error(`invalid priority: expected urgent, high, medium, or low, actual ${priority}`)
   }
 }

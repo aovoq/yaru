@@ -1,6 +1,7 @@
 import { PRIORITIES, type Issue, type Priority } from "../domain/issue"
 import { priorityLabel, statusLabel } from "./filters"
-import type { Comment, IssueEvent, IssueEventValue } from "./model"
+import type { Comment } from "../domain/comment"
+import type { IssueEvent, IssueEventValue } from "../domain/issue-event"
 
 // issue 画面の活動欄に並べる項目。時刻が同じときは作成 → 開始 → 完了 → 属性の変更 → コメントの順
 // 属性の変更の記録があるときは、時刻の欄 (startedAt など) から作る始めた・終えたを出さない。同じ変化が 2 行に並ぶため

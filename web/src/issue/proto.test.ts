@@ -5,7 +5,7 @@ import {
   type Issue as ProtoIssue,
   type IssueEvent as ProtoIssueEvent,
 } from "../gen/yaru/v1/common_pb"
-import { eventFromProto, getPageInit, issueFromProto, saveIssueInit, serverNow } from "./proto"
+import { getPageInit, saveIssueInit, serverNow } from "./proto"
 import type { BoardQuery } from "../route"
 
 const query = (overrides: Partial<BoardQuery> = {}): BoardQuery => ({
@@ -28,38 +28,6 @@ const query = (overrides: Partial<BoardQuery> = {}): BoardQuery => ({
   questionId: null,
   answer: null,
   ...overrides,
-})
-
-test("a proto issue becomes the screen issue and an omitted assignee is null", () => {
-  const issue = issueFromProto({
-    id: "7",
-    title: "topic",
-    status: IssueStatus.IN_PROGRESS,
-    labels: ["api"],
-    blocks: [],
-    blockedBy: ["2"],
-    children: [],
-    createdAt: "2020-01-01T00:00:00.000Z",
-    updatedAt: "2020-01-02T00:00:00.000Z",
-    stale: false,
-    body: "body",
-  } as unknown as ProtoIssue)
-  expect(issue.status).toBe("in_progress")
-  expect(issue.assignee).toBeNull()
-  expect(issue.priority).toBeNull()
-  expect(issue.blockedBy).toEqual(["2"])
-})
-
-test("an event list and text become the activity values", () => {
-  const event = eventFromProto({
-    field: "labels",
-    fromValue: { case: "fromList", value: { values: ["a"] } },
-    toValue: { case: "toText", value: "b" },
-    by: "aovoq",
-    at: "2020-01-01T00:00:00.000Z",
-  } as unknown as ProtoIssueEvent)
-  expect(event.from).toEqual(["a"])
-  expect(event.to).toBe("b")
 })
 
 test("a cleared priority and a blocks replacement use the proto oneof", () => {

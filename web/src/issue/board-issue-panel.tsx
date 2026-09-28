@@ -1,22 +1,15 @@
 import { useEffect, useState } from "preact/hooks"
 import { AnswerUndoToast } from "../components/answer-undo-toast"
 import { createYaruClients } from "../connect/client"
-import { questionFromProto } from "../domain/from-proto"
+import { commentFromProto, questionFromProto, questionStatusToProto } from "../domain/from-proto"
 import type { Issue } from "../domain/issue"
 import type { Question } from "../domain/question"
 import { answeredNoticeExpiresAt, undoAnswerDeadline } from "../domain/undo-answer"
 import { IssueView } from "./issue-view"
-import type {
-  Comment,
-  Commit,
-  DraftField,
-  IssueEvent,
-  PageFilters,
-  ReturnedDrafts,
-  SaveInput,
-  SaveState,
-} from "./model"
-import { commentFromProto, questionStatusEnum } from "./proto"
+import type { Comment } from "../domain/comment"
+import type { IssueEvent } from "../domain/issue-event"
+import type { RepositoryCommit } from "../domain/repository"
+import type { DraftField, PageFilters, ReturnedDrafts, SaveInput, SaveState } from "./model"
 import { errorText } from "./save-error"
 
 // 板が開いている issue の中身。読み込みと保存は板の状態を使い、コメントと質問の送信だけ Connect に渡す
@@ -52,7 +45,7 @@ export function BoardIssuePanel({
   comments: Comment[]
   questions: Question[]
   events: IssueEvent[]
-  commits: Commit[]
+  commits: RepositoryCommit[]
   viewer?: string
   now: Date
   draftDirty: boolean
@@ -109,7 +102,7 @@ export function BoardIssuePanel({
         workspace,
         id,
         body,
-        expectedStatus: expected ? questionStatusEnum(expected) : undefined,
+        expectedStatus: expected ? questionStatusToProto(expected) : undefined,
       })
       setQuestionError(null)
       if (response.question) setToast(questionFromProto(response.question))

@@ -2,7 +2,7 @@ import { Avatar } from "../components/avatar"
 import { Card } from "../components/card"
 import { Markdown } from "../components/markdown"
 import { RelativeTime } from "../components/relative-time"
-import type { Comment } from "./model"
+import type { Comment } from "../domain/comment"
 
 // 活動欄のコメント。本文の #<id> は同じ板の中の issue へのリンクにする
 

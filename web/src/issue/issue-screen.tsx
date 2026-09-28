@@ -8,7 +8,8 @@ import { hasUnsavedChanges } from "./draft-state"
 import { deleteNewIssueParams, pageHref } from "./filters"
 import { IssueView } from "./issue-view"
 import { handleIssueKey } from "./issue-keyboard"
-import { questionFromProto, questionStatusEnum, serverNow } from "./proto"
+import { questionFromProto, questionStatusToProto } from "../domain/from-proto"
+import { serverNow } from "./proto"
 import { errorText } from "./save-error"
 import { useIssueController, type IssueClients } from "./use-issue-controller"
 
@@ -123,10 +124,10 @@ export function IssueScreen({
         workspace,
         id,
         body,
-        expectedStatus: expected ? questionStatusEnum(expected) : undefined,
+        expectedStatus: expected ? questionStatusToProto(expected) : undefined,
       })
       setQuestionError(null)
-      const answered = response.question ? questionFromProto(response.question)[0] : undefined
+      const answered = response.question ? questionFromProto(response.question) : undefined
       if (answered) setToast({ question: answered, now: serverNow(response.now) })
       await controller.reload()
     } catch (error) {

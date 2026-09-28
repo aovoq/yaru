@@ -5,7 +5,6 @@ import {
   IssueSort,
   IssueStatus,
   IssueView,
-  QuestionStatus,
   type Comment as ProtoComment,
   type Issue as ProtoIssue,
   type IssueEvent as ProtoIssueEvent,
@@ -14,10 +13,15 @@ import {
 } from "../gen/yaru/v1/common_pb"
 import type { BoardQuery } from "../route"
 import { SaveRejectedError } from "./save-error"
-import type { Issue, Priority } from "../domain/issue"
-import type { Question, QuestionStatus as QuestionStatusName } from "../domain/question"
 import { DEFAULT_COMPLETED, DEFAULT_GROUP, DEFAULT_SORT, DEFAULT_VIEW } from "./filters"
-import type { Comment, Commit, IssueEvent, IssueEventValue, IssuePage, SaveInput } from "./model"
+import type { IssuePage, SaveInput } from "./model"
+import {
+  commentFromProto,
+  commitFromProto,
+  eventFromProto,
+  issueFromProto,
+  questionFromProto,
+} from "../domain/from-proto"
 
 // proto の enum と、今の画面が使っている文字列の対応。未知の絞り込みは送らない (RPC は InvalidArgument にする)
 
@@ -39,32 +43,11 @@ const NAME_TO_STATUS: Record<string, IssueStatus> = {
   canceled: IssueStatus.CANCELED,
 }
 
-const PRIORITY_TO_NAME: Record<number, Priority> = {
-  [IssuePriority.URGENT]: "urgent",
-  [IssuePriority.HIGH]: "high",
-  [IssuePriority.MEDIUM]: "medium",
-  [IssuePriority.LOW]: "low",
-}
-
 const NAME_TO_PRIORITY: Record<string, IssuePriority> = {
   urgent: IssuePriority.URGENT,
   high: IssuePriority.HIGH,
   medium: IssuePriority.MEDIUM,
   low: IssuePriority.LOW,
-}
-
-const QUESTION_TO_NAME: Record<number, QuestionStatusName> = {
-  [QuestionStatus.OPEN]: "open",
-  [QuestionStatus.EXPIRED]: "expired",
-  [QuestionStatus.ANSWERED]: "answered",
-  [QuestionStatus.CANCELED]: "canceled",
-}
-
-const NAME_TO_QUESTION: Record<string, QuestionStatus> = {
-  open: QuestionStatus.OPEN,
-  expired: QuestionStatus.EXPIRED,
-  answered: QuestionStatus.ANSWERED,
-  canceled: QuestionStatus.CANCELED,
 }
 
 const SORT_TO_NAME: Record<number, string> = {
@@ -131,7 +114,7 @@ export function pageFromResponse(response: PageResponse): IssuePage {
     query: response.query,
     current: response.current ? issueFromProto(response.current) : null,
     comments: response.comments.map(commentFromProto),
-    questions: response.questions.flatMap(questionFromProto),
+    questions: response.questions.map(questionFromProto),
     events: response.events.map(eventFromProto),
     commits: response.commits.map(commitFromProto),
     status: optionalName(response.status, STATUS_TO_NAME),
@@ -149,104 +132,6 @@ export function pageFromResponse(response: PageResponse): IssuePage {
     error: response.error,
     now: response.now,
   }
-}
-
-export function issueFromProto(issue: ProtoIssue): Issue {
-  return {
-    id: issue.id,
-    title: issue.title,
-    status: STATUS_TO_NAME[issue.status] ?? "todo",
-    assignee: issue.assignee ?? null,
-    labels: issue.labels,
-    dueDate: issue.dueDate ?? null,
-    priority: issue.priority === undefined ? null : (PRIORITY_TO_NAME[issue.priority] ?? null),
-    parent: issue.parent ?? null,
-    blocks: issue.blocks,
-    blockedBy: issue.blockedBy,
-    children: issue.children,
-    startedAt: issue.startedAt ?? null,
-    completedAt: issue.completedAt ?? null,
-    canceledAt: issue.canceledAt ?? null,
-    createdAt: issue.createdAt,
-    updatedAt: issue.updatedAt,
-    session: issue.session ?? null,
-    worktree: issue.worktree ?? null,
-    branch: issue.branch ?? null,
-    stale: issue.stale,
-    body: issue.body,
-  }
-}
-
-export function commentFromProto(comment: ProtoComment): Comment {
-  return {
-    id: comment.id,
-    issue: comment.issue,
-    parent: comment.parent ?? null,
-    author: comment.author,
-    createdAt: comment.createdAt,
-    updatedAt: comment.updatedAt,
-    body: comment.body,
-  }
-}
-
-export function questionFromProto(question: ProtoQuestion): Question[] {
-  const status = QUESTION_TO_NAME[question.status]
-  if (!status) return []
-  return [
-    {
-      id: question.id,
-      title: question.title,
-      status,
-      issue: question.issue ?? null,
-      priority:
-        question.priority === undefined ? null : (PRIORITY_TO_NAME[question.priority] ?? null),
-      defaultAction: question.defaultAction ?? null,
-      answerBy: question.answerBy ?? null,
-      options: question.options,
-      author: question.author,
-      session: question.session ?? null,
-      worktree: question.worktree ?? null,
-      branch: question.branch ?? null,
-      answer: question.answer ?? null,
-      answeredBy: question.answeredBy ?? null,
-      answeredAt: question.answeredAt ?? null,
-      acknowledgedAt: question.acknowledgedAt ?? null,
-      notifiedExpiringAt: question.notifiedExpiringAt ?? null,
-      canceledAt: question.canceledAt ?? null,
-      createdAt: question.createdAt,
-      updatedAt: question.updatedAt,
-      body: question.body,
-    },
-  ]
-}
-
-export function eventFromProto(event: ProtoIssueEvent): IssueEvent {
-  return {
-    field: event.field,
-    from: eventValue(event.fromValue),
-    to: eventValue(event.toValue),
-    by: event.by,
-    session: event.session ?? null,
-    at: event.at,
-  }
-}
-
-export function commitFromProto(commit: ProtoCommit): Commit {
-  return {
-    hash: commit.hash,
-    subject: commit.subject,
-    author: commit.author,
-    committedAt: commit.committedAt,
-    pushed: commit.pushed ?? null,
-  }
-}
-
-function eventValue(
-  value: ProtoIssueEvent["fromValue"] | ProtoIssueEvent["toValue"],
-): IssueEventValue {
-  if (value.case === "fromText" || value.case === "toText") return value.value
-  if (value.case === "fromList" || value.case === "toList") return value.value.values
-  return null
 }
 
 // 未設定の enum は既定の名前にする。0 は「指定なし」なので、絞り込みとしては送らない側の既定と同じ
@@ -390,8 +275,4 @@ export function priorityEnum(priority: string): IssuePriority {
     )
   }
   return value
-}
-
-export function questionStatusEnum(status: string): QuestionStatus | undefined {
-  return NAME_TO_QUESTION[status]
 }

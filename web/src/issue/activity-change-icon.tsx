@@ -3,7 +3,7 @@ import { EmptyAvatar } from "../components/empty-avatar"
 import { PriorityIcon } from "../components/icons/priority-icon"
 import { StatusIcon } from "../components/icons/status-icon"
 import { PRIORITIES, type Priority } from "../domain/issue"
-import type { IssueEvent } from "./model"
+import type { IssueEvent } from "../domain/issue-event"
 
 // 活動欄で、属性の変更の行の軸に置くアイコン。変えた後の値を属性欄と同じアイコンで見せる
 

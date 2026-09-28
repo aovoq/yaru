@@ -1,5 +1,8 @@
+import type { Comment } from "../domain/comment"
 import type { Issue, Priority } from "../domain/issue"
+import type { IssueEvent } from "../domain/issue-event"
 import type { Question } from "../domain/question"
+import type { RepositoryCommit } from "../domain/repository"
 import {
   DEFAULT_ISSUE_DISPLAY,
   type CompletedVisibility,
@@ -21,35 +24,6 @@ export type AwaitingSummary = {
   soonestAnswerBy: string | null
 }
 
-export type Comment = {
-  id: string
-  issue: string
-  parent: string | null
-  author: string
-  createdAt: string
-  updatedAt: string
-  body: string
-}
-
-export type IssueEventValue = string | string[] | null
-
-export type IssueEvent = {
-  field: string
-  from: IssueEventValue
-  to: IssueEventValue
-  by: string
-  session: string | null
-  at: string
-}
-
-export type IssueCommit = {
-  hash: string
-  subject: string
-  author: string
-  committedAt: string
-  pushed: boolean | null
-}
-
 export type PageData = {
   issues: Issue[]
   all: Issue[]
@@ -58,7 +32,7 @@ export type PageData = {
   comments: Comment[]
   questions?: Question[]
   events: IssueEvent[]
-  commits: IssueCommit[]
+  commits: RepositoryCommit[]
   status?: string
   assignee?: string
   label?: string
