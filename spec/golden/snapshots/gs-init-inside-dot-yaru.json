@@ -1,0 +1,73 @@
+{
+  "name": "gs-init-inside-dot-yaru",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "initialized <WORKSPACE>/.yaru\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".yaru",
+      "stdout": "initialized <WORKSPACE>/.yaru/.yaru\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": ".yaru/comments",
+      "content": "",
+      "directory": true
+    },
+    {
+      "path": ".yaru/config.yml",
+      "content": ""
+    },
+    {
+      "path": ".yaru/issues",
+      "content": "",
+      "directory": true
+    },
+    {
+      "path": ".yaru/questions/.gitignore",
+      "content": "*\n"
+    },
+    {
+      "path": "comments",
+      "content": "",
+      "directory": true
+    },
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues",
+      "content": "",
+      "directory": true
+    },
+    {
+      "path": "questions/.gitignore",
+      "content": "*\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    },\n    {\n      \"slug\": \".yaru\",\n      \"root\": \"<WORKSPACE>/.yaru\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

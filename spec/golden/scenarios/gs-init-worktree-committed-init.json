@@ -1,0 +1,33 @@
+{
+  "name": "gs-init-worktree-committed-init",
+  "description": "config.yml を commit してある worktree で init すると、checkout のコピーを見て already a yaru workspace になる。登録はしない",
+  "setup": {
+    "files": [
+      {
+        "path": "README.md",
+        "content": "latch\n"
+      },
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      }
+    ],
+    "commits": [
+      {
+        "message": "initial"
+      }
+    ],
+    "worktrees": [
+      {
+        "name": "feature",
+        "branch": "feat/add-thing"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["init"],
+      "workingDirectory": "worktree:feature"
+    }
+  ]
+}

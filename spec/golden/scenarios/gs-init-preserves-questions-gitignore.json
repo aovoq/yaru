@@ -1,0 +1,17 @@
+{
+  "name": "gs-init-preserves-questions-gitignore",
+  "description": "config.yml が無くても、既にある questions/.gitignore は init が上書きしない",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/questions/.gitignore",
+        "content": "keep\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["init"]
+    }
+  ]
+}

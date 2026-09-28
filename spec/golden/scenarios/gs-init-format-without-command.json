@@ -1,0 +1,12 @@
+{
+  "name": "gs-init-format-without-command",
+  "description": "コマンドが無く --format や -f だけのときは未知のフラグにせず、全体のヘルプを終了コード 1 で出す",
+  "steps": [
+    {
+      "arguments": ["--format"]
+    },
+    {
+      "arguments": ["-f"]
+    }
+  ]
+}

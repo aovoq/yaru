@@ -1,0 +1,19 @@
+{
+  "name": "gs-init-rejects-short-format",
+  "steps": [
+    {
+      "arguments": ["init", "-f", "human"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: -f\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}
