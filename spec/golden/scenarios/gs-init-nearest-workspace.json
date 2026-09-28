@@ -1,0 +1,33 @@
+{
+  "name": "gs-init-nearest-workspace",
+  "description": "サブディレクトリに config.yml があると、そこから開いたときは近い方を登録する。根から開くと根も別の slug で登録する",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "root\n"
+      },
+      {
+        "path": "packages/app/.yaru/config.yml",
+        "content": "nested\n"
+      },
+      {
+        "path": "packages/keep",
+        "content": "x\n"
+      },
+      {
+        "path": "packages/app/keep",
+        "content": "x\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "workingDirectory": "packages/app"
+    },
+    {
+      "arguments": ["issue", "list"]
+    }
+  ]
+}

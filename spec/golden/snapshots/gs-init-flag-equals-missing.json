@@ -1,0 +1,19 @@
+{
+  "name": "gs-init-flag-equals-missing",
+  "steps": [
+    {
+      "arguments": ["init", "--title=hello"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --title=hello\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

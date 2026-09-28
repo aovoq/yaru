@@ -1,0 +1,12 @@
+{
+  "name": "gs-init-again",
+  "description": "2 回目の init は already a yaru workspace で失敗し、.yaru も登録の 1 件も変えない",
+  "steps": [
+    {
+      "arguments": ["init"]
+    },
+    {
+      "arguments": ["init"]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "gs-init-register-on-failed-get",
+  "description": "無い id の issue get は、ワークスペースを開いて登録したあとに issue not found で失敗する",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "get", "9"]
+    }
+  ]
+}

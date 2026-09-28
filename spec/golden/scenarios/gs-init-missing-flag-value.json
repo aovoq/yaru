@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-missing-flag-value",
+  "description": "値の要るフラグに値が無いと missing value で、初期化しない",
+  "steps": [
+    {
+      "arguments": ["init", "--foo"]
+    }
+  ]
+}

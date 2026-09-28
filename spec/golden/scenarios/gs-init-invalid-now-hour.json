@@ -1,0 +1,10 @@
+{
+  "name": "gs-init-invalid-now-hour",
+  "description": "時刻が 24 時の YARU_NOW は受けない。init は失敗し、ファイルは作らない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T24:00:00.000Z"
+    }
+  ]
+}

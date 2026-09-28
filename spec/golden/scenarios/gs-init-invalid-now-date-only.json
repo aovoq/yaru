@@ -1,0 +1,10 @@
+{
+  "name": "gs-init-invalid-now-date-only",
+  "description": "日付だけの YARU_NOW は受けない。init は失敗し、ファイルは作らない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28"
+    }
+  ]
+}

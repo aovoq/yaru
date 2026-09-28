@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-dash-help-word",
+  "description": "-help は短いフラグではなく位置引数なので、未知のコマンドになる",
+  "steps": [
+    {
+      "arguments": ["-help"]
+    }
+  ]
+}

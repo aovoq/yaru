@@ -1,0 +1,57 @@
+{
+  "name": "gs-init-help-dispatch",
+  "description": "issue、comment、question の --help はそれぞれの説明を出し、ワークスペースが無くても登録しない。init と serve と未知のコマンドは全体のヘルプになる",
+  "steps": [
+    {
+      "arguments": ["issue", "--help"]
+    },
+    {
+      "arguments": ["issue", "list", "--help"]
+    },
+    {
+      "arguments": ["issue", "get", "--help"]
+    },
+    {
+      "arguments": ["issue", "save", "--help"]
+    },
+    {
+      "arguments": ["comment", "--help"]
+    },
+    {
+      "arguments": ["comment", "list", "--help"]
+    },
+    {
+      "arguments": ["comment", "get", "--help"]
+    },
+    {
+      "arguments": ["comment", "save", "--help"]
+    },
+    {
+      "arguments": ["question", "--help"]
+    },
+    {
+      "arguments": ["question", "list", "--help"]
+    },
+    {
+      "arguments": ["question", "get", "--help"]
+    },
+    {
+      "arguments": ["question", "save", "--help"]
+    },
+    {
+      "arguments": ["question", "answer", "--help"]
+    },
+    {
+      "arguments": ["question", "wait", "--help"]
+    },
+    {
+      "arguments": ["init", "--help"]
+    },
+    {
+      "arguments": ["serve", "--help"]
+    },
+    {
+      "arguments": ["nope", "--help"]
+    }
+  ]
+}

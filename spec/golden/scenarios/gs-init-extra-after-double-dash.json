@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-extra-after-double-dash",
+  "description": "init の -- よりうしろの --help は位置引数になり、ヘルプは出さず初期化する",
+  "steps": [
+    {
+      "arguments": ["init", "--", "--help"]
+    }
+  ]
+}

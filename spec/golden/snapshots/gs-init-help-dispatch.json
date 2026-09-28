@@ -1,0 +1,211 @@
+{
+  "name": "gs-init-help-dispatch",
+  "steps": [
+    {
+      "arguments": ["issue", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru issue — list, get, or save issues\n\n  yaru issue list\n  yaru issue get <id>\n  yaru issue save\n\nEach subcommand documents its flags with --help.\nOutput is JSON unless -f / --format.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "list", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru issue list — list issues in this workspace\n\nFor my issues, use --assignee me. Use --assignee none for no assignee.\nUse --parent none for issues with no parent.\n\nUsage:\n  yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT]\n                  [--due overdue] [--parent ID] [--limit N] [--cursor ID]\n                  [-f|--format]\n\n--query searches issue id, title, or body.\n--due overdue is dueDate before today.\n--parent filters by parent issue id.\n--limit max results (default 50, max 250).\n--cursor next page cursor from a previous list.\nDefault output is {issues, hasNextPage, cursor}. -f / --format prints a table.\n\nStatus: backlog, todo, in_progress, done, canceled\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "get", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru issue get — retrieve one issue by id\n\nUsage:\n  yaru issue get <id> [-f|--format]\n\nJSON includes labels, body, parent, children, blocks, blockedBy,\nstartedAt, completedAt, canceledAt, createdAt, and updatedAt.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "save", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru issue save — create or update an issue\n\nIf --id is provided, updates the existing issue; otherwise creates a new one.\nDo not pass --id when creating. Title is required when creating.\n\nOmitted fields stay unchanged on update. --assignee me is git config user.name.\nnone clears assignee, dueDate, priority, or parent.\n\nRepeat --label to set labels; any --label replaces the whole list. Omit to leave labels unchanged.\n\n--block ID appends an outgoing block. --blockedBy ID records that the other issue blocks this one.\n--removeBlock ID / --removeBlockedBy ID remove those relations. Repeatable.\n\n--body is Markdown. Use --body - to read stdin. Do not escape newlines.\n\n--patch is a JSON array of partial body edits, applied in order and atomically\n(one failing operation aborts the whole save). Every anchor string must match\nthe current body exactly once. Only valid on update, in place of --body.\nUse --patch - to read the JSON array from stdin.\n\nPatch operations:\n  replace         {\"op\":\"replace\",\"old_string\":\"...\",\"new_string\":\"...\",\"replace_all\":false}\n  insert_before   {\"op\":\"insert_before\",\"anchor\":\"...\",\"text\":\"...\"}\n  insert_after    {\"op\":\"insert_after\",\"anchor\":\"...\",\"text\":\"...\"}\n  prepend         {\"op\":\"prepend\",\"text\":\"...\"}\n  append          {\"op\":\"append\",\"text\":\"...\"}\n  replace_range   {\"op\":\"replace_range\",\"from\":\"...\",\"to\":\"...\",\"new_string\":\"...\"}\n\nUsage:\n  yaru issue save --title TITLE [--status NAME] [--assignee NAME] [--label NAME]\n                  [--dueDate YYYY-MM-DD] [--priority NAME] [--parent ID]\n                  [--block ID] [--blockedBy ID] [--body TEXT|-]\n                  [-f|--format]\n  yaru issue save --id ID [--title TITLE] [--status NAME] [--assignee NAME] [--label NAME]\n                  [--dueDate YYYY-MM-DD] [--priority NAME] [--parent ID]\n                  [--block ID] [--blockedBy ID] [--removeBlock ID] [--removeBlockedBy ID]\n                  [--body TEXT|-|--patch JSON|-] [-f|--format]\n\nStatus: backlog, todo, in_progress, done, canceled\nPriority: urgent, high, medium, low\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["comment", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru comment — list, get, or save comments\n\n  yaru comment list --issue ID\n  yaru comment get <id>\n  yaru comment save\n\nEach subcommand documents its flags with --help.\nOutput is JSON unless -f / --format.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["comment", "list", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru comment list — list comments on an issue\n\nUsage:\n  yaru comment list --issue ID [-f|--format]\n\nJSON prints {comments}. Comments are ordered by createdAt.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["comment", "get", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru comment get — retrieve one comment by id\n\nUsage:\n  yaru comment get <id> [-f|--format]\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["comment", "save", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru comment save — create or update a comment\n\nIf --id is provided, updates the existing comment; otherwise creates a new one.\nDo not pass --id when creating. Body is required when creating.\nTo start a thread, pass --issue. To reply, pass --parent; the issue is inferred.\n\n--body is Markdown. Use --body - to read stdin. Do not escape newlines.\n\nUsage:\n  yaru comment save --issue ID --body TEXT|- [-f|--format]\n  yaru comment save --parent ID --body TEXT|- [-f|--format]\n  yaru comment save --id ID --body TEXT|- [-f|--format]\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question — ask the human asynchronously and read the answer\n\n  yaru question list\n  yaru question get <id>\n  yaru question save\n  yaru question answer <id>\n  yaru question wait <id>\n\nAsk when a decision is the human's to make. Give a defaultAction and an answerBy\nso work continues with the default when no answer arrives in time.\nEach subcommand documents its flags with --help.\nOutput is JSON unless -f / --format.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "list", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question list — list questions in this workspace\n\nUsage:\n  yaru question list [--status NAME] [--issue ID] [-f|--format]\n\nQuestions awaiting an answer come first: blocking ones (no default action),\nthen open ones by answerBy, then open ones without a deadline, then expired ones.\nAnswered and canceled questions follow, most recently resolved first.\nJSON prints {questions}.\n\nStatus: open, expired, answered, canceled\nexpired is an open question whose answerBy has passed.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "get", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question get — retrieve one question by id\n\nUsage:\n  yaru question get <id> [-f|--format]\n\nReading an answered question for the first time records acknowledgedAt,\nso the human can see the answer was picked up.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question save — ask a question or update one\n\nIf --id is provided, updates the existing question; otherwise creates a new one.\nDo not pass --id when creating. Title is required when creating: the question itself, one line.\nOmitted fields stay unchanged on update. none clears issue, priority, default, or answerBy.\n\n--default is the action you will take if no answer arrives by answerBy (one line).\n--answerBy is a duration from now (30m, 2h, 1d) or an ISO 8601 datetime.\n--option is one answer the human can pick with one tap (one line). Repeat it for each option;\nany --option replaces the whole list, and --option none clears it.\n--body is Markdown context: trade-offs, your recommendation. Use --body - to read stdin.\n--status canceled withdraws a question that no longer needs an answer; open restores it.\n\nCreating records the session (CLAUDE_CODE_SESSION_ID or CODEX_SESSION_ID), the git worktree,\nand the branch it was asked from.\nCreating refuses when an open question with the same title (and the same issue) exists;\nthe error names it. --force asks again anyway.\nCreating without --default and --answerBy warns: the question blocks until the human answers.\n\nCreating a question runs the notify command from .yaru/config.yml (notify: COMMAND) with\n{\"event\":\"question.created\",\"url\":\"...\",\"question\":{...}} on stdin. A failing command only warns.\nurl opens the question on the dashboard; publicUrl: URL in config.yml replaces http://127.0.0.1:47800.\nA running yaru serve also sends {\"event\":\"question.expiring\",...} once, 15 minutes before answerBy.\n\nUsage:\n  yaru question save --title TEXT [--issue ID] [--priority NAME] [--default TEXT]\n                     [--answerBy WHEN] [--option TEXT]... [--body TEXT|-] [--force]\n                     [-f|--format]\n  yaru question save --id ID [--title TEXT] [--issue ID] [--priority NAME] [--default TEXT]\n                     [--answerBy WHEN] [--option TEXT|none]... [--body TEXT|-]\n                     [--status open|canceled] [-f|--format]\n\nPriority: urgent, high, medium, low\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "answer", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question answer — answer a question\n\nUsage:\n  yaru question answer <id> --body TEXT|- [--force] [-f|--format]\n\nAn expired question can still be answered; when it belongs to an issue, the late answer\nis also added to the issue as a comment.\nAn answered question keeps its answer: answering again fails unless --force replaces it.\nA canceled question cannot be answered.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "wait", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question wait — block until a question is resolved\n\nUsage:\n  yaru question wait <id> [--timeout DURATION] [--interval DURATION] [-f|--format]\n\nReturns when the question is answered, canceled, or expired (answerBy passed).\nOn expired, proceed with defaultAction. Prints the question as JSON.\nReturning an answer records acknowledgedAt the first time.\n-f / --format prints the answer, or the defaultAction when expired.\n\n--timeout defaults to 10m, --interval to 1s. Durations: 100ms, 30s, 10m, 1h.\nExit code 0 when resolved, 2 when the timeout passed first.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["init", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru — local issues, markdown in .yaru\n\n  yaru init\n  yaru issue list\n  yaru issue get <id>\n  yaru issue save\n  yaru comment list --issue ID\n  yaru comment get <id>\n  yaru comment save\n  yaru question list\n  yaru question get <id>\n  yaru question save\n  yaru question answer <id>\n  yaru question wait <id>\n  yaru serve [-p|--port 47800]\n\nOutput is JSON unless -f / --format. Commands print their contract with --help.\n\nyaru serve shows every workspace yaru has been used in: / lists them, /p/<name>/ is one board.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["serve", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru — local issues, markdown in .yaru\n\n  yaru init\n  yaru issue list\n  yaru issue get <id>\n  yaru issue save\n  yaru comment list --issue ID\n  yaru comment get <id>\n  yaru comment save\n  yaru question list\n  yaru question get <id>\n  yaru question save\n  yaru question answer <id>\n  yaru question wait <id>\n  yaru serve [-p|--port 47800]\n\nOutput is JSON unless -f / --format. Commands print their contract with --help.\n\nyaru serve shows every workspace yaru has been used in: / lists them, /p/<name>/ is one board.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["nope", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru — local issues, markdown in .yaru\n\n  yaru init\n  yaru issue list\n  yaru issue get <id>\n  yaru issue save\n  yaru comment list --issue ID\n  yaru comment get <id>\n  yaru comment save\n  yaru question list\n  yaru question get <id>\n  yaru question save\n  yaru question answer <id>\n  yaru question wait <id>\n  yaru serve [-p|--port 47800]\n\nOutput is JSON unless -f / --format. Commands print their contract with --help.\n\nyaru serve shows every workspace yaru has been used in: / lists them, /p/<name>/ is one board.\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

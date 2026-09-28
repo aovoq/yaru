@@ -1,0 +1,12 @@
+{
+  "name": "gs-init-double-dash-stops-flags",
+  "description": "-- のうしろの --foo はフラグにならず位置引数になる。ワークスペースは開かず登録しない",
+  "setup": {
+    "files": [{ "path": ".yaru/config.yml", "content": "keep\n" }]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "list", "--", "--foo"]
+    }
+  ]
+}

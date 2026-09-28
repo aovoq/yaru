@@ -1,0 +1,17 @@
+{
+  "name": "gs-init-missing-id",
+  "description": "id の無い issue get は usage を出して終わる。ワークスペースが開く前なので、config.yml があっても登録しない",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "keep\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "get"]
+    }
+  ]
+}
