@@ -1,0 +1,109 @@
+{
+  "payload": {
+    "issues": [
+      {
+        "assignee": null,
+        "blockedBy": [],
+        "blocks": [],
+        "body": "",
+        "branch": null,
+        "canceledAt": null,
+        "children": [],
+        "completedAt": null,
+        "createdAt": "2026-09-28T12:00:00.000Z",
+        "dueDate": null,
+        "id": "1",
+        "labels": [],
+        "parent": null,
+        "priority": null,
+        "session": null,
+        "stale": false,
+        "startedAt": "2026-09-28T12:00:00.000Z",
+        "status": "in_progress",
+        "title": "topic",
+        "updatedAt": "2026-09-28T12:00:00.000Z",
+        "worktree": null
+      }
+    ],
+    "now": "2026-09-28T12:00:00.000Z",
+    "questions": [
+      {
+        "acknowledgedAt": null,
+        "answer": null,
+        "answerBy": "2020-01-01T00:00:00.000Z",
+        "answeredAt": null,
+        "answeredBy": null,
+        "author": "Spec Author",
+        "body": "",
+        "branch": "main",
+        "canceledAt": null,
+        "createdAt": "2026-09-28T12:00:00.000Z",
+        "defaultAction": null,
+        "id": "1",
+        "issue": null,
+        "notifiedExpiringAt": null,
+        "options": [],
+        "priority": null,
+        "session": null,
+        "status": "expired",
+        "title": "Ship it",
+        "updatedAt": "2026-09-28T12:00:00.000Z",
+        "worktree": "<TEMP>/002"
+      }
+    ],
+    "repository": {
+      "ahead": null,
+      "behind": null,
+      "branch": "main",
+      "commits": [],
+      "uncommittedFiles": 1,
+      "upstream": null
+    },
+    "sessionHealth": {
+      "directory": "<TEMP>/003/.claude/projects/<TEMP-ENCODED>-002",
+      "sessions": [
+        {
+          "assistantMessages": 1,
+          "cacheCreationTokens": 0,
+          "cacheReadTokens": 0,
+          "costUsd": 0.006,
+          "id": "s1",
+          "inputTokens": 1000,
+          "interruptions": 0,
+          "lastActivityAt": "2026-09-28T11:00:00.000Z",
+          "models": [
+            "claude-haiku-4-5"
+          ],
+          "outputTokens": 1000,
+          "startedAt": "2026-09-28T11:00:00.000Z",
+          "subagents": 0,
+          "title": null,
+          "toolErrors": 0,
+          "toolResults": 0,
+          "toolUses": 0,
+          "unpricedMessages": 0,
+          "worktree": null
+        }
+      ],
+      "totals": {
+        "assistantMessages": 1,
+        "cacheReadRatio": 0,
+        "costUsd": 0.006,
+        "interruptions": 0,
+        "sessions": 1,
+        "toolErrorRatio": null,
+        "toolErrors": 0,
+        "toolResults": 0,
+        "unpricedMessages": 0
+      },
+      "windowDays": 7
+    }
+  },
+  "root": {
+    ".yaru/config.yml": "",
+    ".yaru/issues/1.md": "---\nid: 1\ntitle: topic\nstatus: in_progress\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt: 2026-09-28T12:00:00.000Z\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n",
+    ".yaru/questions/.gitignore": "*\n",
+    ".yaru/questions/1.md": "---\nid: 1\ntitle: Ship it\nstatus: open\nissue:\npriority:\ndefaultAction:\nanswerBy: 2020-01-01T00:00:00.000Z\noptions:\nauthor: Spec Author\nsession:\nworktree: <TEMP>/002\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\n---\n\n\n"
+  },
+  "state": {}
+}

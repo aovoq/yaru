@@ -1,0 +1,10 @@
+{
+  "payload": {},
+  "root": {
+    ".yaru/config.yml": "",
+    ".yaru/issues/1.md": "---\nid: 1\ntitle: topic\nstatus: in_progress\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt: 2026-09-28T12:00:00.000Z\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n",
+    ".yaru/questions/.gitignore": "*\n",
+    ".yaru/questions/1.md": "---\nid: 1\ntitle: Ship it\nstatus: open\nissue:\npriority:\ndefaultAction:\nanswerBy: 2020-01-01T00:00:00.000Z\noptions:\nauthor: Spec Author\nsession:\nworktree: <TEMP>/002\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\n---\n\n\n"
+  },
+  "state": {}
+}

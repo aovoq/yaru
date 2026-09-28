@@ -6,11 +6,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -29,12 +31,26 @@ import (
 
 var repositoryDirectory string
 
+// yaruBinary は cmd/yaru をビルドした CLI。golden (testdata/golden) で CLI の出力の同一性は確かめてある
+var yaruBinary string
+
 func TestMain(m *testing.M) {
 	workingDirectory, err := os.Getwd()
 	if err != nil {
 		panic(err)
 	}
 	repositoryDirectory = moduleRoot(workingDirectory)
+	// HOME を一時ディレクトリに替える前にビルドし、Go のビルドのキャッシュを使う
+	binaryDirectory, err := os.MkdirTemp("", "yaru-api-bin-")
+	if err != nil {
+		panic(err)
+	}
+	yaruBinary = filepath.Join(binaryDirectory, "yaru")
+	build := exec.Command("go", "build", "-o", yaruBinary, "./cmd/yaru")
+	build.Dir = repositoryDirectory
+	if output, buildErr := build.CombinedOutput(); buildErr != nil {
+		panic(fmt.Sprintf("go build ./cmd/yaru failed: %v\n%s", buildErr, output))
+	}
 	stateDirectory, err := os.MkdirTemp("", "yaru-api-state-")
 	if err != nil {
 		panic(err)
@@ -53,8 +69,11 @@ func TestMain(m *testing.M) {
 	mustSetEnvironment("GIT_AUTHOR_EMAIL", "spec@example.com")
 	mustSetEnvironment("GIT_COMMITTER_NAME", "Spec Author")
 	mustSetEnvironment("GIT_COMMITTER_EMAIL", "spec@example.com")
-	if err := os.Unsetenv("XDG_STATE_HOME"); err != nil {
-		panic(err)
+	// セッション ID が残ると、CLI が書く質問の session が実行する環境ごとに変わり、記録と合わなくなる
+	for _, name := range []string{"XDG_STATE_HOME", "CLAUDE_CODE_SESSION_ID", "CODEX_SESSION_ID"} {
+		if err := os.Unsetenv(name); err != nil {
+			panic(err)
+		}
 	}
 	location, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
@@ -66,6 +85,9 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	if err := os.RemoveAll(homeDirectory); err != nil {
+		panic(err)
+	}
+	if err := os.RemoveAll(binaryDirectory); err != nil {
 		panic(err)
 	}
 	os.Exit(code)
@@ -148,14 +170,7 @@ func environmentWith(overrides map[string]string) []string {
 
 func runYaru(t *testing.T, root string, stateDirectory string, args ...string) string {
 	t.Helper()
-	tsconfigPath := filepath.Join(root, "tsconfig.json")
-	if _, err := os.Stat(tsconfigPath); errors.Is(err, os.ErrNotExist) {
-		content := "{\n  \"compilerOptions\": {\n    \"jsx\": \"react-jsx\",\n    \"jsxImportSource\": \"preact\"\n  }\n}\n"
-		if writeErr := os.WriteFile(tsconfigPath, []byte(content), 0o644); writeErr != nil {
-			t.Fatal(writeErr)
-		}
-	}
-	command := exec.Command("bun", append([]string{filepath.Join(repositoryDirectory, "src", "index.ts")}, args...)...)
+	command := exec.Command(yaruBinary, args...)
 	command.Dir = root
 	command.Env = environmentWith(map[string]string{"YARU_STATE_DIR": stateDirectory})
 	var stdout bytes.Buffer
@@ -296,17 +311,218 @@ if (action === "json-answer") {
 console.log(JSON.stringify({ status: response.status, body: await response.text(), location: response.headers.get("location") }))
 `
 
+// TS 版の答えは testdata/api/<テスト名>/<番号>-<動作>.json に記録する。
+// YARU_RECORD_TYPESCRIPT=1 のときだけ TS 版 (bun) を動かして記録を書き、ふだんは記録を読む。
+// 記録には、動作の結果 (payload) と、動作の直後の TS 側のワークスペース (.git を除く) と状態ディレクトリ (workspaces.json を除く) を残す。
+// 読むときは、そのファイルをワークスペースと状態ディレクトリへ書き戻し、TS 版が動いたあとの状態を再現する。
+var recordTypeScript = os.Getenv("YARU_RECORD_TYPESCRIPT") == "1"
+
+var webActionCounts = map[string]int{}
+
+type typeScriptRecord struct {
+	Payload map[string]any    `json:"payload"`
+	Root    map[string]string `json:"root"`
+	State   map[string]string `json:"state"`
+}
+
 func webAction(t *testing.T, root string, stateDirectory string, variables map[string]string) map[string]any {
 	t.Helper()
 	if variables == nil {
 		variables = map[string]string{}
 	}
-	stdout := runBun(t, root, stateDirectory, variables, webScript)
-	var payload map[string]any
-	if err := json.Unmarshal([]byte(stdout), &payload); err != nil {
-		t.Fatalf("decode bun output: %v\n%s", err, stdout)
+	// -count=2 でも番号が 1 から始まるよう、テストの終わりに数え直す
+	if webActionCounts[t.Name()] == 0 {
+		name := t.Name()
+		t.Cleanup(func() { delete(webActionCounts, name) })
 	}
-	return payload
+	webActionCounts[t.Name()]++
+	recordName := fmt.Sprintf("%02d-%s.json", webActionCounts[t.Name()], variables["COMPARE_ACTION"])
+	recordPath := filepath.Join(repositoryDirectory, "testdata", "api", t.Name(), recordName)
+	replacements := recordReplacements(root, stateDirectory)
+	if recordTypeScript {
+		stdout := runBun(t, root, stateDirectory, variables, webScript)
+		var payload map[string]any
+		if err := json.Unmarshal([]byte(stdout), &payload); err != nil {
+			t.Fatalf("decode bun output: %v\n%s", err, stdout)
+		}
+		record := typeScriptRecord{
+			Payload: payload,
+			Root:    readRecordedTree(t, root, skipRootEntry),
+			State:   readRecordedTree(t, stateDirectory, skipStateEntry),
+		}
+		writeTypeScriptRecord(t, recordPath, record, replacements)
+		return payload
+	}
+	record := readTypeScriptRecord(t, recordPath, replacements)
+	restoreRecordedTree(t, root, record.Root, skipRootEntry)
+	restoreRecordedTree(t, stateDirectory, record.State, skipStateEntry)
+	return record.Payload
+}
+
+type pathReplacement struct {
+	actual      string
+	placeholder string
+}
+
+// recordReplacements は毎回変わる一時ディレクトリを、記録の中の置き換え文字と対応させる。
+// テストの一時ディレクトリ (t.TempDir が 001、002 と番号を振る親) を <TEMP> にする。番号は記録と再現で同じ順に振られる。
+// 実パス (/private/tmp/...) と、symlink を通した表記 (/tmp/...) の両方を替え、長いパスから先に替える
+func recordReplacements(root string, stateDirectory string) []pathReplacement {
+	replacements := []pathReplacement{}
+	for _, directory := range []string{testTemporaryParent(root), testTemporaryParent(stateDirectory)} {
+		variants := []string{directory}
+		if trimmed, found := strings.CutPrefix(directory, "/private/"); found {
+			variants = append(variants, "/"+trimmed)
+		}
+		for _, variant := range variants {
+			replacements = append(replacements, pathReplacement{actual: variant, placeholder: "<TEMP>"})
+			// Claude のセッションのディレクトリ名は、パスの / と . を - にしたもの (sessions.ClaudeProjectDirectory)
+			encoded := strings.NewReplacer("/", "-", ".", "-").Replace(variant)
+			replacements = append(replacements, pathReplacement{actual: encoded, placeholder: "<TEMP-ENCODED>"})
+		}
+	}
+	sort.SliceStable(replacements, func(left int, right int) bool {
+		return len(replacements[left].actual) > len(replacements[right].actual)
+	})
+	return replacements
+}
+
+// testTemporaryParent は physicalTemp (.../<テスト名><乱数>/001) か namedRoot (.../001/app) のパスから、番号の親を返す
+func testTemporaryParent(path string) string {
+	directory := path
+	for directory != filepath.Dir(directory) {
+		if isTemporaryNumber(filepath.Base(directory)) {
+			return filepath.Dir(directory)
+		}
+		directory = filepath.Dir(directory)
+	}
+	panic("temporary directory number not found in " + path)
+}
+
+func isTemporaryNumber(name string) bool {
+	if len(name) != 3 {
+		return false
+	}
+	for _, character := range name {
+		if character < '0' || character > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func writeTypeScriptRecord(t *testing.T, path string, record typeScriptRecord, replacements []pathReplacement) {
+	t.Helper()
+	var buffer bytes.Buffer
+	encoder := json.NewEncoder(&buffer)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(record); err != nil {
+		t.Fatal(err)
+	}
+	text := buffer.String()
+	for _, replacement := range replacements {
+		text = strings.ReplaceAll(text, replacement.actual, replacement.placeholder)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func readTypeScriptRecord(t *testing.T, path string, replacements []pathReplacement) typeScriptRecord {
+	t.Helper()
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("typescript record not found: expected %s, actual %v", path, err)
+	}
+	text := string(content)
+	for _, replacement := range replacements {
+		text = strings.ReplaceAll(text, replacement.placeholder, replacement.actual)
+	}
+	var record typeScriptRecord
+	if err := json.Unmarshal([]byte(text), &record); err != nil {
+		t.Fatalf("decode typescript record %s: %v", path, err)
+	}
+	return record
+}
+
+// ワークスペースでは git の中身と flock の .lock を記録しない
+// https://pubs.opengroup.org/onlinepubs/9699919799/functions/flock.html
+func skipRootEntry(relative string, isDirectory bool) bool {
+	if isDirectory {
+		return relative == ".git"
+	}
+	return strings.HasSuffix(relative, ".lock")
+}
+
+// 状態ディレクトリの workspaces.json は、テストが作った全部のワークスペースを並べるので記録しない
+func skipStateEntry(relative string, isDirectory bool) bool {
+	if isDirectory {
+		return false
+	}
+	return relative == "workspaces.json" || strings.HasSuffix(relative, ".lock")
+}
+
+func readRecordedTree(t *testing.T, directory string, skip func(relative string, isDirectory bool) bool) map[string]string {
+	t.Helper()
+	files := map[string]string{}
+	err := filepath.WalkDir(directory, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		relative, relErr := filepath.Rel(directory, path)
+		if relErr != nil {
+			return relErr
+		}
+		if relative == "." {
+			return nil
+		}
+		relative = filepath.ToSlash(relative)
+		if skip(relative, entry.IsDir()) {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		content, readErr := os.ReadFile(path)
+		if readErr != nil {
+			return readErr
+		}
+		files[relative] = string(content)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return files
+}
+
+// restoreRecordedTree は記録のファイルを書き、記録に無いファイルを消す
+func restoreRecordedTree(t *testing.T, directory string, files map[string]string, skip func(relative string, isDirectory bool) bool) {
+	t.Helper()
+	for relative := range readRecordedTree(t, directory, skip) {
+		if _, recorded := files[relative]; recorded {
+			continue
+		}
+		if err := os.Remove(filepath.Join(directory, filepath.FromSlash(relative))); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for relative, content := range files {
+		path := filepath.Join(directory, filepath.FromSlash(relative))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
 }
 
 func copyTree(t *testing.T, from string, to string) {

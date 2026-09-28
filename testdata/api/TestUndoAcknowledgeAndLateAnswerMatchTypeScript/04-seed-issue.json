@@ -1,0 +1,9 @@
+{
+  "payload": {},
+  "root": {
+    ".yaru/config.yml": "",
+    ".yaru/issues/1.md": "---\nid: 1\ntitle: topic\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n",
+    ".yaru/questions/.gitignore": "*\n"
+  },
+  "state": {}
+}

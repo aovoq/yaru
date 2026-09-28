@@ -1,0 +1,9 @@
+{
+  "payload": {},
+  "root": {
+    ".yaru/config.yml": "staleAfter: 1h\nnotify: cat >> received.jsonl; echo >> received.jsonl\n",
+    ".yaru/issues/1.md": "---\nid: 1\ntitle: stuck\nstatus: in_progress\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt: 2026-09-25T09:00:00.000Z\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-25T09:00:00.000Z\nupdatedAt: 2026-09-25T09:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n",
+    ".yaru/questions/.gitignore": "*\n"
+  },
+  "state": {}
+}

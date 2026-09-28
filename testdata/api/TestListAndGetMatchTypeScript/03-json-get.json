@@ -1,0 +1,14 @@
+{
+  "payload": {
+    "body": "{\"error\":\"invalid issue file\"}",
+    "location": null,
+    "status": 400
+  },
+  "root": {
+    ".yaru/config.yml": "",
+    ".yaru/questions/.gitignore": "*\n",
+    ".yaru/questions/1.md": "---\nid: 1\ntitle: Choose\nstatus: open\nissue:\npriority: high\ndefaultAction:\nanswerBy:\noptions: [\"Yes\",\"No\"]\nauthor: Spec Author\nsession:\nworktree: <TEMP>/002\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\n---\n\nWhich?\n",
+    ".yaru/questions/9.md": "not a question\n"
+  },
+  "state": {}
+}

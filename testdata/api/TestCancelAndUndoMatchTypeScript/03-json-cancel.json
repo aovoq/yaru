@@ -1,0 +1,13 @@
+{
+  "payload": {
+    "body": "{\"id\":\"1\",\"title\":\"Ship it\",\"issue\":null,\"priority\":null,\"defaultAction\":null,\"answerBy\":null,\"options\":[],\"author\":\"Spec Author\",\"session\":null,\"worktree\":\"<TEMP>/002\",\"branch\":\"main\",\"answer\":null,\"answeredBy\":null,\"answeredAt\":null,\"acknowledgedAt\":null,\"notifiedExpiringAt\":null,\"canceledAt\":\"2026-09-28T12:00:00.000Z\",\"createdAt\":\"2026-09-28T12:00:00.000Z\",\"updatedAt\":\"2026-09-28T12:00:00.000Z\",\"body\":\"now?\",\"status\":\"canceled\"}",
+    "location": null,
+    "status": 200
+  },
+  "root": {
+    ".yaru/config.yml": "",
+    ".yaru/questions/.gitignore": "*\n",
+    ".yaru/questions/1.md": "---\nid: 1\ntitle: Ship it\nstatus: canceled\nissue:\npriority:\ndefaultAction:\nanswerBy:\noptions:\nauthor: Spec Author\nsession:\nworktree: <TEMP>/002\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt: 2026-09-28T12:00:00.000Z\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\n---\n\nnow?\n"
+  },
+  "state": {}
+}

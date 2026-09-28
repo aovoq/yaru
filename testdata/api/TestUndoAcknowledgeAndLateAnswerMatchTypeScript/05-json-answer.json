@@ -1,0 +1,15 @@
+{
+  "payload": {
+    "body": "{\"id\":\"1\",\"title\":\"Late\",\"issue\":\"1\",\"priority\":null,\"defaultAction\":null,\"answerBy\":\"2020-01-01T00:00:00.000Z\",\"options\":[],\"author\":\"Spec Author\",\"session\":null,\"worktree\":\"<TEMP>/005\",\"branch\":\"main\",\"answer\":\"too late\",\"answeredBy\":\"Spec Author\",\"answeredAt\":\"2026-09-28T12:00:00.000Z\",\"acknowledgedAt\":null,\"notifiedExpiringAt\":null,\"canceledAt\":null,\"createdAt\":\"2026-09-28T12:00:00.000Z\",\"updatedAt\":\"2026-09-28T12:00:00.000Z\",\"body\":\"\",\"status\":\"answered\"}",
+    "location": null,
+    "status": 200
+  },
+  "root": {
+    ".yaru/comments/1.md": "---\nid: 1\nissue: 1\nparent:\nauthor: Spec Author\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\n---\n\nLate answer to Q1 (Late), after answerBy passed:\n\ntoo late\n",
+    ".yaru/config.yml": "",
+    ".yaru/issues/1.md": "---\nid: 1\ntitle: topic\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n",
+    ".yaru/questions/.gitignore": "*\n",
+    ".yaru/questions/1.md": "---\nid: 1\ntitle: Late\nstatus: open\nissue: 1\npriority:\ndefaultAction:\nanswerBy: 2020-01-01T00:00:00.000Z\noptions:\nauthor: Spec Author\nsession:\nworktree: <TEMP>/005\nbranch: main\nansweredBy: Spec Author\nansweredAt: 2026-09-28T12:00:00.000Z\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\n---\n\n<!-- yaru:answer -->\n\ntoo late\n"
+  },
+  "state": {}
+}

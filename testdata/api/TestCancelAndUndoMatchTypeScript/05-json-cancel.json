@@ -1,0 +1,13 @@
+{
+  "payload": {
+    "body": "{\"error\":\"cannot cancel question 1: expected status open or expired, actual answered\",\"question\":{\"id\":\"1\",\"title\":\"Ship it\",\"issue\":null,\"priority\":null,\"defaultAction\":null,\"answerBy\":null,\"options\":[],\"author\":\"Spec Author\",\"session\":null,\"worktree\":\"<TEMP>/005\",\"branch\":\"main\",\"answer\":\"yes\",\"answeredBy\":\"Spec Author\",\"answeredAt\":\"2026-09-28T12:00:00.000Z\",\"acknowledgedAt\":null,\"notifiedExpiringAt\":null,\"canceledAt\":null,\"createdAt\":\"2026-09-28T12:00:00.000Z\",\"updatedAt\":\"2026-09-28T12:00:00.000Z\",\"body\":\"\",\"status\":\"answered\"}}",
+    "location": null,
+    "status": 409
+  },
+  "root": {
+    ".yaru/config.yml": "",
+    ".yaru/questions/.gitignore": "*\n",
+    ".yaru/questions/1.md": "---\nid: 1\ntitle: Ship it\nstatus: open\nissue:\npriority:\ndefaultAction:\nanswerBy:\noptions:\nauthor: Spec Author\nsession:\nworktree: <TEMP>/005\nbranch: main\nansweredBy: Spec Author\nansweredAt: 2026-09-28T12:00:00.000Z\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\n---\n\n<!-- yaru:answer -->\n\nyes\n"
+  },
+  "state": {}
+}

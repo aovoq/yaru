@@ -1,0 +1,13 @@
+{
+  "payload": {
+    "warnings": [
+      "broken question 1: notify command failed: expected exit code 0, actual 3: boom"
+    ]
+  },
+  "root": {
+    ".yaru/config.yml": "notify: echo boom >&2; exit 3\n",
+    ".yaru/questions/.gitignore": "*\n",
+    ".yaru/questions/1.md": "---\nid: 1\ntitle: soon\nstatus: open\nissue:\npriority:\ndefaultAction: x\nanswerBy: 2026-09-25T10:00:00.000Z\noptions:\nauthor: Spec Author\nsession:\nworktree: <TEMP>/002/broken\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt: 2026-09-25T09:50:00.000Z\ncanceledAt:\ncreatedAt: 2026-09-25T09:00:00.000Z\nupdatedAt: 2026-09-25T09:00:00.000Z\n---\n\n\n"
+  },
+  "state": {}
+}

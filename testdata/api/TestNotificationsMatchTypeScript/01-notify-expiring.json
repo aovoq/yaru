@@ -1,0 +1,12 @@
+{
+  "payload": {
+    "warnings": []
+  },
+  "root": {
+    ".yaru/config.yml": "publicUrl: https://mac.example.ts.net/\nnotify: cat >> received.jsonl; echo >> received.jsonl\n",
+    ".yaru/questions/.gitignore": "*\n",
+    ".yaru/questions/1.md": "---\nid: 1\ntitle: soon\nstatus: open\nissue:\npriority:\ndefaultAction: x\nanswerBy: 2026-09-25T10:00:00.000Z\noptions:\nauthor: Spec Author\nsession:\nworktree: <TEMP>/002/app\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt: 2026-09-25T09:50:00.000Z\ncanceledAt:\ncreatedAt: 2026-09-25T09:00:00.000Z\nupdatedAt: 2026-09-25T09:00:00.000Z\n---\n\n\n",
+    "received.jsonl": "{\"event\":\"question.created\",\"url\":\"https://mac.example.ts.net/p/app/dashboard#q-1\",\"question\":{\"id\":\"1\",\"title\":\"soon\",\"issue\":null,\"priority\":null,\"defaultAction\":\"x\",\"answerBy\":\"2026-09-25T10:00:00.000Z\",\"options\":[],\"author\":\"Spec Author\",\"session\":null,\"worktree\":\"<TEMP>/002/app\",\"branch\":\"main\",\"answer\":null,\"answeredBy\":null,\"answeredAt\":null,\"acknowledgedAt\":null,\"notifiedExpiringAt\":null,\"canceledAt\":null,\"createdAt\":\"2026-09-25T09:00:00.000Z\",\"updatedAt\":\"2026-09-25T09:00:00.000Z\",\"body\":\"\",\"status\":\"open\"}}\n{\"event\":\"question.expiring\",\"url\":\"https://mac.example.ts.net/p/app/dashboard#q-1\",\"question\":{\"id\":\"1\",\"title\":\"soon\",\"issue\":null,\"priority\":null,\"defaultAction\":\"x\",\"answerBy\":\"2026-09-25T10:00:00.000Z\",\"options\":[],\"author\":\"Spec Author\",\"session\":null,\"worktree\":\"<TEMP>/002/app\",\"branch\":\"main\",\"answer\":null,\"answeredBy\":null,\"answeredAt\":null,\"acknowledgedAt\":null,\"notifiedExpiringAt\":\"2026-09-25T09:50:00.000Z\",\"canceledAt\":null,\"createdAt\":\"2026-09-25T09:00:00.000Z\",\"updatedAt\":\"2026-09-25T09:00:00.000Z\",\"body\":\"\",\"status\":\"open\"}}\n"
+  },
+  "state": {}
+}

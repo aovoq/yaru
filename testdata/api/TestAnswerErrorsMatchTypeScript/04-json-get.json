@@ -1,0 +1,13 @@
+{
+  "payload": {
+    "body": "{\"error\":\"question not found: 9\"}",
+    "location": null,
+    "status": 404
+  },
+  "root": {
+    ".yaru/config.yml": "",
+    ".yaru/questions/.gitignore": "*\n",
+    ".yaru/questions/1.md": "---\nid: 1\ntitle: Ship it\nstatus: open\nissue:\npriority:\ndefaultAction:\nanswerBy:\noptions:\nauthor: Spec Author\nsession:\nworktree: <TEMP>/002\nbranch: main\nansweredBy: Spec Author\nansweredAt: 2026-09-28T12:00:00.000Z\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\n---\n\n<!-- yaru:answer -->\n\nfirst\n"
+  },
+  "state": {}
+}
