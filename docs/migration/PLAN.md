@@ -26,13 +26,13 @@
 
 | id | 作業 | 成果物 | 状態 |
 |---|---|---|---|
-| P0-clock | 時刻を外から固定する口 `YARU_NOW` を TS 版に足す (テストから) | `src/` の変更とテスト | 試験 (grok 1 体) |
-| P0-format | `.yaru/` の形式の仕様を書く | `docs/spec/yaru-format.md` | 未着手 |
-| P0-data-golden | データの操作の golden を取る仕組みと golden | `spec/golden/data/` | P0-clock 待ち |
-| P0-cli-golden | CLI の全コマンドの golden | `spec/golden/cli/` | P0-clock 待ち |
-| P0-routes | 全部の入口の一覧と、SPA + Connect への対応 (RPC・server stream・静的) | `docs/spec/routes.md` と `proto/` の下書き | 未着手 |
-| P0-ui | 全部の状態の画面のシナリオ (1280 と 390) | `spec/ui/` | 未着手 |
-| P0-security | 守りの約束 | `docs/spec/security.md` | 未着手 |
+| P0-clock | 時刻を外から固定する口 `YARU_NOW` を TS 版に足す (テストから) | `src/` の変更とテスト | 取り込み済み (b03d5c7) |
+| P0-format | `.yaru/` の形式の仕様を書く | `docs/spec/yaru-format.md` | grok 作業中 |
+| P0-golden | CLI の場面を流して出力と `.yaru/` を記録・照合する仕組み (Go 版にも流せる)。データの golden はこれで兼ねる | `spec/golden/` | grok 作業中 |
+| P0-golden-scenarios | 全部のコマンドの場面を書いて記録する | `spec/golden/scenarios/` | P0-golden 待ち |
+| P0-routes | 全部の入口の一覧と、SPA + Connect への対応 (RPC・server stream・静的) | `docs/spec/routes.md` と `docs/spec/proto-draft/` | grok 作業中 |
+| P0-ui | 全部の状態の画面のシナリオ (1280 と 390) | `spec/ui/` | grok 作業中 |
+| P0-security | 守りの約束 | `docs/spec/security.md` | grok 作業中 |
 | P0-layout | Go のフォルダの作り・go.mod・declscope と depguard の設定 | 司令塔が作る | 未着手 |
 
 入口の一覧 (P0-routes) には、JSON の API だけでなく次を全部入れる: フォームの POST と redirect (回答・取り下げ・選択肢)、SSE とライブ更新、PWA の manifest とアイコン、フォントと静的ファイル、Inbox、404。
@@ -54,3 +54,5 @@ Nix と launchd の向き先を替える。古い `dist/yaru.js` は戻せるよ
 | 日時 | 出来事 |
 |---|---|
 | 2026-09-28 | `feat/change-go` を main (613a9e0) から作成。AGENTS.md に Go 移行の決まり、`.grok/config.toml` に拒否の決まりを追加 |
+| 2026-09-28 | 試験として grok 1 体で P0-clock。拒否の決まり (push・herdr・司令塔の worktree への書き込み) が効くことを確認。Claude のレビューで要修正 2 点 (待ち時間を単調時計で測る、存在しない日を拒む) を直させて取り込み |
+| 2026-09-28 | P0-format・routes・ui・security・golden を grok 5 体で並列に開始 |
