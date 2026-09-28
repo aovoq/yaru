@@ -1,0 +1,243 @@
+@import "tailwindcss" source(none);
+/* クラスは web/src のソースと index.html から拾う。src/css.tsx の見本 HTML は使わない */
+@source "../**/*.{ts,tsx}";
+@source not "../**/*.test.ts";
+@source not "../**/*.test.tsx";
+@source "../../index.html";
+@theme static {
+  --color-ink: #f7f8f8;
+  --color-ink-muted: #d0d6e0;
+  --color-ink-subtle: #8a8f98;
+  --color-ink-tertiary: #7e828b;
+  --color-canvas: #010102;
+  --color-surface-1: #0f1011;
+  --color-surface-2: #141516;
+  --color-surface-3: #18191a;
+  --color-surface-4: #191a1b;
+  --color-hairline: #23252a;
+  --color-hairline-strong: #34343a;
+  --color-primary: #5e6ad2;
+  --color-primary-hover: #828fff;
+  --color-primary-focus: #5e69d1;
+  --color-on-primary: #ffffff;
+  --color-semantic-success: #27a644;
+  --color-semantic-danger: #eb5757;
+  --color-priority-urgent: #eb5757;
+  --color-priority-high: #f2994a;
+  --color-priority-medium: #f2c94c;
+  --color-priority-low: #8a8f98;
+  --font-sans:
+    InterVariable, system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP",
+    sans-serif;
+  --font-sans--font-feature-settings: "cv11", "ss01";
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --text-micro: 11px;
+  --text-micro--line-height: calc(16 / 11);
+  --text-small: 12px;
+  --text-small--line-height: calc(16 / 12);
+  --text-body: 13px;
+  --text-body--line-height: calc(20 / 13);
+  --text-prose: 14px;
+  --text-prose--line-height: 1.7;
+  --text-title: 15px;
+  --text-title--line-height: calc(22 / 15);
+  --text-display: 26px;
+  --text-display--line-height: calc(32 / 26);
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+}
+/* 欧文は assets/fonts の Inter (font.ts が配る)。和文は Inter に無いので font-sans の後ろの system-ui や Hiragino Sans に落ちる */
+/* cv11 は一階建ての a、ss01 は開いた形の数字 https://rsms.me/inter/#features */
+@font-face {
+  font-family: InterVariable;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/assets/inter-4.1.woff2") format("woff2");
+}
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility pl-safe {
+  padding-left: env(safe-area-inset-left);
+}
+@utility pr-safe {
+  padding-right: env(safe-area-inset-right);
+}
+@layer base {
+  /* Collapsible は details / summary で作るので、Safari が summary の前に出す三角を消す */
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  ::selection {
+    background: color-mix(in oklab, #5e6ad2 45%, transparent);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #34343a transparent;
+  }
+}
+#sidebar {
+  width: var(--sidebar-width, 14rem);
+}
+html[data-sidebar="closed"] #sidebar {
+  display: none;
+}
+@media (min-width: 768px) {
+  html[data-sidebar="closed"] #sidebar-open {
+    display: grid;
+  }
+}
+/* 本文の Markdown は描画結果に class を付けられず Tailwind のクラス走査に載らないので、ここでまとめて見た目を付ける */
+.markdown {
+  font-size: var(--text-prose);
+  line-height: var(--text-prose--line-height);
+  color: var(--color-ink-muted);
+  overflow-wrap: anywhere;
+}
+.markdown > * + * {
+  margin-top: 0.65em;
+}
+.markdown :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--color-ink);
+  font-weight: 600;
+  line-height: 1.35;
+}
+.markdown > :is(h1, h2, h3, h4, h5, h6):not(:first-child) {
+  margin-top: 1.3em;
+}
+.markdown h1 {
+  font-size: 1.15em;
+}
+.markdown h2 {
+  font-size: 1.07em;
+}
+.markdown h3 {
+  font-size: 1em;
+}
+.markdown :is(h4, h5, h6) {
+  font-size: 1em;
+  color: var(--color-ink-muted);
+}
+.markdown strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+.markdown ul {
+  list-style: disc;
+  padding-left: 1.4em;
+}
+.markdown ol {
+  list-style: decimal;
+  padding-left: 1.5em;
+}
+.markdown li > :is(ul, ol) {
+  margin-top: 0.2em;
+}
+.markdown li + li {
+  margin-top: 0.2em;
+}
+.markdown li::marker {
+  color: var(--color-ink-tertiary);
+}
+.markdown li:has(> input[type="checkbox"]) {
+  list-style: none;
+  margin-left: -1.3em;
+}
+.markdown input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0 0.45em 0 0;
+  vertical-align: -2px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+.markdown li:has(> input[type="checkbox"]:checked) {
+  color: var(--color-ink-tertiary);
+  text-decoration: line-through;
+}
+.markdown a {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--color-primary-hover) 40%, transparent);
+  text-underline-offset: 2px;
+}
+.markdown code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  padding: 0.1em 0.35em;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface-2);
+  color: var(--color-ink);
+}
+.markdown pre {
+  padding: 10px 12px;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  overflow-x: auto;
+  line-height: 1.55;
+}
+.markdown pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--text-small);
+}
+/* 引用は片側の線で飾らず、地を少し明るくして囲む。答えの箱 (surface-2) の中でも見分けられるよう、面の色ではなく重ねる色にする */
+.markdown blockquote {
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--color-ink) 4%, transparent);
+  color: var(--color-ink-subtle);
+}
+.markdown table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: var(--text-body);
+}
+.markdown :is(th, td) {
+  padding: 4px 10px;
+  border: 1px solid var(--color-hairline);
+  text-align: left;
+}
+.markdown th {
+  background: var(--color-surface-2);
+  color: var(--color-ink);
+  font-weight: 500;
+}
+.markdown hr {
+  border: 0;
+  border-top: 1px solid var(--color-hairline);
+}
+.markdown img {
+  max-width: 100%;
+  border-radius: var(--radius-md);
+}
+.markdown.markdown-compact {
+  font-size: var(--text-body);
+  line-height: 1.6;
+}
+/* issue 画面は板の上に重ね、広い画面ではサイドバーを隠さない */
+@media (min-width: 768px) {
+  html:not([data-sidebar="closed"]) .issue-view {
+    left: var(--sidebar-width, 14rem);
+  }
+}
+html[data-resizing],
+html[data-resizing] * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+html[data-resizing] #sidebar-resizer {
+  background: #5e6ad2;
+}

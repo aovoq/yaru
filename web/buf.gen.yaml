@@ -1,0 +1,11 @@
+version: v2
+# ルートの buf.gen.yaml にはまだ足さない。足す案は REPORT.md。
+# ここは web/ で proto から TypeScript を作り直すためのもの。
+# https://buf.build/docs/generate/managed-mode/
+inputs:
+  - directory: ../proto
+plugins:
+  - local: protoc-gen-es
+    out: src/gen
+    opt:
+      - target=ts
