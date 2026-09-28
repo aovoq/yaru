@@ -33,3 +33,15 @@ test("currentTime rejects a YARU_NOW that is not a datetime", () => {
     'invalid YARU_NOW: expected an ISO 8601 datetime such as 2026-09-28T12:00:00.000Z, actual "yesterday"',
   )
 })
+
+test("currentTime rejects a calendar date that does not exist", () => {
+  process.env.YARU_NOW = "2026-02-30T12:00:00Z"
+  expect(() => currentTime()).toThrow(
+    'invalid YARU_NOW: expected an ISO 8601 datetime such as 2026-09-28T12:00:00.000Z, actual "2026-02-30T12:00:00Z"',
+  )
+})
+
+test("currentTime accepts February 29 in a leap year", () => {
+  process.env.YARU_NOW = "2024-02-29T12:00:00Z"
+  expect(currentTime().toISOString()).toBe("2024-02-29T12:00:00.000Z")
+})

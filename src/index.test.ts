@@ -644,6 +644,32 @@ test("issue save stamps createdAt and updatedAt from YARU_NOW", () => {
   expect(file).toContain(`updatedAt: ${fixed}`)
 })
 
+test("question wait times out quickly when YARU_NOW is set", async () => {
+  const root = workspace()
+  run(["question", "save", "--title", "q"], root)
+  const started = performance.now()
+  const waiting = Bun.spawn(
+    [cli, "question", "wait", "1", "--timeout", "50ms", "--interval", "10ms"],
+    {
+      cwd: root,
+      env: { ...environment, YARU_NOW: "2026-09-28T12:00:00.000Z" },
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+  )
+  const finished = await Promise.race([
+    waiting.exited.then((code) => ({ code, timedOut: false })),
+    Bun.sleep(1_000).then(() => ({ code: null, timedOut: true })),
+  ])
+  if (finished.timedOut) waiting.kill()
+  expect(finished.timedOut).toBe(false)
+  expect(finished.code).toBe(2)
+  expect(performance.now() - started).toBeLessThan(1_000)
+  const result = JSON.parse(await new Response(waiting.stdout).text())
+  expect(result.status).toBe("open")
+  expect(result.acknowledgedAt).toBeNull()
+})
+
 test("issue save stops when YARU_NOW is not a datetime", () => {
   const root = workspace()
   const out = run(["issue", "save", "--title", "frozen clock"], root, undefined, {

@@ -610,6 +610,8 @@ async function renderProjects(directory: string): Promise<string> {
 }
 
 export function serve(port = DEFAULT_PORT) {
+  // YARU_NOW の値を起動時に検査するための呼び出し。読めない値は待受の前に止める
+  // https://www.rfc-editor.org/rfc/rfc3339#section-5.6
   currentTime()
   const app = createServerApp()
   try {

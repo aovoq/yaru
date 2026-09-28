@@ -656,10 +656,14 @@ async function question(
     const timeout = parseDurationFlag("timeout", flag("timeout") ?? "10m")
     const interval = parseDurationFlag("interval", flag("interval") ?? "1s")
     const store = openWorkspace()
-    const deadline = currentTime().getTime() + timeout
+    // 待ち時間は単調に進む時計で測る。YARU_NOW で止めた現在時刻だと timeout が来ない
+    // https://www.w3.org/TR/hr-time-3/#dom-performance-now
+    const waitStartedAt = performance.now()
+    const waitDeadline = waitStartedAt + timeout
     let current = getQuestion(store, id)
-    while (current.status === "open" && currentTime().getTime() < deadline) {
-      await Bun.sleep(Math.min(interval, Math.max(deadline - currentTime().getTime(), 0)))
+    while (current.status === "open" && performance.now() < waitDeadline) {
+      const remainingMilliseconds = waitDeadline - performance.now()
+      await Bun.sleep(Math.min(interval, Math.max(remainingMilliseconds, 0)))
       current = getQuestion(store, id)
     }
     current = acknowledgeQuestion(store, id)
