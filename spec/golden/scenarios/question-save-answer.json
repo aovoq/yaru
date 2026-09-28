@@ -1,0 +1,44 @@
+{
+  "name": "question-save-answer",
+  "description": "質問を作り、答えて、取得で確認済みになるところまで記録する",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "Ship the latch?",
+        "--priority",
+        "high",
+        "--default",
+        "Ship it",
+        "--answerBy",
+        "2h",
+        "--option",
+        "Ship it",
+        "--option",
+        "Hold it",
+        "--body",
+        "The latch sticks in the cold."
+      ],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "-"],
+      "stdin": "Hold it\n",
+      "now": "2026-09-28T12:30:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T12:40:00.000Z"
+    }
+  ]
+}

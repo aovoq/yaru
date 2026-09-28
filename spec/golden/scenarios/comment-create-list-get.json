@@ -1,0 +1,31 @@
+{
+  "name": "comment-create-list-get",
+  "description": "issue にコメントを足し、標準入力の本文も含めて一覧と取得を記録する",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Review the latch"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "Looks fine."],
+      "now": "2026-09-28T12:05:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "-"],
+      "stdin": "line one\nline two\n",
+      "now": "2026-09-28T12:06:00.000Z"
+    },
+    {
+      "arguments": ["comment", "list", "--issue", "1"],
+      "now": "2026-09-28T12:06:00.000Z"
+    },
+    {
+      "arguments": ["comment", "get", "2"],
+      "now": "2026-09-28T12:06:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "name": "issue-update",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdout": "initialized <WORKSPACE>/.yaru\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Write the note", "--body", "first"],
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"Write the note\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"first\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--id",
+        "1",
+        "--title",
+        "Write the notes",
+        "--status",
+        "in_progress",
+        "--assignee",
+        "me",
+        "--body",
+        "revised"
+      ],
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"Write the notes\",\n  \"status\": \"in_progress\",\n  \"assignee\": \"golden\",\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": \"2026-09-28T13:00:00.000Z\",\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T13:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"revised\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"Write the notes\",\n  \"status\": \"in_progress\",\n  \"assignee\": \"golden\",\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": \"2026-09-28T13:00:00.000Z\",\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T13:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"revised\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "events/1.jsonl",
+      "content": "{\"field\":\"title\",\"from\":\"Write the note\",\"to\":\"Write the notes\",\"by\":\"golden\",\"session\":null,\"at\":\"2026-09-28T13:00:00.000Z\"}\n{\"field\":\"status\",\"from\":\"todo\",\"to\":\"in_progress\",\"by\":\"golden\",\"session\":null,\"at\":\"2026-09-28T13:00:00.000Z\"}\n{\"field\":\"assignee\",\"from\":null,\"to\":\"golden\",\"by\":\"golden\",\"session\":null,\"at\":\"2026-09-28T13:00:00.000Z\"}\n"
+    },
+    {
+      "path": "issues/1.md",
+      "content": "---\nid: 1\ntitle: Write the notes\nstatus: in_progress\nassignee: golden\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt: 2026-09-28T13:00:00.000Z\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T13:00:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\nrevised\n"
+    },
+    {
+      "path": "questions/.gitignore",
+      "content": "*\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}
