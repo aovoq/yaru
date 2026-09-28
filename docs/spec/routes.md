@@ -549,7 +549,7 @@ manifest (`src/pwa.ts:26-41`):
   "description": "Local issues. Markdown in .yaru.",
   "start_url": "/",
   "scope": "/",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#010102",
   "theme_color": "#010102",
   "icons": [

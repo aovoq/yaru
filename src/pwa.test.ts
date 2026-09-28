@@ -56,7 +56,7 @@ describe("pwa", () => {
       expect(manifest.short_name).toBe("yaru")
       expect(manifest.start_url).toBe("/")
       expect(manifest.scope).toBe("/")
-      expect(manifest.display).toBe("standalone")
+      expect(manifest.display).toBe("fullscreen")
       const pngs = manifest.icons.filter((icon) => icon.type === "image/png")
       expect(pngs.map((icon) => icon.sizes)).toContain("192x192")
       expect(pngs.map((icon) => icon.sizes)).toContain("512x512")
