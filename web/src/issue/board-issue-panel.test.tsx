@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 import { renderToString } from "preact-render-to-string"
-import { BoardScreen } from "../app/board-screen"
+import { BoardScreen } from "../board/board-screen"
 import type { BoardApi } from "../board/board-api"
 import { BLANK, type PageData } from "../board/page-data"
 import type { Issue } from "../domain/issue"

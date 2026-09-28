@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "vitest"
-import type { BoardApi } from "../board/board-api"
-import { BLANK, type PageData, type SaveInput } from "../board/page-data"
-import { SaveRejectedError } from "../board/save-error"
+import type { BoardApi } from "./board-api"
+import { BLANK, type PageData, type SaveInput } from "./page-data"
+import { SaveRejectedError } from "./save-error"
 import type { Issue } from "../domain/issue"
 import type { PageController } from "./use-page-controller"
 

@@ -1,4 +1,4 @@
-import { BoardScreen } from "../app/board-screen"
+import { BoardScreen } from "../board/board-screen"
 import type { BoardApi } from "../board/board-api"
 import type { BoardQuery } from "../route"
 

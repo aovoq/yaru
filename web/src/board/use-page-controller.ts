@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useReducer, useRef } from "preact/hooks"
 import { requiresDocumentReload } from "../route"
-import type { BoardApi } from "../board/board-api"
-import { deleteNewIssueParams } from "../board/view-model"
+import type { BoardApi } from "./board-api"
+import { deleteNewIssueParams } from "./view-model"
 import type { Issue } from "../domain/issue"
-import type { PageData, SaveInput } from "../board/page-data"
-import { SaveRejectedError } from "../board/save-error"
+import type { PageData, SaveInput } from "./page-data"
+import { SaveRejectedError } from "./save-error"
 import {
   createClientState,
   documentTitle,
@@ -15,7 +15,7 @@ import {
   type ClientState,
   type DraftField,
   type ReturnedDrafts,
-} from "../board/state"
+} from "./state"
 
 type HistoryMode = "push" | "replace" | "none"
 

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from "preact/hooks"
-import type { PropertyField } from "../board/issue-menu"
+import type { PropertyField } from "./issue-menu"
 
 // 板と issue 画面のキーボード操作をまとめる。document の keydown を 1 か所で受け、何をするかを handleBoardKey で決める
 // 何をするかを DOM と呼ぶ側の操作 (KeyboardContext) だけから決め、描画の部品と切り離してテストできるようにする

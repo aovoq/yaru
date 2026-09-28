@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "vitest"
 import { renderToString } from "preact-render-to-string"
-import type { BoardApi } from "../board/board-api"
-import { BLANK, type PageData } from "../board/page-data"
+import type { BoardApi } from "./board-api"
+import { BLANK, type PageData } from "./page-data"
 import type { Issue } from "../domain/issue"
 import { BoardScreen } from "./board-screen"
 

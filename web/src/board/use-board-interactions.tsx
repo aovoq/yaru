@@ -1,29 +1,29 @@
 import type { VNode } from "preact"
 import { useCallback, useEffect, useRef, useState } from "preact/hooks"
-import { boardClock } from "../board/clock"
+import { boardClock } from "./clock"
 import { Alert } from "../components/alert"
 import { ConfirmDialog } from "../components/confirm-dialog"
 import { Notice } from "../components/notice"
 import type { Issue } from "../domain/issue"
-import type { SaveInput } from "../board/page-data"
-import { BulkBar } from "../board/bulk/bulk-bar"
-import { copyText } from "../board/clipboard"
-import { CommandPalette } from "../board/command-palette/command-palette"
-import type { PaletteCommand } from "../board/command-palette/palette-entries"
-import { ContextMenu, type OpenMenu } from "../board/context-menu/context-menu"
-import type { IssueActions } from "../board/context-menu/issue-actions"
-import { PropertyPicker } from "../board/context-menu/property-picker"
+import type { SaveInput } from "./page-data"
+import { BulkBar } from "./bulk/bulk-bar"
+import { copyText } from "./clipboard"
+import { CommandPalette } from "./command-palette/command-palette"
+import type { PaletteCommand } from "./command-palette/palette-entries"
+import { ContextMenu, type OpenMenu } from "./context-menu/context-menu"
+import type { IssueActions } from "./context-menu/issue-actions"
+import { PropertyPicker } from "./context-menu/property-picker"
 import {
   issueMenu,
   propertyInput,
   propertyPicker,
   type MenuAction,
   type PropertyField,
-} from "../board/issue-menu"
-import { hasUnsavedChanges, type DraftField } from "../board/state"
+} from "./issue-menu"
+import { hasUnsavedChanges, type DraftField } from "./state"
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts"
 import type { PageController } from "./use-page-controller"
-import { deleteNewIssueParams, newIssueHref, pageHref, type PageFilters } from "../board/view-model"
+import { deleteNewIssueParams, newIssueHref, pageHref, type PageFilters } from "./view-model"
 import { requiresDocumentReload } from "../route"
 
 // 板と issue 画面の上に重ねて開くもの (右クリックのメニュー・属性の選択・コマンドパレット・変更を捨てる確認・まとめて変える帯・知らせ) と、
