@@ -405,7 +405,8 @@ issue 画面は板の上に重なる `role="dialog"` (`src/client/issue-view.tsx
 ### issue-commits コミット
 
 - 行き方: `/?id=<ship>`。id が数字の issue だけ探す (`src/page.ts:135-138`)。
-- 確かめる点: メッセージが `#<id>` に触れたコミットと、issue のブランチにあって HEAD に無いコミット (`src/repository.ts:77-80`)。`#1` は `#12` に当たらない (同 88 行)。最大 20。新しい順。push 済みでなければ `Not pushed` (`src/client/issue/commits.tsx:24`)。上流が無いと `pushed` は null で、画面は `Not pushed` (三項が偽になる)。
+- 確かめる点: メッセージが `#<id>` に触れたコミットと、issue のブランチにあって HEAD に無いコミット (`src/repository.ts:77-80`)。`#1` は `#12` に当たらない (同 88 行)。最大 20。新しい順。上流があるとき、まだ送っていなければ点と `Not pushed` (`src/client/issue/commits.tsx:22-29`)。上流が無いと `pushed` は null で、点も `Not pushed` も出さない (`src/repository.ts:59`, `src/client/issue/commits.tsx:22`)。
+- 撮影: fixture は上流を付けない。`Not pushed` は撮らない。コミットの題名と時刻を撮る。
 - 1280: 短いハッシュの時刻の隣の補足が見える (`sm:inline`, 同 36 行)。
 - 390: その補足は隠れる。題名は 1 行で切れる。
 
@@ -442,6 +443,7 @@ issue 画面は板の上に重なる `role="dialog"` (`src/client/issue-view.tsx
 - 行き方: 既存 issue の題名を変えて欄を離れる。
 - 確かめる点:
   - 送っている間 `Saving…`。成功は `Saved`。約 2 秒で消える (`src/client/use-page-controller.ts:37-38`, `src/client/issue/issue-view-header.tsx:68-75`)。
+  - 撮影しない: `Saving…` は localhost では応答と同じターンで消える。agent-browser の route は通信を止めるか本文を返すだけで、応答を遅らせてこの表示を残せない。`Unsaved` と `Saved` は撮る。
   - 打っている途中で、まだ送っていないときは `Unsaved`。このときは Retry は出ない (同 14-15 行のコメント)。
   - スクリプトが無いときだけ `Save` ボタン (`noscript`, 同 83-87 行)。
 - 1280 / 390: 文言は同じ。
@@ -601,7 +603,8 @@ issue 画面は板の上に重なる `role="dialog"` (`src/client/issue-view.tsx
 - 行き方: フォームの回答、取り下げ、取り消しは、失敗しても 303 で理由を戻す (`src/web.tsx:149-156`)。捕捉されない `QuestionConflictError` だけが 409 の ErrorView (`src/web.tsx:87-91`)。
 - 確かめる点: 409 のとき文は衝突の理由。API は JSON で `error` と `question`。
 - 1280 / 390: ErrorView の配置。
-- 未決と重なる: 人が画面の操作だけで、この 409 の HTML に到達する手順は、フォームの catch がある限りソースに無い。
+- 撮影しない: フォームの回答、取り下げ、取り消しは失敗しても 303 で理由を戻す (`src/web.tsx:149-156`)。409 の HTML は、捕捉されない `QuestionConflictError` だけ (`src/web.tsx:87-91`)。画面の操作だけではその HTML に着かない。
+
 
 ### notice-copy コピーの知らせ
 
@@ -631,8 +634,9 @@ dashboard と inbox は preact では無く、`live-page.ts` が SSE か一定�
   1. `GET /p/<main.slug>/` を開く。
   2. ブラウザを offline にする。CDP の `Network.emulateNetworkConditions` で `offline: true`。agent-browser では `agent-browser set offline on` (トップレベルの `offline` コマンドは無い)。
   3. CLI で別の issue の題名を「Renamed while offline」に変える。
-  4. `agent-browser set offline off` で戻す。`online` と、SSE の `onopen` が読み直す (`src/client/use-page-controller.ts:99-107`)。
-- 確かめる点: 板に「Renamed while offline」が出る。offline の間は読み直せない。
+  4. offline のまま、題名が「Backlog idea」のままで、「Renamed while offline」が無いことを確かめる。
+  5. `agent-browser set offline off` で戻す。`online` と、SSE の `onopen` が読み直す (`src/client/use-page-controller.ts:99-107`)。
+- 確かめる点: offline の間は古い題名のまま。戻したあとに「Renamed while offline」が出る。
 - 1280 / 390: 文言は同じ。
 - 撮影: 写しの上で行う。
 
@@ -644,6 +648,7 @@ dashboard と inbox は preact では無く、`live-page.ts` が SSE か一定�
   3. inbox でも、`textarea[form="answer-question-<slug>-<blocking>"]` に入れて読み直す。
 - 確かめる点: 読み直したあとも、同じ欄に「draft text」が戻る。鍵は `sessionStorage` の `yaru.drafts:<basePath>/dashboard` と `yaru.drafts:/inbox` (`src/web.tsx:454`, `546`, `src/ui/live-page.ts:71-100`)。空の欄だけを戻し、`?answer=` でサーバーが埋めた欄は上書きしない (同 92-98 行)。送ると、その質問の書きかけは消える (同 115-123 行)。
 - 1280 / 390: 欄の位置は質問カードと同じ。
+- 撮影: dashboard と inbox は、幅ごとに別のブラウザセッションで開く。同じセッションだと、dashboard の `sessionStorage` があとの dashboard の撮影に残る。
 
 ### dashboard-show-new 新しい質問の知らせ
 
@@ -663,16 +668,16 @@ dashboard と inbox は preact では無く、`live-page.ts` が SSE か一定�
 
 ### dashboard-relative-time 相対時刻
 
-- 行き方: dashboard を開いたまま 1 分待つ。
-- 確かめる点: `time[data-relative]` の文字が、ブラウザの今で書き換わる (`src/ui/live-page.ts:204-215`)。間隔は 60 秒。最初の描画はサーバーの `YARU_NOW`、書き換えはブラウザの時計 (`new Date()`)。
+- 行き方: dashboard を開いたまま 1 分待つ。撮影は、ページを開く前に入れた時計を 65 秒進めて、同じ書き換えをすぐ走らせる。
+- 確かめる点: `time[data-relative]` の文字が、ブラウザの今で書き換わる (`src/ui/live-page.ts:204-215`)。間隔は 60 秒。ブラウザの `Date` は `YARU_NOW` に、実際の経過時間を足したもの。
 - 1280 / 390: 文字は同じ。
 
 ### dashboard-deadline-passed 期限を過ぎた促し
 
-- 行き方: 描いたときは open で `data-answer-by` が付いている質問を開き、ブラウザの時計がその時刻を過ぎてから 1 分待つ。
-- 確かめる点: `#page-refresh` の文字が `Deadline passed — Show` (`src/ui/live-page.ts:210-213`)。`data-answer-by` は、期限切れでは無く、期限が未来の open だけに付く (`src/components/question-card.tsx:104`)。サーバーの `YARU_NOW` より後で、ブラウザの今より前の `answerBy` が要る。fixture の正午はブラウザの今より未来になることがあるので、この状態だけ、serve の `YARU_NOW` をブラウザの今より前にし、`answerBy` をその間に置く。
+- 行き方: 期限が未来の open の質問 (`data-answer-by`) を開いたまま、その時刻を過ぎてから 1 分待つ。撮影は、同じ時計を 8 日進めて、毎分の判定をすぐ走らせる。
+- 確かめる点: `#page-refresh` の文字が `Deadline passed — Show` (`src/ui/live-page.ts:210-213`)。`data-answer-by` は、期限切れでは無く、期限が未来の open だけに付く (`src/components/question-card.tsx:104`)。
 - 1280 / 390: ボタンの位置は dashboard-show-new と同じ。
-- 撮影: 写しの上で、その質問の `answerBy` だけを書き換える。
+- 撮影: 回答欄に文字を入れてから、入れた時計を 8 日進める。入力が無いと `announceChange` はボタンを出さずにページを読み直す (`src/ui/live-page.ts:149-152`)。読み直したサーバーの時計は `YARU_NOW` のままなので、ボタンは出ない。ファイルの `answerBy` は変えない。
 
 ### dashboard-fragment-proceeded 閉じた Proceeded を開く
 
