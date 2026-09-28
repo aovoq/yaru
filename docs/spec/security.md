@@ -8,14 +8,26 @@ Go (API とデータと CLI と端末) と Vite + Preact の SPA (画面) に移
 
 `yaru serve` は次の両方を持つ。
 
-- 質問への回答と、 issue とコメントの書き換え。回答は質問ファイルに書かれ、期限後の回答は issue のコメントに写る。次にその issue を読んだエージェントが拾う (`src/questions.ts:20-21`, `src/questions.ts:230-239`)。 issue とコメントは git で管理され、エージェントの作業指示になる (AGENTS.md の「質問は git に入れない。issue とコメントは git で管理する」)。
+- 質問への回答と、 issue とコメントの書き換え。回答は質問ファイルに書かれ、期限後の回答は issue のコメントに写る。次にその issue を読んだエージェントが拾う (`src/questions.ts:20-21`, `src/questions.ts:230-239`)。 issue とコメントは git で管理され、エージェントの作業指示になる (AGENTS.md の「質問は git に入れない。 issue とコメントは git で管理する」)。
 - herdr の端末。シェルそのもの。
 
 本文はエージェントが外から取ってきた文章を含み、画面は tailnet から開けて質問に答えられる。本文の HTML やスクリプトが動くと、人になりすましてエージェントへ指示を送れる (`src/markdown.ts:3-6`)。
 
-したがって HTTP と Connect と WebSocket の全部の入口は、シェルを開く入口と同じ検査を通す。読み取り専用、静的ファイル、死活確認、プリフライトを例外にしない。検査の前に `.yaru/` を書き換えず、 herdr のプロセスを起動しない。許可リストを作るための `publicUrl` の読み取りだけは先に行ってよい。
+したがって HTTP と Connect と WebSocket の全部の入口は、シェルを開く入口と同じ検査を通す。読み取り専用、静的ファイル、死活確認、プリフライトを例外にしない。検査の前に `.yaru/` を書き換えず、 herdr のプロセスを起動しない。
 
 今の TS 版は、待ち受けを `127.0.0.1` に限る以外、この検査を持たない。差は「今の TS 版との差」に書く。 Go 版は TS 版の穴を移植しない。
+
+### ローカルの誰を信じるか
+
+`Host` と `Origin` の検査が止められるのは、ブラウザのページである。 `Origin` と `Sec-Fetch-Site` はブラウザが上書きする禁止ヘッダで、ページのスクリプトは任意の値を付けられない (<https://fetch.spec.whatwg.org/#forbidden-header-name>)。
+
+次は、この検査では守れない。
+
+- ブラウザ拡張と、ページへ注入されたスクリプト。これらは開いている yaru と同じオリジンで動く。 `Origin` も CSP も、拡張や注入を止める対象にしない。
+- 同じマシンの、ブラウザ以外のプロセス。 curl も、テストも、 sandbox に入ったエージェントも、 `Origin` を自分で付けられる。 `127.0.0.1` に繋がれば、許可された `Origin` を付けて WebSocket の端末 (シェル) と、 issue や回答の書き込みに届く。ネットワーク以外を拒否の決まりで縛ったエージェント (grok や Claude の sandbox) も、 localhost への接続が残っていれば、その縛りを HTTP 経由で外せる。
+- 他の OS ユーザー。 TCP の `127.0.0.1` はマシンの全ユーザーから繋がる。モード `0600` のファイルや Unix ソケットは、所有者以外は開けない。
+
+ブラウザ向けの `Origin` 検査だけで端末と書き込みが守れた、とは書かない。守る案の比較は「ローカルの非ブラウザ」にあり、どちらを採るかは未決。実装はその選択を埋めない。
 
 ## 待ち受けと公開
 
@@ -61,46 +73,52 @@ Serve はバックエンドへ出す前に、入ってきた次の header を消
 
 検査は 1 つのミドルウェアで、ルータの前に掛ける。 Connect (単項もサーバストリームも)、 WebSocket のアップグレード、静的ファイル、 SPA の `index.html` 、フォント、 PWA 、今ある SSE に相当する読み取りを分けない。
 
-拒否は `403` 、 `Content-Type: text/plain; charset=utf-8` 、本文は英語で、小文字で始まり、末尾にピリオドを付けず、期待と実際を含める。 header の値を HTML に埋め込まない。例:
+拒否は `403` 、 `Content-Type: text/plain; charset=utf-8` 、本文は英語で、小文字で始まり、末尾にピリオドを付けず、期待と実際を含める。 header の値を HTML に埋め込まない。本文に写す `Host` と `Origin` は、制御文字 (`U+0000` から `U+001F` までと `U+007F`) を除いてから、 128 バイトを超える分を切る。改行を残さない。例:
 
 ```text
-rejected host: expected 127.0.0.1:47800 or localhost:47800 or a configured public host, actual evil.example
+rejected host: expected 127.0.0.1:47800 or localhost:47800 or the configured public host, actual evil.example
 ```
 
-### 許可リスト
+### 許可する Host
 
-毎リクエスト、登録済みワークスペースの `publicUrl` から作り直す。キャッシュして、消した `publicUrl` を残さない。列挙に失敗したワークスペースは足さない。全部失敗しても、ループバックの 2 つは残す。
+ループバック (待ち受けポートを `P` とする) は常に許す。
 
-ループバック (待ち受けポートを `P` とする):
+- `127.0.0.1:P`
+- `localhost:P`
 
-- Host: `127.0.0.1:P` と `localhost:P`
-- Origin: `http://127.0.0.1:P` と `http://localhost:P`
+ポート無しの `127.0.0.1` と `localhost` は許さない。このサーバの HTTP ポートは `80` ではないので、ブラウザはポートを付ける。
 
-`publicUrl` はワークスペースごとの `.yaru/config.yml` の 1 行で、知らせのリンクの頭である (`src/notify.ts:27-35`, `src/notify.ts:49-51`)。例は `https://mac.example.ts.net` (`src/index.test.ts:590-595`)。次をすべて満たすものだけを許可リストに足す。
+公開 host は、サーバープロセスの設定だけから 1 つ取る。ワークスペースのファイルからは取らない。 `.yaru/config.yml` はワークスペースの印で (`src/store.ts:125`, `src/store.ts:163`)、このリポジトリの `.gitignore` は `.yaru` を除外しない (`.gitignore` に `node_modules/` 、 `/dist` 、 `*.tgz` 、 `REPORT.md` しか無い)。 issue とコメントと同じく git で配られ得る。そこへ `publicUrl: https://evil.example` を書いた悪意のあるリポジトリを登録すると、その host が許可になる。 DNS リバインディングでその名前が `127.0.0.1` に解けると、 `Host` と `Origin` が両方とも攻撃者の名前になり、同じオリジンの GET が通る。
 
-- URL として解析できる
-- scheme が `https`
-- host が空でなく、 userinfo が無い
+`publicUrl` は知らせのリンクの頭にだけ使う (`src/notify.ts:27-35`, `src/notify.ts:49-51`)。例は `https://mac.example.ts.net` (`src/index.test.ts:590-595`)。許可の判定には読まない。
 
-ポートが省略または `443` のとき:
+公開 host の出どころは、上から最初に見つかった 1 つ。
 
-- Host: `hostname` (ポート無し)
-- Origin: `https://hostname`
+1. `yaru serve --public-host HOST` 。今の TS 版の `yaru serve` にこのフラグは無い (`src/index.ts:46`)。 Go 版で足す。これは CLI の引数を TS 版と揃える、という移行の決まりの例外で、レビューが公開 host の出どころに指定したため。
+2. 環境変数 `YARU_PUBLIC_HOST` 。常駐では `yaru.nix` の `EnvironmentVariables` に書く (`yaru.nix:22-26` が環境変数の置き場)。
+3. `tailscale status --json` の `Self.DNSName` 。フラグも環境変数も無いときだけ読む。読めなければ公開 host は無しで、ループバックだけを許す。起動は失敗させない。
 
-それ以外のポートのとき:
+`HOST` は hostname 、または hostname とポート `443` だけ。 URL 、 userinfo 、空、 `443` 以外のポートは起動時に拒否する (終了コードは 0 以外、標準エラーに期待と実際を書く)。 `443` は捨て、比較に使う公開 host はポート無しの hostname だけにする。ブラウザは `https` の `443` を `Host` に付けない。
 
-- Host: `hostname:port`
-- Origin: `https://hostname:port`
+比較の前に、 ASCII の大文字小文字を無視し、末尾のドットをすべて削る (<https://www.rfc-editor.org/rfc/rfc3986#section-3.2.2>)。 `Mac.Example.Ts.Net.` は `mac.example.ts.net` と同じである。
 
-hostname の比較は ASCII の大文字小文字を無視する (<https://www.rfc-editor.org/rfc/rfc3986#section-3.2.2>)。末尾のドットは削ってから比べる。 `http` の `publicUrl` 、パスだけが違う `publicUrl` 、壊れた値は許可リストに入れない。 `http` を将来許すかは未決。
+### Host に対応する Origin は 1 つ
 
-ポート無しの `127.0.0.1` と `localhost` は許可しない。このサーバの HTTP ポートは `80` ではないので、ブラウザはポートを付ける。
+`Origin` は、許可リストのどれかと合えば通る、ではない。そのリクエストの `Host` に対応する 1 つとだけ比べる。
+
+| `Host` (正規化のあと)  | 対応する `Origin`      |
+| ---------------------- | ---------------------- |
+| `127.0.0.1:P`          | `http://127.0.0.1:P`   |
+| `localhost:P`          | `http://localhost:P`   |
+| 公開 host (ポート無し) | `https://` とその host |
+
+`Host` が `127.0.0.1:P` で `Origin` が `https://公開host` の組は拒否する。逆も拒否する。 `Origin: null` は不一致。
 
 ### 全リクエスト
 
-1. `Host` が許可リストに無い、空、 `@` を含む、許可リストに無いポート付き、なら拒否。
+1. `Host` が空、 `@` を含む、上の 3 種のどれでもない、なら拒否。
 2. `Tailscale-Funnel-Request` があれば拒否。
-3. `Origin` があれば、許可リストの Origin と完全一致しなければ拒否。 `Origin: null` は不一致。
+3. `Origin` があれば、その `Host` に対応する 1 つと完全一致しなければ拒否。
 
 `X-Forwarded-Host` では判断しない。
 
@@ -108,13 +126,13 @@ hostname の比較は ASCII の大文字小文字を無視する (<https://www.r
 
 ブラウザは状態を変えるリクエストに `Origin` を付ける。 `Origin` と `Sec-Fetch-Site` はブラウザが上書きする禁止ヘッダであり、ページのスクリプトは任意の値を付けられない (<https://fetch.spec.whatwg.org/#forbidden-header-name>)。
 
-- `Origin` が許可リストにあり、かつ `Sec-Fetch-Site` が無いか `same-origin` なら通す。
-- `Origin` も `Sec-Fetch-Site` も無いなら通す。これは curl やテストのような、ブラウザ以外のローカルクライアント。今の CLI の書き込みは HTTP を通さない (ファイルへ直接書く)。 CLI が HTTP で行うのは、保存後に板の URL を出す GET だけである (`src/index.ts:730-737`)。
+- `Origin` がその `Host` に対応する 1 つであり、かつ `Sec-Fetch-Site` が無いか `same-origin` なら、ブラウザ向けの検査は通す。
+- `Origin` も `Sec-Fetch-Site` も無いなら、ブラウザ向けの検査は通す。今の CLI の書き込みは HTTP を通さない (ファイルへ直接書く)。 CLI が HTTP で行うのは、保存後に板の URL を出す GET だけである (`src/index.ts:730-737`)。この「両方無いなら通す」は、ブラウザ以外が `Origin` を偽装する穴を塞がない。端末と書き込みについては「ローカルの非ブラウザ」を見る。
 - それ以外は拒否する。 `Sec-Fetch-Site` が `cross-site` 、 `same-site` 、 `none` のときを含む。
 
 クロスオリジンの `fetch` で `Content-Type: application/json` を付けるとプリフライトになる。プリフライトが無くても、単純なフォーム POST (`application/x-www-form-urlencoded` 、 `multipart/form-data` 、 `text/plain`) はブラウザが本リクエストを送る。 CORS はレスポンスを読めなくするだけで、サーバが処理することを止めない。だからサーバ側で `Origin` を見る。
 
-GET / HEAD は、 `Origin` が無ければ通す (アドレスバー、知らせのリンク、上の CLI の GET)。 `Origin` があれば許可リストと一致させる。これにより、別オリジンの `EventSource` や `fetch` は届いても処理されない。 GET と HEAD のハンドラは `.yaru/` を書き換えず、 herdr を起動しない。今の HTTP の GET は `acknowledgedAt` を書かない。書くのは CLI の `yaru question get` と、待ちが終わったあとの `yaru question wait` である (`src/index.ts:579-584`, `src/index.ts:661`, `src/questions.ts:342-352`)。 Go 版でこの書き込みを RPC に移すなら、その RPC は GET 扱いにしない。
+GET / HEAD は、 `Origin` が無ければ通す (アドレスバー、知らせのリンク、上の CLI の GET)。 `Origin` があれば、その `Host` に対応する 1 つと一致させる。これにより、別オリジンの `EventSource` や `fetch` は届いても処理されない。 GET と HEAD のハンドラは `.yaru/` を書き換えず、 herdr を起動しない。今の HTTP の GET は `acknowledgedAt` を書かない。書くのは CLI の `yaru question get` と、待ちが終わったあとの `yaru question wait` である (`src/index.ts:579-584`, `src/index.ts:661`, `src/questions.ts:342-352`)。 Go 版でこの書き込みを RPC に移すなら、その RPC は GET 扱いにしない。
 
 ### WebSocket
 
@@ -122,15 +140,25 @@ GET / HEAD は、 `Origin` が無ければ通す (アドレスバー、知らせ
 
 約束:
 
-- `Upgrade` が `websocket` のリクエスト (大文字小文字を無視) は、 `Origin` が許可リストにあるときだけアップグレードする。 `Origin` が無ければ拒否する。
-- `Sec-Fetch-Site` があるときは `same-origin` だけ通す。
+- `Upgrade` が `websocket` のリクエスト (大文字小文字を無視) は、 `Origin` がその `Host` に対応する 1 つであるときだけアップグレードする。 `Origin` が無ければ拒否する。
+- `Sec-Fetch-Site` があるときは `same-origin` だけ通す。 `same-site` と `cross-site` は拒否する。
 - この検査の前に `Accept` を呼ばない。 `InsecureSkipVerify` を true にしない。 `OriginPatterns` で許可リストの代わりにしない。
 - resident-app は `websocket.Accept(w, r, nil)` だけである (`~/workspace/resident-app/terminal.go:29`)。 yaru はこれを十分とみなさない。
 - クエリにトークンを載せない。 resident-app が載せるのは、ブラウザの WebSocket が `Authorization` を付けられないためである (`terminal.go:24-25`)。 yaru はトークン方式を採らない (下)。
 
 ### Connect
 
-Connect の単項もストリームも、上の「 GET と HEAD 以外」を通った HTTP リクエストだけが手続きに入る。手続きごとの抜け道、開発用の無効化フラグ、 localhost だから省く、を作らない。
+Connect の手続きは POST だけにする。単項もストリームも、上の「 GET と HEAD 以外」を通った POST だけが手続きに入る。手続きごとの抜け道、開発用の無効化フラグ、 localhost だから省く、を作らない。
+
+Connect の GET は使わない。プロトコルは、 `idempotency_level = NO_SIDE_EFFECTS` を付けた単項を HTTP GET にできる (<https://connectrpc.com/docs/protocol> の Unary-Get-Request 、 <https://connectrpc.com/docs/go/get-requests-and-caching>)。 GET は上の規則で `Origin` が無くても通るので、読み取りの手続きを GET にすると、ブラウザ向けの検査が書き込みより弱くなる。 proto に `NO_SIDE_EFFECTS` を付けない。クライアントは `useHttpGet` と `WithHTTPGet` を有効にしない。 Connect のパスへの GET は、 `Host` が許されていても `405` にする。 `Host` が許されないときは `403` が先でよい。
+
+`Content-Type` のメディアタイプ (パラメータを除く) は、次だけを受ける。
+
+- `application/proto`
+- `application/json`
+- `application/connect+` で始まるもの (ストリームの `application/connect+proto` と `application/connect+json`)
+
+それ以外は `415` 。 gRPC の `application/grpc` と gRPC-Web の `application/grpc-web` も `415` である。 connect-go の既定は 3 プロトコルを受けるので、そのままマウントしない (<https://connectrpc.com/docs/protocol> の Content-Type の説明)。 `application/json; charset=utf-8` はメディアタイプが `application/json` なので通す。
 
 ### CORS
 
@@ -142,17 +170,34 @@ Connect の単項もストリームも、上の「 GET と HEAD 以外」を通�
 
 ## CSRF 、 Cookie 、トークン
 
-- Cookie は要らない。 `Set-Cookie` を返さない。セッション Cookie を導入しない。今の TS 版にも Cookie は無い (`src/` に `Set-Cookie` も Cookie の読み取りも無い)。
-- 追加の Bearer トークンも要らない。境界は、 `127.0.0.1` の待ち受け、 tailnet の ACL と `tailscale serve` (Funnel は header で拒否)、 `Host` と `Origin` の検査である。
-- resident-app のトークン (`~/workspace/resident-app/auth.go:16-17`, `auth.go:43-50`) は、全インターフェース待ち受けに対するものである (`README.md:49-54`)。 URL の `?token=` は履歴に残る (`web/src/client.ts:6-16`)。 yaru はこの形にしない。
-- CSRF トークンも置かない。 Cookie が無く、状態を変えるリクエストは `Origin` と `Sec-Fetch-Site` で止める。
-- 画面から見える秘密を localStorage に置かない。置くものが無い。
+- Cookie は置かない。 `Set-Cookie` を返さない。セッション Cookie を導入しない。今の TS 版にも Cookie は無い (`src/` に `Set-Cookie` も Cookie の読み取りも無い)。 Cookie を足すと CSRF が戻る。
+- ブラウザの跨ぎに対する CSRF トークンは置かない。 Cookie が無く、状態を変えるリクエストは `Origin` と `Sec-Fetch-Site` で止める。これはブラウザのページに対する検査である。
+- 画面から見える秘密を localStorage に置かない。 resident-app は URL の `?token=` を localStorage に残す (`~/workspace/resident-app/web/src/client.ts:6-16`)。 yaru はこの形にしない。
+- ローカルの非ブラウザに対して、起動ごとの秘密が要るかは未決 (「ローカルの非ブラウザ」)。「 Bearer は要らない」と決めない。 resident-app の常設トークン (`auth.go:16-17`, `auth.go:43-50`) は、全インターフェース待ち受けに対するもので (`README.md:49-54`)、 yaru の案とは別である。
 
 tailnet の ACL でこのノードの Serve に届くユーザーは、今の TS 版と同じく、画面の操作も (端末を入れたあとは) シェルも使える。特定のログイン名だけに限るかは未決。識別子 header をその判定に使い始めた瞬間、ローカルからの偽装と「タグ付きノードとローカルブラウザの見分け」が問題になる。今は使わない。
 
+## ローカルの非ブラウザ
+
+ブラウザ向けの検査は、ページの跨ぎと DNS リバインディングを止める。同じマシンの curl や sandbox のエージェントは、対応する `Origin` を自分で付けて、その検査を通る。 TCP の `127.0.0.1` は他の OS ユーザーからも繋がる。端末と、 issue や回答の書き込みを、この先でどう守るかは次の 2 案で、採る方は未決。
+
+### 案 A: モード 0600 の Unix ソケット
+
+TCP では待たず、所有者だけが開ける Unix ソケットに待つ。 `tailscale serve` をそのソケットへ向ける。他の OS ユーザーはソケットを開けない。 sandbox が localhost の TCP だけを許していて、ソケットのパスを開く権限が無ければ、エージェントは届かない。同じユーザーでそのパスを開けるプロセスは届く。
+
+Tailscale v1.94.1 は、 Unix ソケットへのプロキシではバックエンドの `Host` を `localhost` に書き換える (`ipn/ipnlocal/serve.go:942-945`)。ブラウザの `Origin` は `https://公開host` のまま残る。上の「 Host に対応する Origin は 1 つ」をこの `Host` のまま適用すると、スマホからの正当なリクエストが `403` になる。元の `Host` は `X-Forwarded-Host` に入る (`serve.go:1036-1037`) が、ソケットに繋げる同じユーザーはこの header を自分で付けられる。他の OS ユーザーは防げても、同じユーザーの偽装は header では防げない。
+
+### 案 B: 起動ごとの秘密
+
+起動のたびに秘密を作り、端末と書き込みはそれを知るクライアントだけ通す。 curl が `Origin` を偽装しても、秘密が無ければ端末と書き込みに届かない。
+
+渡し方が漏れ方を決める。 URL のクエリは履歴に残る (resident-app がそうしている。 `web/src/client.ts:6-16`)。ブラウザの WebSocket は `Authorization` を付けられない (`terminal.go:24-25`)。ファイルに置くならモード `0600` にする。同じユーザーでそのファイルを読めるプロセスは秘密を持てる。 Cookie には入れない。スマホの `tailscale serve` へ秘密をどう渡すかも、この案を採るなら決めなければならない。
+
+読み取りの GET まで秘密を要るかは、案の選択と一緒に未決。ブラウザ向けの検査のテストは先に書く。案が決まるまで、端末と書き込みを「 Origin 検査だけで完成」とみなさない。
+
 ## 応答ヘッダー
 
-すべての応答 (200 、 403 、 404 、 Connect 、静的ファイル、アップグレードを拒否した応答) に付ける。
+すべての応答 (200 、 403 、 404 、 405 、 415 、 Connect 、静的ファイル、アップグレードを拒否した応答) に付ける。端末を載せるページの `style-src` だけ、下の未決でこれと違い得る。
 
 ```text
 Content-Security-Policy: default-src 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' http: https:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'
@@ -164,13 +209,34 @@ X-Frame-Options: DENY
 理由:
 
 - `script-src 'self'` と `script-src-attr 'none'` 。インラインのスクリプトと `on` 属性を許さない。 `'unsafe-inline'` と `'unsafe-eval'` を付けない。今の TS 版は文書にインラインスクリプトを埋め込んでいる (`src/ui/document.tsx:53-62`)。 SPA では外部ファイルにする。サイドバー幅の先読みも外部モジュールから行う。
-- `style-src 'self'` 。 `<style>` の注入は許さない。 `style-src-attr 'unsafe-inline'` は、位置とパレット色の属性のためだけに許す。色は `LABEL_PALETTE` の 10 色だけであり、ラベル文字列そのものは入らない (`src/components/tint.ts:7-24`)。 issue 、コメント、質問、ラベルの文字列を `style` 属性、 `<style>` 、 `url()` に埋め込まない。
+- `style-src-attr 'unsafe-inline'` は、位置とパレット色の属性のためだけに許す。色は `LABEL_PALETTE` の 10 色だけであり、ラベル文字列そのものは入らない (`src/components/tint.ts:7-24`)。 issue 、コメント、質問、ラベルの文字列を `style` 属性、 `<style>` 、 `url()` に埋め込まない。
+- `<style>` 要素を許すかは、端末を載せるページだけ未決。 `@xterm/xterm` 6.0.0 は `createElement('style')` で `<style>` を差し込む (`~/workspace/resident-app/web/node_modules/@xterm/xterm/src/browser/Viewport.ts:79`)。 DOM 描画も同じことをする (`src/browser/renderer/dom/DomRenderer.ts:138`, 同ファイル 158)。 Viewport の `<style>` は描画器が WebGL でも残る。 `style-src 'self'` だけだと、この要素は CSP 違反になり端末が描けない。比較は下。端末を載せていないページは `style-src 'self'` のまま (インラインの `<style>` は許さない)。
 - `img-src` の `http:` と `https:` は、 Markdown が許す画像スキームと揃える (`src/markdown.ts:10`)。 `data:` は画像にもスクリプトにも許さない。
-- `connect-src 'self'` は、同じオリジンの Connect と WebSocket (`ws` / `wss`) を含む。
+- `connect-src 'self'` を付ける。 CSP の読みでは、同一オリジンの `ws:` と `wss:` を含む。 iOS Safari が `wss:` を実際に許すかは、この文書を書いた時点では実機で確かめていない。切り替えの前に実機で確かめる (テストの節)。
 - `frame-ancestors 'none'` と `X-Frame-Options: DENY` 。クリックで回答や issue の保存を押させる埋め込みを拒む。
 - `base-uri 'none'` 。 `<base>` で相対 URL の向き先を変えない。
 - `Referrer-Policy: no-referrer` 。 Markdown の外部リンクと外部画像へ、ページの URL (失敗した回答の下書きを query に載せる今の形を含む。 `src/web.tsx:149-157`) を送らない。
 - CSP は重ねる防御である。 Markdown の検査を CSP で置き換えない。
+
+xterm の `<style>` をどう通すかは、次の 2 つで未決。合格条件は同じで、 xterm を組み込んだ build をブラウザで開き、 CSP 違反が 0 件であること。
+
+- 端末のページだけ `style-src` に nonce を使う。サーバが出す `<style>` には nonce を付けられる。 xterm 6 は作った `<style>` に nonce を付けない (`Viewport.ts:79` は `createElement` だけ)。 CSP は nonce があると `'unsafe-inline'` を無視するので、無改造の xterm の `<style>` は nonce 方式では拒否される。通すなら、 xterm が作る要素へ nonce を付ける改造が要る。
+- 端末のページだけ `style-src` に `'unsafe-inline'` を足す。無改造の xterm が動く。そのページでは、注入された `<style>` を CSP が止めない。本文の HTML は `renderMarkdown` がエスケープする。それでも端末ページの style の守りは、他のページより弱い。
+
+スクリプト側の `'unsafe-inline'` と `'unsafe-eval'` は、どちらの案でも付けない。
+
+## ログ
+
+次をログに書かない。成功も失敗も、アクセスログの 1 行にも出さない。
+
+- 回答、 issue 、コメント、質問の本文
+- 端末の入出力
+- リクエストの query (失敗した回答の下書きが query に載ることがある。 `src/web.tsx:149-157`)
+- herdr の子に渡す環境、起動ごとの秘密、 `publicUrl` 以外の設定値のうち秘密になり得るもの
+
+`403` のログに `Host` と `Origin` を出すときは、応答の本文と同じく、制御文字を除き、改行を残さず、 128 バイトで切る。ログ注入と、巨大な header の記録を避ける。
+
+ログファイルは `~/Library/Logs/yaru-serve.log` 。常駐は標準出力と標準エラーをこのパスへ書く (`~/dotfiles/home/modules/yaru.nix:4`, `yaru.nix:32-33`)。起動時に、このファイルを新しく作るときも、既にあるときも、モードを `0600` にする。他の OS ユーザーから読めないようにする。この作業では、実在のログファイルを変更しない。
 
 ## herdr を起動するとき
 
@@ -260,21 +326,22 @@ API は issue 、コメント、質問の本文を、描画前の Markdown の�
 
 Go 版で塞ぐ。 TS 版のテストが「拒否しない」ことを正しさの見本にしない。
 
-| 項目                                                       | 今の TS 版                                                                                                                                                          | Go 版                                                                                                                             |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| 待ち受け                                                   | `127.0.0.1` だけ (`src/web.tsx:616`)                                                                                                                                | 同じ。ポートは実際に bind した値                                                                                                  |
-| Funnel                                                     | コードでは見ていない。運用で使わない (`yaru.nix:11`)                                                                                                                | `Tailscale-Funnel-Request` を拒否する                                                                                             |
-| `Host`                                                     | 見ていない                                                                                                                                                          | 許可リスト以外を拒否する                                                                                                          |
-| リクエストの `Origin`                                      | 見ていない                                                                                                                                                          | 上の規則。 `formReturnPath` の `http://yaru.invalid` は戻り先の検査であり、リクエストの `Origin` ではない (`src/web.tsx:676-689`) |
-| Cookie / トークン / CSRF トークン                          | 無い                                                                                                                                                                | 引き続き置かない                                                                                                                  |
-| CSP 、 `X-Frame-Options` 、 `Referrer-Policy` 、 `nosniff` | 応答に無い。インラインスクリプトがある (`src/ui/document.tsx:53-62`)                                                                                                | 上のヘッダーを全応答に付ける                                                                                                      |
-| CORS                                                       | `Access-Control-Allow-Origin` を返していない                                                                                                                        | 返さないことを維持する                                                                                                            |
-| 識別子 header                                              | 読んでいない                                                                                                                                                        | 読んでも認可に使わない                                                                                                            |
-| 書き込みの入口                                             | フォーム POST と JSON POST が、検査なしで回答と issue とコメントを書く (`src/web.tsx:132-147`, `src/web.tsx:252-268`, `src/web.tsx:379-381`, `src/web.tsx:390-392`) | 同じ書き込みは、状態を変えるリクエストの検査を通ったあとだけ行う                                                                  |
-| SSE `/events`                                              | 検査なし (`src/web.tsx:302-354`)                                                                                                                                    | 読み取りでも `Host` と、付いていれば `Origin` を検査する                                                                          |
-| Markdown                                                   | `renderMarkdown`                                                                                                                                                    | 画面で同じ関数を使う。 API は生の Markdown                                                                                        |
-| herdr                                                      | 無い                                                                                                                                                                | 起動するなら環境と作業ディレクトリを絞る                                                                                          |
-| 知らせ                                                     | `sh -c` にプロセス環境を渡す (`src/notify.ts:182`)                                                                                                                  | 広げない。 HTTP からコマンドを変えられない                                                                                        |
+| 項目                                                       | 今の TS 版                                                                                                                                                          | Go 版                                                                                                                                                            |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 待ち受け                                                   | `127.0.0.1` だけ (`src/web.tsx:616`)                                                                                                                                | 同じ。ポートは実際に bind した値                                                                                                                                 |
+| Funnel                                                     | コードでは見ていない。運用で使わない (`yaru.nix:11`)                                                                                                                | `Tailscale-Funnel-Request` を拒否する                                                                                                                            |
+| `Host`                                                     | 見ていない                                                                                                                                                          | 許可リスト以外を拒否する                                                                                                                                         |
+| リクエストの `Origin`                                      | 見ていない                                                                                                                                                          | その `Host` に対応する 1 つとだけ比べる。 `formReturnPath` の `http://yaru.invalid` は戻り先の検査であり、リクエストの `Origin` ではない (`src/web.tsx:676-689`) |
+| 公開 host                                                  | 見ていない。 `publicUrl` は知らせのリンクだけ (`src/notify.ts:49-51`)                                                                                               | サーバーのフラグ、 `YARU_PUBLIC_HOST` 、または `tailscale status --json` の `Self.DNSName` 。 `config.yml` は使わない                                            |
+| Cookie / CSRF トークン                                     | 無い                                                                                                                                                                | Cookie と CSRF トークンは置かない。起動ごとの秘密は未決                                                                                                          |
+| CSP 、 `X-Frame-Options` 、 `Referrer-Policy` 、 `nosniff` | 応答に無い。インラインスクリプトがある (`src/ui/document.tsx:53-62`)                                                                                                | 上のヘッダーを全応答に付ける                                                                                                                                     |
+| CORS                                                       | `Access-Control-Allow-Origin` を返していない                                                                                                                        | 返さないことを維持する                                                                                                                                           |
+| 識別子 header                                              | 読んでいない                                                                                                                                                        | 読んでも認可に使わない                                                                                                                                           |
+| 書き込みの入口                                             | フォーム POST と JSON POST が、検査なしで回答と issue とコメントを書く (`src/web.tsx:132-147`, `src/web.tsx:252-268`, `src/web.tsx:379-381`, `src/web.tsx:390-392`) | 同じ書き込みは、状態を変えるリクエストの検査を通ったあとだけ行う                                                                                                 |
+| SSE `/events`                                              | 検査なし (`src/web.tsx:302-354`)                                                                                                                                    | 読み取りでも `Host` と、付いていれば `Origin` を検査する                                                                                                         |
+| Markdown                                                   | `renderMarkdown`                                                                                                                                                    | 画面で同じ関数を使う。 API は生の Markdown                                                                                                                       |
+| herdr                                                      | 無い                                                                                                                                                                | 起動するなら環境と作業ディレクトリを絞る                                                                                                                         |
+| 知らせ                                                     | `sh -c` にプロセス環境を渡す (`src/notify.ts:182`)                                                                                                                  | 広げない。 HTTP からコマンドを変えられない                                                                                                                       |
 
 切り替えのときに弱くなっていないかは、次のテストが Go 版で通っていることで見る。 TS 版と応答を比べる golden に、拒否しないことを期待値として書かない。
 
@@ -293,12 +360,16 @@ Go 版で塞ぐ。 TS 版のテストが「拒否しない」ことを正しさ�
 - `Host: 127.0.0.1:<port>` かつ `Origin: https://evil.example` の POST 、 Connect 、 WebSocket が `403` 。
 - `Host: 127.0.0.1:<port>` かつ `Origin: http://127.0.0.1:<port>` の POST は通る。
 - `Host: localhost:<port>` かつ `Origin: http://localhost:<port>` の POST は通る。
-- `publicUrl: https://mac.example.ts.net` のとき、 `Host: mac.example.ts.net` かつ `Origin: https://mac.example.ts.net` は通る。同じ `Host` で `Origin: https://evil.example` は `403` 。 `Host: mac.example.ts.net:443` は `403` (ブラウザは 443 を付けない)。
-- `publicUrl: http://mac.example.ts.net` は許可リストに入らない。その `Host` は `403` 。
+- `Host: LOCALHOST:<port>` と `Host: localhost.:<port>` は、 `Origin: http://localhost:<port>` のとき通る (大文字と末尾ドットを正規化する)。
+- 公開 host を `mac.example.ts.net` にしたとき、 `Host: mac.example.ts.net` かつ `Origin: https://mac.example.ts.net` は通る。 `Host: Mac.Example.Ts.Net.` も同じ `Origin` で通る。同じ `Host` で `Origin: https://evil.example` は `403` 。 `Host: mac.example.ts.net:443` は `403` 。
+- `Host: 127.0.0.1:<port>` かつ `Origin: https://mac.example.ts.net` は、公開 host が `mac.example.ts.net` でも `403` 。 `Host` に対応する 1 つ以外とは合わせない。
+- ワークスペースの `config.yml` に `publicUrl: https://evil.example` を書いても、公開 host を別にしている (または公開 host が無い) とき、 `Host: evil.example` は `403` 。ファイルは変わらない。
+- `--public-host` も `YARU_PUBLIC_HOST` も無いときは、 `config.yml` の `publicUrl` だけでは公開 host にならない。 `tailscale status --json` を読めないテストでは、ループバック以外の `Host` が `403` 。
 - GET で `Origin` が無く、 `Host` がループバックなら通る (CLI の `hintBoard` と同じ形)。
 - POST で `Origin` が無く `Sec-Fetch-Site: cross-site` なら `403` 。 POST で両方無ければ通る。
 - GET で `Origin` が無く `Sec-Fetch-Site: cross-site` なら通る (知らせのリンク)。ファイルは変わらない。
 - `Upgrade: websocket` で `Origin` が無ければ `403` 。偽 herdr は起動しない。
+- WebSocket で `Sec-Fetch-Site` が `same-site` のときと `cross-site` のときは、 `Origin` がその `Host` に対応していても `403` 。 `same-origin` だけ通る。
 - 許可された `Origin` でも `Tailscale-Funnel-Request: ?1` なら `403` 。ファイルは変わらない。
 - `Tailscale-User-Login` が `alice@example.com` のリクエストと、 header が無いリクエストは、同じ `Host` と `Origin` なら同じ成否になる。偽装したログイン名だけでは、拒否される `Origin` を通せない。
 
@@ -311,7 +382,7 @@ Go 版で塞ぐ。 TS 版のテストが「拒否しない」ことを正しさ�
 
 herdr:
 
-- 親に `APP_TOKEN=secret` 、 `YARU_STATE_DIR=/tmp/state` 、 `PATH=/evil` を置いた状態で子を起動し、子の環境にこれらが無い。
+- 親に `APP_TOKEN=secret` 、 `YARU_STATE_DIR=/tmp/state` 、 `PATH=/evil` 、 `HERDR_SESSION=x` 、 `HERDR_BIN=/evil/herdr` 、 `TMUX=1` 、 `TMUX_PANE=%0` を置いた状態で子を起動し、子の環境にこれらが無い。 `HERDR_` で始まる名前と `TMUX` で始まる名前は、親にあっても子へ残さない。
 - 子の `PATH` が、上の組み立てそのものである。
 - 子の作業ディレクトリが、ワークスペースではなく `HOME` である。
 - PTY の起動だけが `TERM` と `COLORTERM` を持つ。 CLI の起動は持たない。
@@ -322,6 +393,20 @@ Markdown:
 - `src/markdown.test.ts` のいまのテストを、画面側のテストとしてそのまま通す。期待する HTML を緩めない。
 - 本文を受け取る RPC の応答に、描画済みの `<p>` や `<script` が含まれず、送った Markdown の文字列が含まれる。
 
+Connect:
+
+- 許可された `Host` と、その `Host` に対応する `Origin` で、 Connect のパスへ GET すると `405` 。手続きは呼ばれず、ファイルは変わらない。
+- 同じ経路への POST で、 `Content-Type` が `text/plain` や `application/grpc` のときは `415` 。 `application/json` と `application/proto` と `application/connect+json` は、この検査では拒否しない。
+
+ログと 403 の本文:
+
+- `Host` に改行と、 128 バイトを超える値を付けた `403` の本文とログに、改行が無く、写した host が 128 バイト以内である。
+- 回答本文、 issue 本文、端末の入出力、 query 、子の環境を含む操作をしても、ログにそれらが出ない。
+
+ブラウザ:
+
+- xterm を組み込んだ build を開き、端末を表示したときに CSP 違反が 0 件である。デスクトップ幅と、実機の iOS Safari の両方で見る。 iOS Safari では `connect-src 'self'` のまま `wss:` の端末接続が CSP で拒否されないことも見る。実機で見ていない間は、この項目を合格にしない。
+
 リダイレクトを残す場合:
 
 - `returnTo` が `https://evil.example` 、 `//evil.example` 、 `/\evil.example` 、別ワークスペースのパスのとき、外部へ飛ばない。今の `formReturnPath` と同じく dashboard に戻る。
@@ -330,9 +415,9 @@ Markdown:
 
 実装で埋めない。決まったらこの文書を更新する。
 
+- 端末と書き込みを、案 A (モード `0600` の Unix ソケット) と案 B (起動ごとの秘密) のどちらで守るか。両方、または読み取りの GET まで秘密を要るかも未決。 Unix ソケットを採るなら、 Tailscale が書き換える `Host: localhost` と、ブラウザの `https://公開host` をどう照合するかも未決。秘密を採るなら、スマホの `tailscale serve` へ秘密をどう渡すかも未決。決まるまで実装はどちらも入れない。
+- 端末ページの `style-src` を、 nonce (xterm が作る `<style>` へ nonce を付ける改造が要る) と、そのページだけの `'unsafe-inline'` のどちらにするか。
 - 特定の `Tailscale-User-Login` だけを許すか。許すなら、ローカル直打ち (識別子が無い、または偽装できる) と Serve 経由を、 header 以外の何で見分けるか。今の TS 版は誰でも操作できる。許可リストの設定場所はソースに無い。共有を受けたユーザーを含むかは、公式ドキュメントが「共有相手にも識別子を付ける」と書いているので、許可制にするなら明示が要る。
-- `publicUrl` の scheme が `http` のとき、許可リストへ入れるか。今の TS 版は scheme を検査しない (`src/notify.ts:34`)。この文書では入れない。
-- ワークスペースごとに `publicUrl` の host が違うとき、 Serve の実体の `Host` がどれか。この文書は、登録された `https` の `publicUrl` の和を許す。実際の tailscale の `Host` と `publicUrl` が一致するかは、この作業ではライブのプロキシを叩いていない。
 - `::1` で待つか。待たない前提だと、 `localhost` が `::1` に先に解ける環境では `http://localhost:P` が届かない。今の TS 版も届かない。
 - WebSocket 以外の herdr CLI が先にサーバを起こしたとき、 pane に `TERM` が付かない (`terminal.go:37` と `herdr.go:53` の差)。サーバを起こす入口を 1 つに揃えるかは未決。
 - yaru が `APP_HERDR_SESSION` を読むか。端末を切り替えの合格条件に入れない、という計画のため、製品としての端末の形は未決。
