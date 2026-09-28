@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -20,11 +21,13 @@ import (
 	"github.com/aovoq/yaru/internal/workspace"
 )
 
-// つないだ Go のサーバと、同じ fixture に向けた TS の yaru serve を比べる。
+// つないだ Go のサーバと、同じ fixture に向けた TS の yaru serve の返事を比べる。
+// TS の返事と、TS に書かせたファイルは testdata/server/<テスト名>.json に記録してある (取り方は testdata/server/README.md)。
 // 揃え方は docs/spec/routes.md の「新旧の返事の揃え方」。常駐の 47800 と 47811 は使わない。
 func TestWiredServerMatchesTypeScriptServe(t *testing.T) {
 	compareWorktree = moduleRoot()
 	t.Cleanup(func() { compareWorktree = "" })
+	yaruBinary := buildYaruCommand(t)
 	fixture, stateDirectory, home := newCompareFixture(t)
 	t.Setenv("YARU_STATE_DIR", stateDirectory)
 	t.Setenv("YARU_NOW", "2026-09-28T12:00:00.000Z")
@@ -33,8 +36,8 @@ func TestWiredServerMatchesTypeScriptServe(t *testing.T) {
 	t.Setenv("GIT_CONFIG_GLOBAL", "/dev/null")
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
 	t.Setenv("TZ", "Asia/Tokyo")
-	runBun(t, fixture, stateDirectory, home, "init")
-	runBun(t, fixture, stateDirectory, home, "issue", "save", "--title", "Hello", "--body", "line")
+	runYaru(t, yaruBinary, fixture, stateDirectory, home, "init")
+	runYaru(t, yaruBinary, fixture, stateDirectory, home, "issue", "save", "--title", "Hello", "--body", "line")
 	slug := registeredSlug(t, stateDirectory, fixture)
 	previousDirectory, err := os.Getwd()
 	if err != nil {
@@ -44,25 +47,27 @@ func TestWiredServerMatchesTypeScriptServe(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.Chdir(previousDirectory) })
-	stopTS := startTypeScriptServe(t, fixture, stateDirectory, home, 47901)
-	t.Cleanup(stopTS)
+	typescript := newTypeScriptServeRecord(t, fixture)
+	if recordTypeScriptServe {
+		stopTS := startTypeScriptServe(t, fixture, stateDirectory, home, 47901)
+		t.Cleanup(stopTS)
+		waitHTTP(t, "http://127.0.0.1:47901/manifest.webmanifest")
+	}
 	goServer := startWiredServer(t, 47900)
 	t.Cleanup(func() { _ = goServer.Close() })
-	waitHTTP(t, "http://127.0.0.1:47901/manifest.webmanifest")
-	waitHTTP(t, goServer.URL()+"/manifest.webmanifest")
 
-	tsIssues := getJSON(t, "http://127.0.0.1:47901/p/"+slug+"/api/issues")
+	tsIssues := typescript.json(t, "list issues", "/p/"+slug+"/api/issues")
 	goIssues := postJSON(t, goServer.URL()+yaruv1connect.IssueServiceListIssuesProcedure, `{"workspace":"`+slug+`"}`)
 	if goIssues["now"] != "2026-09-28T12:00:00.000Z" {
 		t.Fatalf("list now: expected 2026-09-28T12:00:00.000Z, actual %#v", goIssues["now"])
 	}
 	assertAlignedJSON(t, "list issues", tsIssues, goIssues["issues"])
 
-	tsIssue := getJSON(t, "http://127.0.0.1:47901/p/"+slug+"/api/issues/1")
+	tsIssue := typescript.json(t, "get issue", "/p/"+slug+"/api/issues/1")
 	goIssue := postJSON(t, goServer.URL()+yaruv1connect.IssueServiceGetIssueProcedure, `{"workspace":"`+slug+`","id":"1"}`)
 	assertAlignedJSON(t, "get issue", tsIssue, goIssue["issue"])
 
-	tsMissingBody, tsMissingStatus := getRaw(t, "http://127.0.0.1:47901/p/"+slug+"/api/issues/9")
+	tsMissingBody, tsMissingStatus := typescript.get(t, "missing issue", "/p/"+slug+"/api/issues/9")
 	goMissingBody, goMissingStatus := postRaw(t, goServer.URL()+yaruv1connect.IssueServiceGetIssueProcedure, `{"workspace":"`+slug+`","id":"9"}`)
 	if tsMissingStatus != http.StatusNotFound {
 		t.Fatalf("ts missing issue: expected 404, actual %d %s", tsMissingStatus, tsMissingBody)
@@ -73,26 +78,19 @@ func TestWiredServerMatchesTypeScriptServe(t *testing.T) {
 		t.Fatalf("missing issue: ts %d %s go %d %s", tsMissingStatus, tsError, goMissingStatus, goMessage)
 	}
 
-	tsPageBody, tsPageStatus := getRaw(t, "http://127.0.0.1:47901/p/"+slug+"/api/page")
+	tsPage := typescript.json(t, "page", "/p/"+slug+"/api/page")
 	goPage := postJSON(t, goServer.URL()+yaruv1connect.PageServiceGetPageProcedure, `{"workspace":"`+slug+`"}`)
-	if tsPageStatus != http.StatusOK {
-		t.Fatalf("ts page: %d %s", tsPageStatus, tsPageBody)
-	}
-	var tsPage any
-	if err := json.Unmarshal(tsPageBody, &tsPage); err != nil {
-		t.Fatal(err)
-	}
 	assertAlignedJSON(t, "page", tsPage, goPage)
 
-	tsInbox := getJSON(t, "http://127.0.0.1:47901/api/inbox")
+	tsInbox := typescript.json(t, "inbox", "/api/inbox")
 	goInbox := postJSON(t, goServer.URL()+yaruv1connect.InboxServiceGetInboxProcedure, `{}`)
 	assertAlignedJSON(t, "inbox", tsInbox, goInbox)
 
-	tsComments := getJSON(t, "http://127.0.0.1:47901/p/"+slug+"/api/comments?issue=1")
+	tsComments := typescript.json(t, "comments", "/p/"+slug+"/api/comments?issue=1")
 	goComments := postJSON(t, goServer.URL()+yaruv1connect.CommentServiceListCommentsProcedure, `{"workspace":"`+slug+`","issue":"1"}`)
 	assertAlignedJSON(t, "comments", tsComments, goComments["comments"])
 
-	tsQuestions := getJSON(t, "http://127.0.0.1:47901/p/"+slug+"/api/questions")
+	tsQuestions := typescript.json(t, "questions", "/p/"+slug+"/api/questions")
 	goQuestions := postJSON(t, goServer.URL()+yaruv1connect.QuestionServiceListQuestionsProcedure, `{"workspace":"`+slug+`"}`)
 	assertAlignedJSON(t, "questions", tsQuestions, goQuestions)
 
@@ -105,12 +103,12 @@ func TestWiredServerMatchesTypeScriptServe(t *testing.T) {
 	goSlug := registeredSlug(t, stateDirectory, goCopy)
 	tsSlug := registeredSlug(t, stateDirectory, tsCopy)
 	postRaw(t, goServer.URL()+yaruv1connect.IssueServiceSaveIssueProcedure, `{"workspace":"`+goSlug+`","title":"Created","body":"from go\n"}`)
-	postRaw(t, "http://127.0.0.1:47901/p/"+tsSlug+"/api/issues", `{"title":"Created","body":"from go\n"}`)
 	goFile := readCompareFile(t, filepath.Join(goCopy, ".yaru", "issues", "2.md"))
-	tsFile := readCompareFile(t, filepath.Join(tsCopy, ".yaru", "issues", "2.md"))
+	tsFile := typescript.createdIssueFile(t, tsSlug, tsCopy)
 	if goFile != tsFile {
 		t.Fatalf("created issue file\n--- go\n%s\n--- ts\n%s", goFile, tsFile)
 	}
+	typescript.save(t)
 }
 
 func newCompareFixture(t *testing.T) (string, string, string) {
@@ -175,11 +173,11 @@ func copyFixture(t *testing.T, from string, to string) {
 func startWiredServer(t *testing.T, port int) *Running {
 	t.Helper()
 	built := newTestServer(t, Configuration{Port: port, WireServices: true, StartupOutput: io.Discard})
+	// Start は待ち受けを開いてから返るので、ここで待たない
 	running, err := built.Start()
 	if err != nil {
 		t.Fatal(err)
 	}
-	waitHTTP(t, running.URL()+"/manifest.webmanifest")
 	return running
 }
 
@@ -240,27 +238,173 @@ await import(process.env.YARU_ENTRY)
 	}
 }
 
-func runBun(t *testing.T, fixture string, stateDirectory string, home string, args ...string) {
+// buildYaruCommand は cmd/yaru をビルドする。CLI の出力が TS 版と同じことは golden (testdata/golden) で確かめてある
+func buildYaruCommand(t *testing.T) string {
 	t.Helper()
-	encoded, err := json.Marshal(append([]string{"bun", "yaru"}, args...))
+	binary := filepath.Join(t.TempDir(), "yaru")
+	command := exec.Command("go", "build", "-o", binary, "./cmd/yaru")
+	command.Dir = moduleRoot()
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("go build ./cmd/yaru: %v\n%s", err, output)
+	}
+	return binary
+}
+
+func runYaru(t *testing.T, yaruBinary string, fixture string, stateDirectory string, home string, args ...string) {
+	t.Helper()
+	command := exec.Command(yaruBinary, args...)
+	command.Dir = fixture
+	command.Env = []string{
+		"HOME=" + home,
+		"YARU_STATE_DIR=" + stateDirectory,
+		"YARU_NOW=2026-09-28T12:00:00.000Z",
+		"YARU_PUBLIC_HOST=",
+		"TZ=Asia/Tokyo",
+		"GIT_CONFIG_GLOBAL=/dev/null",
+		"GIT_CONFIG_NOSYSTEM=1",
+		"PATH=" + os.Getenv("PATH"),
+	}
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("yaru %s: %v\n%s", strings.Join(args, " "), err, output)
+	}
+}
+
+// YARU_RECORD_TYPESCRIPT=1 のときだけ TS の yaru serve を動かして記録を書く
+var recordTypeScriptServe = os.Getenv("YARU_RECORD_TYPESCRIPT") == "1"
+
+type recordedResponse struct {
+	Status int    `json:"status"`
+	Body   string `json:"body"`
+}
+
+// typeScriptServeRecord は TS の yaru serve の返事 (場面の名前ごと) と、TS に書かせたファイル
+type typeScriptServeRecord struct {
+	path         string
+	replacements []pathReplacement
+	Responses    map[string]recordedResponse `json:"responses"`
+	Files        map[string]string           `json:"files"`
+}
+
+type pathReplacement struct {
+	actual      string
+	placeholder string
+}
+
+func newTypeScriptServeRecord(t *testing.T, fixture string) *typeScriptServeRecord {
+	t.Helper()
+	record := &typeScriptServeRecord{
+		path:         filepath.Join(moduleRoot(), "testdata", "server", t.Name()+".json"),
+		replacements: temporaryReplacements(fixture),
+		Responses:    map[string]recordedResponse{},
+		Files:        map[string]string{},
+	}
+	if recordTypeScriptServe {
+		return record
+	}
+	content, err := os.ReadFile(record.path)
 	if err != nil {
+		t.Fatalf("typescript record not found: expected %s, actual %v", record.path, err)
+	}
+	text := string(content)
+	for _, replacement := range record.replacements {
+		text = strings.ReplaceAll(text, replacement.placeholder, replacement.actual)
+	}
+	if err := json.Unmarshal([]byte(text), record); err != nil {
+		t.Fatalf("decode typescript record %s: %v", record.path, err)
+	}
+	return record
+}
+
+// temporaryReplacements はテストの一時ディレクトリ (t.TempDir が 001、002 と番号を振る親) を <TEMP> にする。
+// 実パス (/private/var/...) と symlink を通した表記 (/var/...) の両方を替え、長いパスから先に替える
+func temporaryReplacements(fixture string) []pathReplacement {
+	parent := filepath.Dir(filepath.Dir(fixture))
+	variants := []string{parent}
+	if resolved, err := filepath.EvalSymlinks(parent); err == nil && resolved != parent {
+		variants = append(variants, resolved)
+	}
+	for _, variant := range append([]string{}, variants...) {
+		if trimmed, found := strings.CutPrefix(variant, "/private/"); found {
+			variants = append(variants, "/"+trimmed)
+		} else {
+			variants = append(variants, "/private"+variant)
+		}
+	}
+	replacements := []pathReplacement{}
+	for _, variant := range variants {
+		replacements = append(replacements, pathReplacement{actual: variant, placeholder: "<TEMP>"})
+	}
+	sort.SliceStable(replacements, func(left int, right int) bool {
+		return len(replacements[left].actual) > len(replacements[right].actual)
+	})
+	return replacements
+}
+
+func (record *typeScriptServeRecord) get(t *testing.T, name string, path string) ([]byte, int) {
+	t.Helper()
+	if recordTypeScriptServe {
+		body, status := getRaw(t, "http://127.0.0.1:47901"+path)
+		record.Responses[name] = recordedResponse{Status: status, Body: string(body)}
+		return body, status
+	}
+	response, found := record.Responses[name]
+	if !found {
+		t.Fatalf("typescript response not recorded: expected %q in %s, actual missing", name, record.path)
+	}
+	return []byte(response.Body), response.Status
+}
+
+func (record *typeScriptServeRecord) json(t *testing.T, name string, path string) any {
+	t.Helper()
+	body, status := record.get(t, name, path)
+	if status != http.StatusOK {
+		t.Fatalf("ts %s: expected 200, actual %d %s", name, status, body)
+	}
+	var parsed any
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		t.Fatalf("ts %s json: %v %s", name, err, body)
+	}
+	return parsed
+}
+
+// createdIssueFile は TS の Web で issue を作らせ、書かれた .yaru/issues/2.md を返す
+func (record *typeScriptServeRecord) createdIssueFile(t *testing.T, slug string, root string) string {
+	t.Helper()
+	const name = "ts-copy/.yaru/issues/2.md"
+	if recordTypeScriptServe {
+		postRaw(t, "http://127.0.0.1:47901/p/"+slug+"/api/issues", `{"title":"Created","body":"from go\n"}`)
+		content := readCompareFile(t, filepath.Join(root, ".yaru", "issues", "2.md"))
+		record.Files[name] = content
+		return content
+	}
+	content, found := record.Files[name]
+	if !found {
+		t.Fatalf("typescript file not recorded: expected %q in %s, actual missing", name, record.path)
+	}
+	return content
+}
+
+func (record *typeScriptServeRecord) save(t *testing.T) {
+	t.Helper()
+	if !recordTypeScriptServe {
+		return
+	}
+	var buffer bytes.Buffer
+	encoder := json.NewEncoder(&buffer)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(record); err != nil {
 		t.Fatal(err)
 	}
-	script := `
-process.chdir(process.env.FIXTURE)
-process.argv = JSON.parse(process.env.YARU_ARGV)
-await import(process.env.YARU_ENTRY)
-`
-	command := exec.Command("bun", "-e", script)
-	command.Dir = moduleRoot()
-	command.Env = bunEnvironment(fixture, stateDirectory, home, map[string]string{
-		"FIXTURE":    fixture,
-		"YARU_ENTRY": filepath.Join(moduleRoot(), "src", "index.ts"),
-		"YARU_ARGV":  string(encoded),
-	})
-	output, err := command.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bun %s: %v\n%s", strings.Join(args, " "), err, output)
+	text := buffer.String()
+	for _, replacement := range record.replacements {
+		text = strings.ReplaceAll(text, replacement.actual, replacement.placeholder)
+	}
+	if err := os.MkdirAll(filepath.Dir(record.path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(record.path, []byte(text), 0o644); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -354,19 +498,6 @@ func waitHTTP(t *testing.T, url string) {
 		time.Sleep(50 * time.Millisecond)
 	}
 	t.Fatalf("timeout waiting for %s: %v", url, last)
-}
-
-func getJSON(t *testing.T, url string) any {
-	t.Helper()
-	body, status := getRaw(t, url)
-	if status != http.StatusOK {
-		t.Fatalf("GET %s: %d %s", url, status, body)
-	}
-	var parsed any
-	if err := json.Unmarshal(body, &parsed); err != nil {
-		t.Fatalf("GET %s json: %v %s", url, err, body)
-	}
-	return parsed
 }
 
 func postJSON(t *testing.T, url string, payload string) map[string]any {

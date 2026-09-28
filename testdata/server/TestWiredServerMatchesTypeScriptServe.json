@@ -1,0 +1,35 @@
+{
+  "responses": {
+    "comments": {
+      "status": 200,
+      "body": "[]"
+    },
+    "get issue": {
+      "status": 200,
+      "body": "{\"id\":\"1\",\"title\":\"Hello\",\"status\":\"todo\",\"assignee\":null,\"labels\":[],\"dueDate\":null,\"priority\":null,\"parent\":null,\"blocks\":[],\"blockedBy\":[],\"children\":[],\"startedAt\":null,\"completedAt\":null,\"canceledAt\":null,\"createdAt\":\"2026-09-28T12:00:00.000Z\",\"updatedAt\":\"2026-09-28T12:00:00.000Z\",\"session\":null,\"worktree\":\"<TEMP>/002/fixture\",\"branch\":\"master\",\"stale\":false,\"body\":\"line\"}"
+    },
+    "inbox": {
+      "status": 200,
+      "body": "{\"groups\":{\"blocking\":[],\"dueSoon\":[],\"noDeadline\":[],\"proceeded\":[]},\"workspaces\":[{\"slug\":\"fixture\",\"basePath\":\"/p/fixture\",\"awaiting\":0}]}"
+    },
+    "list issues": {
+      "status": 200,
+      "body": "[{\"id\":\"1\",\"title\":\"Hello\",\"status\":\"todo\",\"assignee\":null,\"labels\":[],\"dueDate\":null,\"priority\":null,\"parent\":null,\"blocks\":[],\"blockedBy\":[],\"children\":[],\"startedAt\":null,\"completedAt\":null,\"canceledAt\":null,\"createdAt\":\"2026-09-28T12:00:00.000Z\",\"updatedAt\":\"2026-09-28T12:00:00.000Z\",\"session\":null,\"worktree\":\"<TEMP>/002/fixture\",\"branch\":\"master\",\"stale\":false,\"body\":\"line\"}]"
+    },
+    "missing issue": {
+      "status": 404,
+      "body": "{\"error\":\"issue not found: 9\"}"
+    },
+    "page": {
+      "status": 200,
+      "body": "{\"issues\":[{\"id\":\"1\",\"title\":\"Hello\",\"status\":\"todo\",\"assignee\":null,\"labels\":[],\"dueDate\":null,\"priority\":null,\"parent\":null,\"blocks\":[],\"blockedBy\":[],\"children\":[],\"startedAt\":null,\"completedAt\":null,\"canceledAt\":null,\"createdAt\":\"2026-09-28T12:00:00.000Z\",\"updatedAt\":\"2026-09-28T12:00:00.000Z\",\"session\":null,\"worktree\":\"<TEMP>/002/fixture\",\"branch\":\"master\",\"stale\":false,\"body\":\"line\"}],\"all\":[{\"id\":\"1\",\"title\":\"Hello\",\"status\":\"todo\",\"assignee\":null,\"labels\":[],\"dueDate\":null,\"priority\":null,\"parent\":null,\"blocks\":[],\"blockedBy\":[],\"children\":[],\"startedAt\":null,\"completedAt\":null,\"canceledAt\":null,\"createdAt\":\"2026-09-28T12:00:00.000Z\",\"updatedAt\":\"2026-09-28T12:00:00.000Z\",\"session\":null,\"worktree\":\"<TEMP>/002/fixture\",\"branch\":\"master\",\"stale\":false,\"body\":\"line\"}],\"query\":\"\",\"current\":null,\"comments\":[],\"questions\":[],\"events\":[],\"commits\":[],\"awaiting\":false,\"awaitingByIssue\":{},\"display\":{\"sort\":\"priority\",\"group\":\"status\",\"completed\":\"recent\"},\"view\":\"list\",\"basePath\":\"/p/fixture\",\"awaitingQuestionCount\":0,\"viewer\":\"yaru\"}"
+    },
+    "questions": {
+      "status": 200,
+      "body": "{\"questions\":[]}"
+    }
+  },
+  "files": {
+    "ts-copy/.yaru/issues/2.md": "---\nid: 2\ntitle: Created\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nfrom go\n\n"
+  }
+}
