@@ -2,7 +2,7 @@
 
 段階 0 の P0-routes。Go 移行で API と画面の経路を作るときの正解にする。計画は `docs/migration/PLAN.md` (このファイルは司令塔だけが書き換える)。
 
-推測で埋めていない。根拠は `ファイル:行`。コメントとコードが違うときはコードを書き、差は「未決」に置く。ここは今の TS 版の入口を写したもので、形式や出力をよくする変更は決めていない。
+推測で埋めていない。根拠は `ファイル:行`。コメントとコードが違うときはコードを書き、差は「コメントとコードの差」に置く。未決の節は、ユーザーの判断が要るものだけである。ここは今の TS 版の入口を写したもので、形式や出力をよくする変更は決めていない。
 
 proto の下書きは `docs/spec/proto-draft/` にある。`proto/` ではない。
 
@@ -122,7 +122,7 @@ redirect は 303 See Other (`src/web.tsx:129-132` が理由を書いている。
 
 `/inbox` の fragment は `q-<slug>-<id>` (`src/inbox.ts:59-60`)。それ以外は `q-<id>` (`src/web.tsx:728-730`)。
 
-`next` は答えたあとに開く fragment。`/^[A-Za-z][A-Za-z0-9._-]*$/` に合うときだけ使い、合わなければ答えたカードの fragment に戻す (`src/web.tsx:749-754`)。コメントは「カードの id (`q-<名前>-<番号>`) だけ」と書くが、正規表現はそれより広い。`proceeded` も通る (`src/dashboard.test.tsx:443` がフォームに `next=proceeded` を出している)。コードの正規表現を正とする (決定)。SPA の fragment も、この正規表現に合うものだけをカードへの移動に使う。
+`next` は答えたあとに開く fragment で、受け付ける形は「コメントとコードの差」に書く。コードの正規表現を正とする。
 
 答えた直後の取り消し (`answered`) を載せるのは、戻り先が dashboard か `/inbox` のときだけ (`src/web.tsx:743-747`)。板は載さない (`src/web.tsx:161`)。
 
@@ -816,7 +816,7 @@ InvalidArgument、NotFound、Aborted、FailedPrecondition は送り直さない�
 
 ### 数値
 
-int32 と double は、proto JSON でも数である。int64 は使わない。protobuf-es v2 が int64 を bigint にし、画面の number と混ざると落ちるため。件数、トークン数、`ahead`、`behind` は int32。2^31-1 を超える数は表さない。金額と比率は double。
+int32 と double は、proto JSON でも数である。int64 は使わない。protobuf-es v2 が int64 を bigint にし、画面の number と混ざると落ちるため。件数と `ahead` と `behind` は int32 で、2^31-1 を超える数は表さない。セッションのトークン数 (`input_tokens`、`cache_creation_tokens`、`cache_read_tokens`、`output_tokens`) は double にする。1 セッションの cache read は 21 億を超えうるため。決定: 整数として正確なのは 2^53 まで。それを超える値は起こりえないとみなす。金額と比率も double である。
 
 古い JSON の数と、新しい JSON の数を、そのまま比べる。文字列になっている数は不一致である。
 
@@ -862,6 +862,14 @@ int32 と double は、proto JSON でも数である。int64 は使わない。p
 patch のフィールド名は、古い CLI の JSON が `old_string` でも、RPC の proto JSON は `oldString` である。`json_name` は付けない。CLI の `--patch` の入力は、この RPC ではなく、今の snake_case のまま残す。
 
 `IssueEvent` の `from` と `to` は、文字列なら `fromText` か `toText`、配列なら `fromList.values` か `toList.values`、null ならその oneof が無い。揃えるときに、古い 1 つの値をこの形へ読み替える。
+
+## コメントとコードの差
+
+仕様はコードを正とする。コメントが狭いときも、コードの動きを写す。未決 (ユーザー) には置かない。
+
+### next の fragment
+
+コメントは、カードの id の形 (`q-<名前>-<番号>`) だけを通す、と書く (`src/web.tsx:749-751`)。コードは `/^[A-Za-z][A-Za-z0-9._-]*$/` に合うものを通す (`src/web.tsx:752-754`)。`proceeded` も通る (`src/dashboard.test.tsx:443`)。合わないものは答えたカードの fragment に戻す。SPA の fragment も、この正規表現に合うものだけをカードへの移動に使う。
 
 ## 未決 (ユーザー)
 

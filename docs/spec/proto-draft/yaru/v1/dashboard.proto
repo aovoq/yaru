@@ -25,7 +25,7 @@ message GetDashboardResponse {
 }
 
 // Claude Code のセッションの数。本文は読まない (src/sessions.ts:9-48)。
-// 件数は int32。2^31-1 を超える値は表さない。
+// 件数は int32。2^31-1 を超える値は表さない。トークン数は double である。
 message SessionHealth {
   // ログのディレクトリ。画面に出してよいかは未決 (ユーザー)。
   optional string directory = 1;
@@ -42,10 +42,11 @@ message SessionSummary {
   optional string last_activity_at = 5;
   repeated string models = 6;
   int32 assistant_messages = 7;
-  int32 input_tokens = 8;
-  int32 cache_creation_tokens = 9;
-  int32 cache_read_tokens = 10;
-  int32 output_tokens = 11;
+  // 1 セッションの合計。cache read は int32 を超えうるので、double にする。
+  double input_tokens = 8;
+  double cache_creation_tokens = 9;
+  double cache_read_tokens = 10;
+  double output_tokens = 11;
   double cost_usd = 12;
   int32 unpriced_messages = 13;
   int32 tool_uses = 14;
