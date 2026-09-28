@@ -2,7 +2,8 @@ import type { AwaitingQuestionGroups, Question } from "../domain/question"
 import { Collapsible } from "./collapsible"
 import { EmptyState } from "./empty-state"
 import { QuestionAnswerForm } from "./question-answer-form"
-import { questionAnchorId } from "./question-answer"
+import { draftText } from "./answer-drafts"
+import { answerFormId, questionAnchorId } from "./question-answer"
 import { QuestionCard } from "./question-card"
 import { Section } from "./section"
 
@@ -57,11 +58,17 @@ export function AwaitingQuestionList({
   groups,
   now,
   returned,
+  drafts,
+  revealAnchor,
   emptyText = "No questions awaiting an answer",
 }: {
   groups: AwaitingQuestionGroups<AwaitingQuestionEntry>
   now: Date
   returned?: ReturnedAnswer
+  // フォーム id ごとの書きかけ。sessionStorage から戻したものと、入力中の文
+  drafts?: Readonly<Record<string, string>>
+  // fragment で飛んだカード。閉じた details の中なら開く (src/ui/live-page.ts:238-250)
+  revealAnchor?: string
   emptyText?: string
 }) {
   const ordered = GROUPS.flatMap((group) => groups[group.key])
@@ -105,13 +112,14 @@ export function AwaitingQuestionList({
                   now={now}
                   next={nextAnchor(anchor)}
                   returned={returned?.anchor === anchor ? returned : undefined}
+                  drafts={drafts}
                 />
               )
               if (!proceeded) return card
               return (
                 <div data-proceeded="" key={anchor}>
                   <Collapsible
-                    open={returned?.anchor === anchor}
+                    open={returned?.anchor === anchor || revealAnchor === anchor}
                     summary={<ProceededSummary question={entry.question} workspace={entry.scope} />}
                     summaryClass="min-h-11 rounded-lg border border-hairline bg-surface-1 px-3 py-2 sm:min-h-10"
                   >
@@ -138,11 +146,13 @@ function AwaitingQuestion({
   now,
   next,
   returned,
+  drafts,
 }: {
   entry: AwaitingQuestionEntry
   now: Date
   next: string
   returned?: ReturnedAnswer
+  drafts?: Readonly<Record<string, string>>
 }) {
   return (
     <>
@@ -152,7 +162,7 @@ function AwaitingQuestion({
         issueLink={entry.issueLink}
         scope={entry.scope}
         workspace={entry.workspace}
-        draft={returned?.answer}
+        draft={draftText(drafts, answerFormId(entry.question, entry.scope), returned?.answer)}
         error={returned?.error}
       />
       <QuestionAnswerForm

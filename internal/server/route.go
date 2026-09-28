@@ -6,9 +6,13 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"os"
+	"os/exec"
+	"os/user"
 	"path"
 	"strings"
 
+	"github.com/aovoq/yaru/internal/terminal"
 	"github.com/aovoq/yaru/internal/workspace"
 	webfs "github.com/aovoq/yaru/web"
 )
@@ -82,6 +86,12 @@ func (application *httpApplication) serve(responseWriter http.ResponseWriter, re
 		reject(responseWriter, request, application.configuration.LogOutput, message)
 		return
 	}
+	if isWebSocketUpgrade(request) && request.URL.Path == terminal.Path && application.configuration.WireServices {
+		// Host と Origin は上の authorize が済ませている。端末の中身は internal/terminal。
+		// docs/spec/security.md の「WebSocket」
+		application.serveTerminal(responseWriter, request)
+		return
+	}
 	if isWebSocketUpgrade(request) {
 		application.serveWebSocket(responseWriter, request)
 		return
@@ -123,6 +133,26 @@ func (application *httpApplication) serve(responseWriter http.ResponseWriter, re
 		}
 		writeBody(responseWriter, request, http.StatusNotFound, plainTextUTF8, []byte("not found"))
 	}
+}
+
+func (application *httpApplication) serveTerminal(responseWriter http.ResponseWriter, request *http.Request) {
+	executable := application.configuration.HerdrExecutable
+	if executable == "" {
+		executable = terminal.ResolveExecutable(os.LookupEnv, exec.LookPath, currentUserName)
+	}
+	terminal.Handler(terminal.Config{
+		HerdrExecutable: executable,
+		ListenPort:      application.port,
+		PublicHost:      application.publicHost,
+	}).ServeHTTP(responseWriter, request)
+}
+
+func currentUserName() (string, error) {
+	current, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	return current.Username, nil
 }
 
 func (application *httpApplication) serveWebSocket(responseWriter http.ResponseWriter, request *http.Request) {

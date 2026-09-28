@@ -15,9 +15,12 @@ import (
 // docs/spec/routes.md の「手続き」。src/web.tsx:221-247 、src/web.tsx:424-446 、src/web.tsx:558-560 。
 func Handler(stateDirectory string) http.Handler {
 	mux := http.NewServeMux()
-	questionPath, questionHandler := yaruv1connect.NewQuestionServiceHandler(&questionService{stateDirectory: stateDirectory})
-	dashboardPath, dashboardHandler := yaruv1connect.NewDashboardServiceHandler(&dashboardService{stateDirectory: stateDirectory})
-	inboxPath, inboxHandler := yaruv1connect.NewInboxServiceHandler(&inboxService{stateDirectory: stateDirectory})
+	// issue 系と同じく、空の配列と 0 を JSON に残す。TS の inbox は空グループも出す。
+	// docs/spec/routes.md の「新旧の返事の揃え方」
+	options := handlerOptions()
+	questionPath, questionHandler := yaruv1connect.NewQuestionServiceHandler(&questionService{stateDirectory: stateDirectory}, options...)
+	dashboardPath, dashboardHandler := yaruv1connect.NewDashboardServiceHandler(&dashboardService{stateDirectory: stateDirectory}, options...)
+	inboxPath, inboxHandler := yaruv1connect.NewInboxServiceHandler(&inboxService{stateDirectory: stateDirectory}, options...)
 	mux.Handle(questionPath, questionHandler)
 	mux.Handle(dashboardPath, dashboardHandler)
 	mux.Handle(inboxPath, inboxHandler)
