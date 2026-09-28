@@ -1,0 +1,21 @@
+/* 端末用フォント。resident-app の scripts/subset-font.sh で字形を絞った Nerd Font */
+/* ~/workspace/resident-app/web/src/style.css */
+@font-face {
+  font-family: "Ioskeley Mono Web";
+  src: url("/fonts/IoskeleyMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "Ioskeley Mono Web";
+  src: url("/fonts/IoskeleyMono-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: block;
+}
+
+.terminal-copy {
+  font-family: "Ioskeley Mono Web", ui-monospace, "SF Mono", Menlo, monospace;
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}

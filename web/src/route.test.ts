@@ -22,6 +22,7 @@ describe("matchPath", () => {
       slug: "app",
       registration: "pending",
     })
+    expect(matchPath("/terminal")).toEqual({ name: "terminal" })
     for (const pathname of [
       "/inbox/",
       "/nope",
@@ -30,6 +31,7 @@ describe("matchPath", () => {
       "/p/app/dashboard/",
       "/p/app/issues",
       "/p/app/events",
+      "/terminal/",
       "/assets/app.js",
     ]) {
       expect(matchPath(pathname)).toEqual({ name: "not-found" })
