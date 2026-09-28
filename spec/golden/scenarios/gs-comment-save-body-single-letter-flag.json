@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-save-body-single-letter-flag",
+  "description": "本文 `-f` は短いフラグと見なされ、 `--body` の値が無いエラーになる",
+  "steps": [
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "-f"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

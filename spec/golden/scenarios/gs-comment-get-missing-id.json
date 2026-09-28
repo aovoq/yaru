@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-get-missing-id",
+  "description": "id が無いと usage: yaru comment get <id> になる",
+  "steps": [
+    {
+      "arguments": ["comment", "get"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

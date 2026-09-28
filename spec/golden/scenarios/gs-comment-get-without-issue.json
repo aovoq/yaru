@@ -1,0 +1,22 @@
+{
+  "name": "gs-comment-get-without-issue",
+  "description": "取得はコメントファイルだけを見る。 issue のファイルが無くても返す",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/comments/1.md",
+        "content": "---\nid: 1\nissue: 1\nparent:\nauthor: golden\ncreatedAt: 2026-09-28T12:05:00.000Z\nupdatedAt: 2026-09-28T12:05:00.000Z\n---\n\nhello\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["comment", "get", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

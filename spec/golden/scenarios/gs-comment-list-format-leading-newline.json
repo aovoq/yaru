@@ -1,0 +1,22 @@
+{
+  "name": "gs-comment-list-format-leading-newline",
+  "description": "本文が改行で始まると、人向け一覧の 1 行目は空になる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "\nhello"],
+      "now": "2026-09-28T12:05:00.000Z"
+    },
+    {
+      "arguments": ["comment", "list", "--issue", "1", "-f"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

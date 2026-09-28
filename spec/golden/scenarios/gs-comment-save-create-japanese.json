@@ -1,0 +1,24 @@
+{
+  "name": "gs-comment-save-create-japanese",
+  "description": "日本語の user.name と本文を、エスケープせずに保存する",
+  "setup": {
+    "gitUser": {
+      "name": "黄金",
+      "email": "golden@example.com"
+    }
+  },
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "コメント\n次の行"],
+      "now": "2026-09-28T12:05:00.000Z"
+    }
+  ]
+}

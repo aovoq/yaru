@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-save-not-workspace",
+  "description": "ワークスペースの外で保存すると not a yaru workspace (run yaru init) になる",
+  "steps": [
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "hi"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

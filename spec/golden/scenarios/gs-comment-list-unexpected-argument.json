@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-list-unexpected-argument",
+  "description": "一覧に位置引数があると unexpected argument になる。 issue の有無は見ない",
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--issue", "1", "extra"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

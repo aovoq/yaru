@@ -1,0 +1,19 @@
+{
+  "name": "gs-comment-save-help",
+  "steps": [
+    {
+      "arguments": ["comment", "save", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru comment save — create or update a comment\n\nIf --id is provided, updates the existing comment; otherwise creates a new one.\nDo not pass --id when creating. Body is required when creating.\nTo start a thread, pass --issue. To reply, pass --parent; the issue is inferred.\n\n--body is Markdown. Use --body - to read stdin. Do not escape newlines.\n\nUsage:\n  yaru comment save --issue ID --body TEXT|- [-f|--format]\n  yaru comment save --parent ID --body TEXT|- [-f|--format]\n  yaru comment save --id ID --body TEXT|- [-f|--format]\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

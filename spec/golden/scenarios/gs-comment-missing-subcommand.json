@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-missing-subcommand",
+  "description": "サブコマンドが無いと usage を標準エラーに出し、終了コード 1 になる",
+  "steps": [
+    {
+      "arguments": ["comment"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

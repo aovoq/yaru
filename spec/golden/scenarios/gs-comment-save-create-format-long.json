@@ -1,0 +1,18 @@
+{
+  "name": "gs-comment-save-create-format-long",
+  "description": "作成の `--format` も id だけを出す",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "hello", "--format"],
+      "now": "2026-09-28T12:05:00.000Z"
+    }
+  ]
+}

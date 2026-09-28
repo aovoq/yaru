@@ -1,0 +1,22 @@
+{
+  "name": "gs-comment-save-update-omit-body",
+  "description": "更新で `--body` を省くと本文は残る。 updatedAt だけ進む",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "hello"],
+      "now": "2026-09-28T12:05:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--id", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

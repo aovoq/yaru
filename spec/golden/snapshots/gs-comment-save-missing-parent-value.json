@@ -1,0 +1,19 @@
+{
+  "name": "gs-comment-save-missing-parent-value",
+  "steps": [
+    {
+      "arguments": ["comment", "save", "--parent", "--body", "hi"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --parent\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

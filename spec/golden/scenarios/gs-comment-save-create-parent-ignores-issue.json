@@ -1,0 +1,26 @@
+{
+  "name": "gs-comment-save-create-parent-ignores-issue",
+  "description": "`--parent` と `--issue` を両方渡すと、 issue は親のものを使い、 `--issue` は無視する",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Other"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "parent"],
+      "now": "2026-09-28T12:05:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--parent", "1", "--issue", "2", "--body", "child"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "gs-comment-get-not-found",
+  "description": "無い id は comment not found: 9 になる。ファイルは作らない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "get", "9"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

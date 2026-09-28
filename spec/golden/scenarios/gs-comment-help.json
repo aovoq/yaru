@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-help",
+  "description": "`yaru comment --help` が、サブコマンドの案内を終了コード 0 で出す",
+  "steps": [
+    {
+      "arguments": ["comment", "--help"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

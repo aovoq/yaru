@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-get-format-without-id",
+  "description": "`-f` だけを渡して id が無いと、人向けにはならず usage になる",
+  "steps": [
+    {
+      "arguments": ["comment", "get", "-f"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

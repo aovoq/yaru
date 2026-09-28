@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-get-unknown-force",
+  "description": "`--force` は値を取らず、取得では unknown flag になる",
+  "steps": [
+    {
+      "arguments": ["comment", "get", "--force"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

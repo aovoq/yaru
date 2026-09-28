@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-help-short-before-list",
+  "description": "`yaru comment -h list` が、一覧の案内になる",
+  "steps": [
+    {
+      "arguments": ["comment", "-h", "list"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

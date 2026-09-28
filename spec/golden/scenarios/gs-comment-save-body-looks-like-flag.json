@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-save-body-looks-like-flag",
+  "description": "`--` で始まる本文は `--body` の値として受け取れず、 missing value for --body になる",
+  "steps": [
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "--note"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

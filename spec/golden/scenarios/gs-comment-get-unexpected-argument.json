@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-get-unexpected-argument",
+  "description": "id のうしろの位置引数は unexpected argument になる",
+  "steps": [
+    {
+      "arguments": ["comment", "get", "1", "extra"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

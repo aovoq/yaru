@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-list-not-workspace",
+  "description": "ワークスペースの外で一覧すると not a yaru workspace (run yaru init) になる",
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--issue", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

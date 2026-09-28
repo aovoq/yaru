@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-get-empty-id",
+  "description": "空の位置 id は無いものとして、同じ usage になる",
+  "steps": [
+    {
+      "arguments": ["comment", "get", ""],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

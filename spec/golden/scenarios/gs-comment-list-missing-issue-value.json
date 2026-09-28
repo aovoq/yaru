@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-list-missing-issue-value",
+  "description": "`--issue` の値を忘れると missing value for --issue になる",
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--issue"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

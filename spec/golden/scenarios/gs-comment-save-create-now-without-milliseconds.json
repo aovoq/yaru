@@ -1,0 +1,18 @@
+{
+  "name": "gs-comment-save-create-now-without-milliseconds",
+  "description": "ミリ秒の無い YARU_NOW でも、保存する時刻には `.000Z` が付く",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "hello"],
+      "now": "2026-09-28T12:05:00Z"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "gs-comment-save-create-stdin",
+  "description": "`--body -` は標準入力を本文にする。末尾の改行も本文に含み、ファイルにはそのあとに改行がもう 1 つ付く",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "-"],
+      "now": "2026-09-28T12:05:00.000Z",
+      "stdin": "line one\nline two\n"
+    }
+  ]
+}

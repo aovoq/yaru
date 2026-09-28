@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-list-triple-dash",
+  "description": "`---help` は `--help` にならず、値の無いフラグとして missing value になる",
+  "steps": [
+    {
+      "arguments": ["comment", "list", "---help"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "gs-comment-get-id-escapes-comments",
+  "description": "id を検証しない。 `../issues/1` は issue のファイルをコメントとして読み、 invalid comment file になる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "get", "../issues/1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

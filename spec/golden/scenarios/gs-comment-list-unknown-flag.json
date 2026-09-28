@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-list-unknown-flag",
+  "description": "一覧に無い `--author` は unknown flag になる。作者を渡すフラグは無い",
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--issue", "1", "--author", "x"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}
