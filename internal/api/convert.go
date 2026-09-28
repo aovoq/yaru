@@ -216,7 +216,7 @@ func statusEnum(value string) (yaruv1.IssueStatus, error) {
 	case "canceled":
 		return yaruv1.IssueStatus_ISSUE_STATUS_CANCELED, nil
 	default:
-		return 0, fmt.Errorf("invalid status: expected %s, actual %s", store.JoinOr(store.Statuses), value)
+		return 0, fmt.Errorf("invalid status: expected %s, actual %s", store.JoinOr(store.Statuses()), value)
 	}
 }
 
@@ -252,7 +252,7 @@ func priorityEnum(value *string) (*yaruv1.IssuePriority, error) {
 	case "low":
 		priority = yaruv1.IssuePriority_ISSUE_PRIORITY_LOW
 	default:
-		return nil, fmt.Errorf("invalid priority: expected %s, actual %s", store.JoinOr(store.Priorities), *value)
+		return nil, fmt.Errorf("invalid priority: expected %s, actual %s", store.JoinOr(store.Priorities()), *value)
 	}
 	return &priority, nil
 }

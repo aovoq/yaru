@@ -3,6 +3,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -62,7 +63,7 @@ func TestWiredServerUsesAPIHandlers(t *testing.T) {
 	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "<html") {
 		t.Fatalf("spa: status %d body %s", page.Code, page.Body.String())
 	}
-	if _, found := workspace.Find(slug, stateDirectory); !found {
+	if _, found := workspace.Find(context.Background(), slug, stateDirectory); !found {
 		t.Fatal("workspace disappeared")
 	}
 }

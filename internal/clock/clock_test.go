@@ -24,7 +24,7 @@ func TestNowUsesTheClockWhenYaruNowIsUnset(t *testing.T) {
 			t.Errorf("restore YARU_NOW: %v", restoreErr)
 		}
 	})
-	if err := os.Unsetenv("YARU_NOW"); err != nil {
+	if err := os.Setenv("YARU_NOW", "yesterday"); err != nil {
 		t.Fatal(err)
 	}
 	before := time.Now()
@@ -78,8 +78,7 @@ func TestNowReadsYaruNow(t *testing.T) {
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.value, func(t *testing.T) {
-			t.Setenv("YARU_NOW", testCase.value)
-			actual, err := clock.Now()
+			actual, err := clock.ParseYaruNow(testCase.value)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -128,8 +127,7 @@ func TestNowRejectsYaruNow(t *testing.T) {
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.value, func(t *testing.T) {
-			t.Setenv("YARU_NOW", testCase.value)
-			_, err := clock.Now()
+			_, err := clock.ParseYaruNow(testCase.value)
 			if err == nil {
 				t.Fatal("expected an error")
 			}

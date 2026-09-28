@@ -4,24 +4,24 @@
 package sessions
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"math"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 	"unicode/utf8"
 
-	"github.com/aovoq/yaru/internal/clock"
+	"github.com/aovoq/yaru/internal/document"
+	"github.com/aovoq/yaru/internal/fsutil"
+	"github.com/aovoq/yaru/internal/workspace"
 )
 
 const (
@@ -86,17 +86,29 @@ type Health struct {
 	Totals     Totals
 }
 
-// HealthOptions のゼロ値は、home がユーザーのホーム、now が clock.Now、窓が 7 日 (src/sessions.ts:92-97)
+// HealthOptions の Home と Now は呼び出し側が渡す。WindowDays が nil のとき窓は 7 日 (src/sessions.ts:92-97)
 type HealthOptions struct {
-	Home       *string
-	Now        *time.Time
+	Home       string
+	Now        time.Time
 	WindowDays *int
 }
 
 // FindOptions の Worktree は、消したあとの作業ツリーも探すためのパス (src/sessions.ts:136)
+// Home は呼び出し側が渡す
 type FindOptions struct {
-	Home     *string
+	Home     string
 	Worktree *string
+}
+
+// Reader はセッションログの読み手。変わっていないファイルの cache は読み手ごとに持つ (src/sessions.ts:215-221)
+type Reader struct {
+	cache      map[string]cachedFile
+	cacheMutex sync.Mutex
+}
+
+// NewReader は空の cache を持つ読み手を返す
+func NewReader() *Reader {
+	return &Reader{cache: map[string]cachedFile{}}
 }
 
 type modelPrice struct {
@@ -122,8 +134,6 @@ var modelPrices = map[string]modelPrice{
 var (
 	sessionIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 	snapshotSuffix   = regexp.MustCompile(`-\d{8}$`)
-	fileCache        = map[string]cachedFile{}
-	fileCacheMutex   sync.Mutex
 )
 
 type cachedFile struct {
@@ -166,23 +176,17 @@ func ClaudeProjectDirectory(root string, home string) string {
 	return filepath.Join(home, ".claude", "projects", encoded)
 }
 
-// ReadSessionHealth は窓の中に更新されたセッションを、最後に動いた文字列の新しい順で返す (src/sessions.ts:92-127)
-func ReadSessionHealth(root string, options HealthOptions) (Health, error) {
-	moment, err := resolveNow(options.Now)
-	if err != nil {
-		return Health{}, err
-	}
-	home, err := resolveHome(options.Home)
-	if err != nil {
-		return Health{}, err
-	}
+// ReadHealth は窓の中に更新されたセッションを、最後に動いた文字列の新しい順で返す (src/sessions.ts:92-127)
+func (reader *Reader) ReadHealth(ctx context.Context, root string, options HealthOptions) (Health, error) {
+	moment := options.Now
+	home := options.Home
 	windowDays := SessionWindowDays
 	if options.WindowDays != nil {
 		windowDays = *options.WindowDays
 	}
 	since := float64(moment.UnixMilli()) - float64(windowDays)*86_400_000
 	directory := ClaudeProjectDirectory(root, home)
-	sources, err := sessionSources(root, home, nil)
+	sources, err := sessionSources(ctx, root, home, nil)
 	if err != nil {
 		return Health{}, err
 	}
@@ -205,7 +209,7 @@ func ReadSessionHealth(root string, options HealthOptions) (Health, error) {
 			if mtimeMilliseconds(info.ModTime()) < since {
 				continue
 			}
-			session, readErr := readSession(source.directory, strings.TrimSuffix(name, ".jsonl"), source.worktree)
+			session, readErr := reader.readSession(source.directory, strings.TrimSuffix(name, ".jsonl"), source.worktree)
 			if readErr != nil {
 				return Health{}, readErr
 			}
@@ -227,16 +231,13 @@ func ReadSessionHealth(root string, options HealthOptions) (Health, error) {
 	}, nil
 }
 
-// FindSession は期間で絞らず、ファイル名が安全な ID のセッションを返す (src/sessions.ts:133-161)
-func FindSession(root string, id string, options FindOptions) (*Summary, error) {
+// Find は期間で絞らず、ファイル名が安全な ID のセッションを返す (src/sessions.ts:133-161)
+func (reader *Reader) Find(ctx context.Context, root string, id string, options FindOptions) (*Summary, error) {
 	if !sessionIDPattern.MatchString(id) {
 		return nil, nil
 	}
-	home, err := resolveHome(options.Home)
-	if err != nil {
-		return nil, err
-	}
-	sources, err := sessionSources(root, home, options.Worktree)
+	home := options.Home
+	sources, err := sessionSources(ctx, root, home, options.Worktree)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +249,7 @@ func FindSession(root string, id string, options FindOptions) (*Summary, error) 
 			}
 			return nil, nodeIOError(statErr, "stat", path)
 		}
-		session, readErr := readSession(source.directory, id, source.worktree)
+		session, readErr := reader.readSession(source.directory, id, source.worktree)
 		if readErr != nil {
 			return nil, readErr
 		}
@@ -257,8 +258,8 @@ func FindSession(root string, id string, options FindOptions) (*Summary, error) 
 	return nil, nil
 }
 
-func sessionSources(root string, home string, recorded *string) ([]sessionSource, error) {
-	worktrees, err := linkedWorktrees(root)
+func sessionSources(ctx context.Context, root string, home string, recorded *string) ([]sessionSource, error) {
+	worktrees, err := linkedWorktrees(ctx, root)
 	if err != nil {
 		return nil, err
 	}
@@ -286,29 +287,13 @@ func sessionSources(root string, home string, recorded *string) ([]sessionSource
 	return sources, nil
 }
 
-func resolveNow(now *time.Time) (time.Time, error) {
-	if now != nil {
-		return *now, nil
-	}
-	// options.now ?? currentTime() (src/sessions.ts:96)
-	return clock.Now()
-}
-
-func resolveHome(home *string) (string, error) {
-	if home != nil {
-		return *home, nil
-	}
-	// homedir() (src/sessions.ts:88)
-	return os.UserHomeDir()
-}
-
-func readSession(directory string, id string, worktree *string) (Summary, error) {
+func (reader *Reader) readSession(directory string, id string, worktree *string) (Summary, error) {
 	path := filepath.Join(directory, id+".jsonl")
 	info, err := os.Stat(path)
 	if err != nil {
 		return Summary{}, nodeIOError(err, "stat", path)
 	}
-	main, err := readFileStats(path, info)
+	main, err := reader.readFileStats(path, info)
 	if err != nil {
 		return Summary{}, err
 	}
@@ -322,7 +307,7 @@ func readSession(directory string, id string, worktree *string) (Summary, error)
 		if statErr != nil {
 			return Summary{}, nodeIOError(statErr, "stat", subagentPath)
 		}
-		subagentStats, readErr := readFileStats(subagentPath, subagentInfo)
+		subagentStats, readErr := reader.readFileStats(subagentPath, subagentInfo)
 		if readErr != nil {
 			return Summary{}, readErr
 		}
@@ -333,12 +318,12 @@ func readSession(directory string, id string, worktree *string) (Summary, error)
 
 // linkedWorktrees は git worktree list の 2 つ目以降。先頭は元のフォルダなので数に入れない (src/sessions.ts:181-201)
 // https://git-scm.com/docs/git-worktree#_porcelain_format
-func linkedWorktrees(root string) ([]worktreeEntry, error) {
+func linkedWorktrees(ctx context.Context, root string) ([]worktreeEntry, error) {
 	info, err := os.Stat(root)
 	if err != nil || !info.IsDir() {
 		return nil, nil
 	}
-	output, err := gitOutput(root, "worktree", "list", "--porcelain")
+	output, err := gitOutput(ctx, root, "worktree", "list", "--porcelain")
 	if err != nil {
 		return nil, err
 	}
@@ -386,14 +371,18 @@ func listJSONL(directory string) ([]string, error) {
 	if !info.IsDir() {
 		return nil, fmt.Errorf("ENOTDIR: not a directory, scandir '%s'", directory)
 	}
-	entries, err := readDirectory(directory)
+	names, err := fsutil.ReadDir(directory)
 	if err != nil {
 		return nil, nodeIOError(err, "scandir", directory)
 	}
 	files := []string{}
-	for _, entry := range entries {
-		path := filepath.Join(directory, entry.Name())
-		if entry.IsDir() {
+	for _, name := range names {
+		path := filepath.Join(directory, name)
+		entryInfo, statErr := os.Lstat(path)
+		if statErr != nil {
+			return nil, nodeIOError(statErr, "stat", path)
+		}
+		if entryInfo.IsDir() {
 			nested, nestErr := listJSONL(path)
 			if nestErr != nil {
 				return nil, nestErr
@@ -401,7 +390,7 @@ func listJSONL(directory string) ([]string, error) {
 			files = append(files, nested...)
 			continue
 		}
-		if strings.HasSuffix(entry.Name(), ".jsonl") {
+		if strings.HasSuffix(name, ".jsonl") {
 			files = append(files, path)
 		}
 	}
@@ -416,45 +405,29 @@ func jsonlNames(directory string) ([]string, bool, error) {
 	if !info.IsDir() {
 		return nil, true, fmt.Errorf("ENOTDIR: not a directory, scandir '%s'", directory)
 	}
-	entries, err := readDirectory(directory)
+	names, err := fsutil.ReadDir(directory)
 	if err != nil {
 		return nil, true, nodeIOError(err, "scandir", directory)
 	}
-	names := []string{}
-	for _, entry := range entries {
-		if strings.HasSuffix(entry.Name(), ".jsonl") {
-			names = append(names, entry.Name())
+	matched := []string{}
+	for _, name := range names {
+		if strings.HasSuffix(name, ".jsonl") {
+			matched = append(matched, name)
 		}
 	}
-	return names, true, nil
+	return matched, true, nil
 }
 
-func readDirectory(directory string) ([]os.DirEntry, error) {
-	file, err := os.Open(directory)
-	if err != nil {
-		return nil, err
-	}
-	entries, readErr := file.ReadDir(-1)
-	closeErr := file.Close()
-	if readErr != nil {
-		return nil, readErr
-	}
-	if closeErr != nil {
-		return nil, closeErr
-	}
-	return entries, nil
-}
-
-func readFileStats(path string, info os.FileInfo) (fileStats, error) {
+func (reader *Reader) readFileStats(path string, info os.FileInfo) (fileStats, error) {
 	if info.IsDir() {
 		// readFileSync がディレクトリを読むときの Bun の文言。パスは付かない (src/sessions.ts:219)
 		return fileStats{}, errors.New("EISDIR: illegal operation on a directory, read")
 	}
 	modified := mtimeMilliseconds(info.ModTime())
 	size := info.Size()
-	fileCacheMutex.Lock()
-	cached, ok := fileCache[path]
-	fileCacheMutex.Unlock()
+	reader.cacheMutex.Lock()
+	cached, ok := reader.cache[path]
+	reader.cacheMutex.Unlock()
 	if ok && cached.modifiedMilliseconds == modified && cached.size == size {
 		return cached.stats, nil
 	}
@@ -470,9 +443,9 @@ func readFileStats(path string, info os.FileInfo) (fileStats, error) {
 	if err != nil {
 		return fileStats{}, err
 	}
-	fileCacheMutex.Lock()
-	fileCache[path] = cachedFile{modifiedMilliseconds: modified, size: size, stats: stats}
-	fileCacheMutex.Unlock()
+	reader.cacheMutex.Lock()
+	reader.cache[path] = cachedFile{modifiedMilliseconds: modified, size: size, stats: stats}
+	reader.cacheMutex.Unlock()
 	return stats, nil
 }
 
@@ -772,7 +745,8 @@ type jsValue struct {
 
 func (value jsValue) numberValue() float64 {
 	if value.kind == jsKindString {
-		return parseJSNumber(value.text)
+		number, _ := document.ParseNumber(value.text)
+		return number
 	}
 	return value.number
 }
@@ -781,7 +755,7 @@ func (value jsValue) stringValue() string {
 	if value.kind == jsKindString {
 		return value.text
 	}
-	return formatJSNumber(value.number)
+	return document.FormatNumber(value.number)
 }
 
 func (value jsValue) tokenCount() TokenCount {
@@ -861,7 +835,7 @@ func identityKey(value any) string {
 	case string:
 		return "s:" + typed
 	case float64:
-		return "n:" + formatJSNumber(typed)
+		return "n:" + document.FormatNumber(typed)
 	case bool:
 		if typed {
 			return "b:true"
@@ -870,37 +844,6 @@ func identityKey(value any) string {
 	default:
 		return "o:" + fmt.Sprint(value)
 	}
-}
-
-func parseJSNumber(text string) float64 {
-	trimmed := strings.TrimSpace(text)
-	if trimmed == "" {
-		return 0
-	}
-	value, err := strconv.ParseFloat(trimmed, 64)
-	if err != nil {
-		return math.NaN()
-	}
-	return value
-}
-
-func formatJSNumber(value float64) string {
-	if math.IsNaN(value) {
-		return "NaN"
-	}
-	if math.IsInf(value, 1) {
-		return "Infinity"
-	}
-	if math.IsInf(value, -1) {
-		return "-Infinity"
-	}
-	if value == 0 {
-		return "0"
-	}
-	if value == math.Trunc(value) && math.Abs(value) < 1e21 {
-		return strconv.FormatFloat(value, 'f', 0, 64)
-	}
-	return strconv.FormatFloat(value, 'g', -1, 64)
 }
 
 func mtimeMilliseconds(moment time.Time) float64 {
@@ -917,32 +860,15 @@ type commandOutput struct {
 	ok   bool
 }
 
-func gitOutput(root string, args ...string) (commandOutput, error) {
-	command := exec.Command("git", args...)
-	command.Dir = root
-	command.Stderr = io.Discard
-	output, err := command.Output()
+func gitOutput(ctx context.Context, root string, args ...string) (commandOutput, error) {
+	stdout, exitCode, err := workspace.RunGit(ctx, root, args...)
 	if err != nil {
-		var exitError *exec.ExitError
-		if errors.As(err, &exitError) {
-			return commandOutput{}, nil
-		}
-		return commandOutput{}, spawnError(err)
+		return commandOutput{}, err
 	}
-	return commandOutput{text: strings.TrimSpace(string(output)), ok: true}, nil
-}
-
-func spawnError(err error) error {
-	if errors.Is(err, exec.ErrNotFound) || os.IsNotExist(err) {
-		return errors.New("ENOENT: no such file or directory, posix_spawn 'git'")
+	if exitCode != 0 {
+		return commandOutput{}, nil
 	}
-	if os.IsPermission(err) {
-		return errors.New("EACCES: permission denied, posix_spawn 'git'")
-	}
-	if errors.Is(err, syscall.ENOTDIR) {
-		return errors.New("ENOTDIR: not a directory, posix_spawn 'git'")
-	}
-	return err
+	return commandOutput{text: strings.TrimSpace(stdout), ok: true}, nil
 }
 
 func nodeIOError(err error, syscallName string, path string) error {

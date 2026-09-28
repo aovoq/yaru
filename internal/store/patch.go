@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/aovoq/yaru/internal/document"
 )
 
 // 本文の部分更新。失敗した操作があると、それより前の操作もファイルには残さない。
@@ -42,7 +44,7 @@ func ParsePatch(value any) ([]PatchOp, error) {
 		return nil, issueErrString("invalid patch: expected a JSON array of operations, actual " + actual)
 	}
 	if len(items) < issuePatchOperationMinimum || len(items) > issuePatchOperationMaximum {
-		return nil, fmt.Errorf("invalid patch: expected 1 to 50 operations, actual %d", len(items))
+		return nil, issueErrString(fmt.Sprintf("invalid patch: expected 1 to 50 operations, actual %d", len(items)))
 	}
 	operations := make([]PatchOp, 0, len(items))
 	for _, item := range items {
@@ -287,14 +289,14 @@ func issueActualValue(value any) (string, error) {
 	}
 	switch typed := value.(type) {
 	case string:
-		return issueQuoteJavaScript(typed)
+		return document.Quote(typed)
 	case bool:
 		if typed {
 			return "true", nil
 		}
 		return "false", nil
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
-		return issueFormatJavaScriptNumber(issueAsFloatUnchecked(typed)), nil
+		return document.FormatNumber(issueAsFloatUnchecked(typed)), nil
 	}
 	reflected := reflect.ValueOf(value)
 	switch reflected.Kind() {

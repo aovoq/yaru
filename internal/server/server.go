@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/user"
 	"strconv"
 	"syscall"
 	"time"
@@ -121,6 +122,26 @@ func listenPort(configuration Configuration) (int, error) {
 	return port, nil
 }
 
+// stateDirectory は登録の slug を探す場所。api と同じ解決で、循環 import を避けるためこちらにも置く。
+// src/workspaces.ts:18-21
+// https://specifications.freedesktop.org/basedir-spec/latest/
+func stateDirectory() string {
+	return workspace.StateDirectory(os.Getenv("YARU_STATE_DIR"), os.Getenv("XDG_STATE_HOME"), homeDirectory())
+}
+
+// homeDirectory は HOME が空でなければそれ、無ければユーザーの home、失敗なら空。
+// https://pubs.opengroup.org/onlinepubs/9699919799/functions/getpwuid.html
+func homeDirectory() string {
+	if home := os.Getenv("HOME"); home != "" {
+		return home
+	}
+	current, err := user.Current()
+	if err != nil {
+		return ""
+	}
+	return current.HomeDir
+}
+
 // New は YARU_NOW と公開 host を検査する。待ち受けはまだしない (src/web.tsx:613-615)。
 func New(configuration Configuration) (*Server, error) {
 	if configuration.LogOutput == nil {
@@ -135,8 +156,10 @@ func New(configuration Configuration) (*Server, error) {
 	if configuration.WatchPoll <= 0 {
 		configuration.WatchPoll = DefaultWatchPoll
 	}
-	if _, err := clock.Now(); err != nil {
-		return nil, err
+	if value, exists := os.LookupEnv("YARU_NOW"); exists {
+		if _, err := clock.ParseYaruNow(value); err != nil {
+			return nil, err
+		}
 	}
 	publicHost, err := resolvePublicHost(configuration)
 	if err != nil {
@@ -210,7 +233,7 @@ func (server *Server) Start() (*Running, error) {
 	if server.configuration.WireServices {
 		// 期限と止まった issue の見回り。src/web.tsx:640-661 。公開 URL の頭は実際に bind したポート。
 		baseURL := fmt.Sprintf("http://127.0.0.1:%d", tcpAddress.Port)
-		running.stopNotifications = api.WatchNotifications(workspace.StateDirectory(), baseURL, func(line string) {
+		running.stopNotifications = api.WatchNotifications(stateDirectory(), baseURL, func(line string) {
 			writeLine(server.configuration.LogOutput, line)
 		})
 	}

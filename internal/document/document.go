@@ -1,3 +1,5 @@
+//declscope:namespace document
+
 // .yaru の Markdown ファイル (frontmatter と本文) と、TS 版の JSON.stringify と同じバイト列の JSON を読み書きする土台
 // TS 版の src/store.ts の parseFrontmatter と formatDocument、src/issue-events.ts と src/questions.ts の JSON.stringify に当たる
 // 仕様は docs/spec/yaru-format.md
@@ -6,8 +8,9 @@ package document
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"strings"
+
+	"github.com/aovoq/yaru/internal/errs"
 )
 
 // Field は frontmatter の 1 行。TS 版の [key, value] の組に当たり、書き出す順を保つ
@@ -28,12 +31,12 @@ type Document struct {
 func Parse(text string) (Document, error) {
 	normalized := strings.ReplaceAll(text, "\r\n", "\n")
 	if !strings.HasPrefix(normalized, "---\n") {
-		return Document{}, errors.New("invalid issue file")
+		return Document{}, errs.Wrap("invalid issue file", errs.ErrInvalidArgument)
 	}
 	// 開きの `---\n` は 4 バイト。閉じは位置 4 以降の最初の `\n---\n` (src/store.ts:791-792)
 	closingOffset := strings.Index(normalized[4:], "\n---\n")
 	if closingOffset < 0 {
-		return Document{}, errors.New("invalid issue file")
+		return Document{}, errs.Wrap("invalid issue file", errs.ErrInvalidArgument)
 	}
 	closingIndex := 4 + closingOffset
 	raw := normalized[4:closingIndex]

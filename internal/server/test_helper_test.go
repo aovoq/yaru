@@ -3,6 +3,7 @@
 package server
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -134,7 +135,7 @@ func initWorkspace(t *testing.T, stateDirectory string, name string) (string, st
 	if err := os.WriteFile(filepath.Join(root, ".yaru", "config.yml"), []byte("publicUrl: https://evil.example\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	registered, err := workspace.RegisterIn(root, stateDirectory)
+	registered, err := workspace.RegisterIn(context.Background(), root, stateDirectory)
 	if err != nil {
 		t.Fatal(err)
 	}

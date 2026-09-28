@@ -6,14 +6,17 @@
 package workspace
 
 import (
-	"errors"
+	"context"
 	"os"
 	"syscall"
+
+	"github.com/aovoq/yaru/internal/document"
+	"github.com/aovoq/yaru/internal/errs"
 )
 
 var (
-	errNotWorkspace     = errors.New("not a yaru workspace (run yaru init)")
-	errAlreadyWorkspace = errors.New("already a yaru workspace")
+	errNotWorkspace     = errs.Wrap("not a yaru workspace (run yaru init)", errs.ErrNotFound)
+	errAlreadyWorkspace = errs.Wrap("already a yaru workspace", errs.ErrConflict)
 )
 
 // Workspace は開いたワークスペース。Root は getcwd(3) と同じ物理パス、Directory は使う .yaru のパス (git の worktree の中では main worktree の .yaru)
@@ -26,7 +29,10 @@ type Workspace struct {
 // os.Getwd は環境変数 PWD が同じディレクトリを指すとその文字列を返す。Bun の process.cwd() は getcwd(3) なので、こちらを使う
 // docs/spec/yaru-format.md の「状態ディレクトリ」
 // https://pubs.opengroup.org/onlinepubs/9699919799/functions/getcwd.html
-func WorkingDirectory() (string, error) {
+func WorkingDirectory(ctx context.Context) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	directory, err := syscall.Getwd()
 	if err != nil {
 		return "", err
@@ -36,8 +42,8 @@ func WorkingDirectory() (string, error) {
 
 // Open は TS 版の open(findRoot(workingDirectory)) と同じ規則で、作業ディレクトリからワークスペースを探して開く
 // src/store.ts:121-130 src/store.ts:162-165
-func Open(workingDirectory string) (Workspace, error) {
-	root, err := FindRoot(workingDirectory)
+func Open(ctx context.Context, workingDirectory string) (Workspace, error) {
+	root, err := FindRoot(ctx, workingDirectory)
 	if err != nil {
 		return Workspace{}, err
 	}
@@ -54,7 +60,10 @@ func openRoot(root string) (Workspace, error) {
 
 // Init は TS 版の init と同じく、渡されたディレクトリに .yaru を作る。findRoot は使わない
 // src/store.ts:168-174 docs/spec/yaru-format.md の「ディレクトリ」
-func Init(workingDirectory string) (Workspace, error) {
+func Init(ctx context.Context, workingDirectory string) (Workspace, error) {
+	if err := ctx.Err(); err != nil {
+		return Workspace{}, err
+	}
 	directory := nodeJoin(workingDirectory, ".yaru")
 	if exists(nodeJoin(directory, "config.yml")) {
 		return Workspace{}, errAlreadyWorkspace
@@ -75,12 +84,12 @@ func Init(workingDirectory string) (Workspace, error) {
 // GitName は TS 版の gitName と同じく、作業ディレクトリで git config user.name を読み、空か失敗なら "me" を返す
 // 終了コードは見ない。標準出力を trim して空なら me
 // src/store.ts:464-468 docs/spec/yaru-format.md の「git の名前」
-func GitName(workingDirectory string) string {
-	stdout, _, err := executeGit(workingDirectory, "config", "user.name")
+func GitName(ctx context.Context, workingDirectory string) string {
+	stdout, _, err := RunGit(ctx, workingDirectory, "config", "user.name")
 	if err != nil {
 		return "me"
 	}
-	name := javascriptTrim(stdout)
+	name := document.Trim(stdout)
 	if name == "" {
 		return "me"
 	}
@@ -89,7 +98,7 @@ func GitName(workingDirectory string) string {
 
 // Register は TS 版の registerWorkspace と同じく、状態ディレクトリの workspaces.json にワークスペースを載せる
 // src/workspaces.ts:24-39 src/index.ts:733-734
-func Register(workspace Workspace) error {
-	_, err := RegisterIn(workspace.Root, StateDirectory())
+func Register(ctx context.Context, opened Workspace, stateDirectory string) error {
+	_, err := RegisterIn(ctx, opened.Root, stateDirectory)
 	return err
 }

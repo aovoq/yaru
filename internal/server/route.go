@@ -206,7 +206,7 @@ func workspacePageSlug(urlPath string) (string, bool) {
 }
 
 func (application *httpApplication) serveWorkspacePage(responseWriter http.ResponseWriter, request *http.Request, slug string) {
-	if _, found := workspace.Find(slug, workspace.StateDirectory()); !found {
+	if _, found := workspace.Find(request.Context(), slug, stateDirectory()); !found {
 		// 登録の無い slug も画面の 404。文は SPA が path から出す。src/web.tsx:566-573。
 		// docs/spec/routes.md の「SPA が受け取る path」
 		application.serveSPA(responseWriter, request, http.StatusNotFound)

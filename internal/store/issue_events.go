@@ -4,12 +4,14 @@ package store
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/aovoq/yaru/internal/document"
+	"github.com/aovoq/yaru/internal/fsutil"
 	"github.com/aovoq/yaru/internal/workspace"
 )
 
@@ -19,9 +21,14 @@ import (
 // https://jsonlines.org/
 // src/issue-events.ts、docs/spec/yaru-format.md の「event」。
 
-// TrackedIssueFields は履歴に残す属性。この順に、変わったものだけを出す。
+// trackedIssueFields は履歴に残す属性。この順に、変わったものだけを出す。
 // 本文と時刻の派生値は残さない。src/issue-events.ts:12-21
-var TrackedIssueFields = []string{"title", "status", "assignee", "labels", "dueDate", "priority", "parent", "blocks"}
+var trackedIssueFields = []string{"title", "status", "assignee", "labels", "dueDate", "priority", "parent", "blocks"}
+
+// TrackedIssueFields は履歴に残す属性の写しを返す。
+func TrackedIssueFields() []string {
+	return append([]string{}, trackedIssueFields...)
+}
 
 // IssueEvent は 1 行の履歴。キー順は field, from, to, by, session, at。src/issue-events.ts:26-35
 type IssueEvent struct {
@@ -79,23 +86,33 @@ func DiffIssue(before Issue, after Issue) []IssueChange {
 
 // AppendIssueEvents は差が 1 つも無ければファイルもディレクトリも作らない。
 // 既存のファイルが改行で終わっていなくても、末尾へ足す。src/issue-events.ts:50-63
-func AppendIssueEvents(space workspace.Workspace, issueID string, changes []IssueChange, context IssueEventContext) error {
+// イベントファイルだけをロックする。issue ファイルのロックは取り直さない。
+func AppendIssueEvents(ctx context.Context, space workspace.Workspace, issueID string, changes []IssueChange, eventContext IssueEventContext) error {
 	if len(changes) == 0 {
 		return nil
+	}
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 	directory := filepath.Join(space.Directory, "events")
 	if err := os.MkdirAll(directory, 0o777); err != nil {
 		return err
 	}
+	eventPath := filepath.Join(directory, issueID+".jsonl")
+	unlock, err := fsutil.Lock(ctx, eventPath)
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	lines := make([]string, 0, len(changes))
 	for _, change := range changes {
 		encoded, err := document.MarshalJavaScript(IssueEvent{
 			Field:   change.Field,
 			From:    change.From,
 			To:      change.To,
-			By:      context.By,
-			Session: context.Session,
-			At:      context.At,
+			By:      eventContext.By,
+			Session: eventContext.Session,
+			At:      eventContext.At,
 		})
 		if err != nil {
 			return err
@@ -103,7 +120,7 @@ func AppendIssueEvents(space workspace.Workspace, issueID string, changes []Issu
 		lines = append(lines, string(encoded))
 	}
 	payload := strings.Join(lines, "\n") + "\n"
-	file, err := os.OpenFile(filepath.Join(directory, issueID+".jsonl"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o666)
+	file, err := os.OpenFile(eventPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o666)
 	if err != nil {
 		return err
 	}
@@ -117,7 +134,10 @@ func AppendIssueEvents(space workspace.Workspace, issueID string, changes []Issu
 
 // IssueEvents は issue のファイルが無いときだけエラーにする。壊れた行は飛ばし、ファイルは消さない。
 // src/issue-events.ts:65-78
-func IssueEvents(space workspace.Workspace, issueID string) ([]IssueEvent, error) {
+func IssueEvents(ctx context.Context, space workspace.Workspace, issueID string) ([]IssueEvent, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	issuePath := filepath.Join(space.Directory, "issues", issueID+".md")
 	if _, err := os.Stat(issuePath); err != nil {
 		if os.IsNotExist(err) {
@@ -134,7 +154,7 @@ func IssueEvents(space workspace.Workspace, issueID string) ([]IssueEvent, error
 	}
 	events := []IssueEvent{}
 	for _, line := range strings.Split(string(content), "\n") {
-		if issueJavascriptTrim(line) == "" {
+		if document.Trim(line) == "" {
 			continue
 		}
 		event, ok := issueParseEventLine(line)
@@ -184,7 +204,7 @@ func issueParseEventLine(line string) (IssueEvent, bool) {
 }
 
 func issueIsTrackedField(field string) bool {
-	for _, tracked := range TrackedIssueFields {
+	for _, tracked := range TrackedIssueFields() {
 		if tracked == field {
 			return true
 		}

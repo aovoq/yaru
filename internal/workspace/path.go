@@ -3,6 +3,7 @@
 package workspace
 
 import (
+	"context"
 	"os"
 	"strings"
 )
@@ -66,9 +67,9 @@ func nodeNormalize(path string) string {
 	return normalized
 }
 
-func nodeResolve(path string) string {
+func nodeResolve(ctx context.Context, path string) string {
 	if path == "" || path[0] != '/' {
-		workingDirectory, err := WorkingDirectory()
+		workingDirectory, err := WorkingDirectory(ctx)
 		if err != nil || workingDirectory == "" {
 			path = "/" + path
 		} else {
@@ -78,12 +79,12 @@ func nodeResolve(path string) string {
 	return nodeNormalize(path)
 }
 
-func nodeRelative(from string, to string) string {
+func nodeRelative(ctx context.Context, from string, to string) string {
 	if from == to {
 		return ""
 	}
-	from = nodeResolve(from)
-	to = nodeResolve(to)
+	from = nodeResolve(ctx, from)
+	to = nodeResolve(ctx, to)
 	if from == to {
 		return ""
 	}

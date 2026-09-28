@@ -6,11 +6,11 @@ import (
 
 	"connectrpc.com/connect"
 	yaruv1 "github.com/aovoq/yaru/gen/yaru/v1"
-	"github.com/aovoq/yaru/internal/clock"
 	"github.com/aovoq/yaru/internal/questions"
 	"github.com/aovoq/yaru/internal/repository"
 	"github.com/aovoq/yaru/internal/sessions"
 	"github.com/aovoq/yaru/internal/store"
+	"github.com/aovoq/yaru/internal/workspace"
 )
 
 // dashboardService は dashboard が 1 度に読む質問、issue、セッション、git。
@@ -20,15 +20,16 @@ type dashboardService struct {
 }
 
 func (service *dashboardService) GetDashboard(ctx context.Context, request *connect.Request[yaruv1.GetDashboardRequest]) (*connect.Response[yaruv1.GetDashboardResponse], error) {
-	moment, err := clock.Now()
+	moment, now, err := readNow()
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
-	opened, err := openRegistered(service.stateDirectory, request.Msg.GetWorkspace())
+	opened, err := openRegistered(ctx, service.stateDirectory, request.Msg.GetWorkspace())
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
-	listedQuestions, err := questions.ListQuestions(questionDirectory(opened), questions.QuestionFilter{}, &moment)
+	questionService := questions.NewService()
+	listedQuestions, err := questionService.ListQuestions(ctx, questionDirectory(opened), questions.QuestionFilter{}, moment)
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
@@ -36,7 +37,7 @@ func (service *dashboardService) GetDashboard(ctx context.Context, request *conn
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
-	listedIssues, err := store.ListIssues(opened, store.Filter{}, &moment)
+	listedIssues, err := store.ListIssues(ctx, opened, store.Filter{}, moment, workspace.GitName(ctx, opened.Root))
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
@@ -44,7 +45,8 @@ func (service *dashboardService) GetDashboard(ctx context.Context, request *conn
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
-	health, err := sessions.ReadSessionHealth(opened.Root, sessions.HealthOptions{Now: &moment})
+	reader := sessions.NewReader()
+	health, err := reader.ReadHealth(ctx, opened.Root, sessions.HealthOptions{Home: homeDirectory(), Now: moment})
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
@@ -52,7 +54,7 @@ func (service *dashboardService) GetDashboard(ctx context.Context, request *conn
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
-	state, err := repository.ReadRepositoryState(opened.Root)
+	state, err := repository.ReadRepositoryState(ctx, opened.Root)
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
@@ -65,6 +67,6 @@ func (service *dashboardService) GetDashboard(ctx context.Context, request *conn
 		Issues:        convertedIssues,
 		SessionHealth: convertedHealth,
 		Repository:    convertedRepository,
-		Now:           clock.ISOString(moment),
+		Now:           now,
 	}), nil
 }

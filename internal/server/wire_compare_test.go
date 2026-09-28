@@ -4,6 +4,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -134,10 +135,10 @@ func duplicateFixture(t *testing.T, source string, stateDirectory string) (strin
 	tsCopy := filepath.Join(t.TempDir(), "ts-copy")
 	copyFixture(t, source, goCopy)
 	copyFixture(t, source, tsCopy)
-	if _, err := workspace.RegisterIn(goCopy, stateDirectory); err != nil {
+	if _, err := workspace.RegisterIn(context.Background(), goCopy, stateDirectory); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := workspace.RegisterIn(tsCopy, stateDirectory); err != nil {
+	if _, err := workspace.RegisterIn(context.Background(), tsCopy, stateDirectory); err != nil {
 		t.Fatal(err)
 	}
 	return goCopy, tsCopy

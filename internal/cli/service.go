@@ -4,9 +4,11 @@
 package cli
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
 	"time"
@@ -56,29 +58,43 @@ func defaultServices() services {
 
 func (active services) withDefaults() services {
 	if active.now == nil {
-		active.now = clock.Now
+		active.now = currentTime
 	}
 	if active.workingDirectory == nil {
-		active.workingDirectory = workspace.WorkingDirectory
+		active.workingDirectory = func() (string, error) {
+			return workspace.WorkingDirectory(context.Background())
+		}
 	}
 	if active.init == nil {
-		active.init = workspace.Init
+		active.init = func(workingDirectory string) (workspace.Workspace, error) {
+			return workspace.Init(context.Background(), workingDirectory)
+		}
 	}
 	if active.open == nil {
-		active.open = workspace.Open
+		active.open = func(workingDirectory string) (workspace.Workspace, error) {
+			return workspace.Open(context.Background(), workingDirectory)
+		}
 	}
 	if active.register == nil {
-		active.register = workspace.Register
+		active.register = func(opened workspace.Workspace) error {
+			return workspace.Register(context.Background(), opened, stateDirectory())
+		}
 	}
 	if active.findSlug == nil {
-		active.findSlug = workspace.Slug
+		active.findSlug = func(root string) (string, error) {
+			return workspace.Slug(context.Background(), root, stateDirectory())
+		}
 	}
 	if active.ensureQuestionsDirectory == nil {
 		active.ensureQuestionsDirectory = ensureQuestionsDirectory
 	}
 	if active.listIssues == nil {
 		active.listIssues = func(opened workspace.Workspace, filter store.Filter) ([]store.Issue, error) {
-			return store.ListIssues(opened, filter, nil)
+			moment, author, err := momentAndAuthor(active, opened)
+			if err != nil {
+				return nil, err
+			}
+			return store.ListIssues(context.Background(), opened, filter, moment, author)
 		}
 	}
 	if active.pageIssues == nil {
@@ -88,50 +104,99 @@ func (active services) withDefaults() services {
 	}
 	if active.getIssue == nil {
 		active.getIssue = func(opened workspace.Workspace, issueID string) (store.Issue, error) {
-			return store.GetIssue(opened, issueID, nil)
+			moment, author, err := momentAndAuthor(active, opened)
+			if err != nil {
+				return store.Issue{}, err
+			}
+			return store.GetIssue(context.Background(), opened, issueID, moment, author)
 		}
 	}
 	if active.saveIssue == nil {
-		active.saveIssue = store.SaveIssue
+		active.saveIssue = func(opened workspace.Workspace, input store.SaveInput, options store.SaveOptions) (store.Issue, error) {
+			moment, author, err := momentAndAuthor(active, opened)
+			if err != nil {
+				return store.Issue{}, err
+			}
+			if options.Now.IsZero() {
+				options.Now = moment
+			}
+			if options.Author == "" {
+				options.Author = author
+			}
+			return store.SaveIssue(context.Background(), opened, input, options)
+		}
 	}
 	if active.listComments == nil {
 		active.listComments = func(opened workspace.Workspace, issueID string) ([]store.Comment, error) {
-			return store.ListComments(opened.Directory, issueID)
+			moment, author, err := momentAndAuthor(active, opened)
+			if err != nil {
+				return nil, err
+			}
+			return store.ListComments(context.Background(), opened, issueID, moment, author)
 		}
 	}
 	if active.getComment == nil {
 		active.getComment = func(opened workspace.Workspace, commentID string) (store.Comment, error) {
-			return store.GetComment(opened.Directory, commentID)
+			_, author, err := momentAndAuthor(active, opened)
+			if err != nil {
+				return store.Comment{}, err
+			}
+			return store.GetComment(context.Background(), opened, commentID, author)
 		}
 	}
 	if active.saveComment == nil {
 		active.saveComment = func(opened workspace.Workspace, input store.SaveCommentInput) (store.Comment, error) {
-			return store.SaveComment(opened.Directory, input)
+			moment, author, err := momentAndAuthor(active, opened)
+			if err != nil {
+				return store.Comment{}, err
+			}
+			return store.SaveComment(context.Background(), opened, input, moment, author)
 		}
 	}
+	questionService := questions.NewService()
 	if active.listQuestions == nil {
 		active.listQuestions = func(opened workspace.Workspace, filter questions.QuestionFilter) ([]questions.Question, error) {
-			return questions.ListQuestions(questions.Directory{Dir: opened.Directory}, filter, nil)
+			moment, err := active.now()
+			if err != nil {
+				return nil, err
+			}
+			return questionService.ListQuestions(context.Background(), questions.Directory{Dir: opened.Directory}, filter, moment)
 		}
 	}
 	if active.getQuestion == nil {
 		active.getQuestion = func(opened workspace.Workspace, questionID string) (questions.Question, error) {
-			return questions.GetQuestion(questions.Directory{Dir: opened.Directory}, questionID, nil)
+			moment, err := active.now()
+			if err != nil {
+				return questions.Question{}, err
+			}
+			return questionService.GetQuestion(context.Background(), questions.Directory{Dir: opened.Directory}, questionID, moment)
 		}
 	}
 	if active.acknowledgeQuestion == nil {
 		active.acknowledgeQuestion = func(opened workspace.Workspace, questionID string) (questions.Question, error) {
-			return questions.AcknowledgeQuestion(questions.Directory{Dir: opened.Directory}, questionID, nil)
+			moment, err := active.now()
+			if err != nil {
+				return questions.Question{}, err
+			}
+			return questionService.AcknowledgeQuestion(context.Background(), questions.Directory{Dir: opened.Directory}, questionID, moment)
 		}
 	}
 	if active.saveQuestion == nil {
 		active.saveQuestion = func(opened workspace.Workspace, input questions.SaveInput) (questions.Question, error) {
-			return questions.SaveQuestion(questions.Directory{Dir: opened.Directory}, storeIssues{}, input, nil)
+			moment, author, err := momentAndAuthor(active, opened)
+			if err != nil {
+				return questions.Question{}, err
+			}
+			return questionService.SaveQuestion(context.Background(), questions.Directory{Dir: opened.Directory}, storeIssues{}, input, moment, author)
 		}
 	}
 	if active.answerQuestion == nil {
 		active.answerQuestion = func(opened workspace.Workspace, questionID string, input questions.AnswerInput) (questions.Question, error) {
-			return questions.AnswerQuestion(questions.Directory{Dir: opened.Directory}, storeIssues{}, questionID, input, nil)
+			moment, author, err := momentAndAuthor(active, opened)
+			if err != nil {
+				return questions.Question{}, err
+			}
+			return questionService.AnswerQuestion(context.Background(), questions.Directory{Dir: opened.Directory}, storeIssues{}, questionID, input, moment, author)
 		}
 	}
 	if active.readProvenance == nil {
@@ -208,7 +273,7 @@ func notifyQuestionCreated(opened workspace.Workspace, url string, question ques
 }
 
 func ensureQuestionsDirectory(opened workspace.Workspace) error {
-	_, err := questions.EnsureQuestionsDirectory(questions.Directory{Dir: opened.Directory})
+	_, err := questions.NewService().EnsureQuestionsDirectory(context.Background(), questions.Directory{Dir: opened.Directory})
 	return err
 }
 
@@ -216,13 +281,13 @@ func ensureQuestionsDirectory(opened workspace.Workspace) error {
 // src/questions.ts:580-584 src/questions.ts:236-245
 type storeIssues struct{}
 
-func (storeIssues) GetIssue(directory questions.Directory, issueID string) error {
-	_, err := store.GetIssue(workspace.Workspace{Root: filepath.Dir(directory.Dir), Directory: directory.Dir}, issueID, nil)
+func (storeIssues) GetIssue(ctx context.Context, directory questions.Directory, issueID string, now time.Time, author string) error {
+	_, err := store.GetIssue(ctx, workspace.Workspace{Root: filepath.Dir(directory.Dir), Directory: directory.Dir}, issueID, now, author)
 	return err
 }
 
-func (storeIssues) SaveComment(directory questions.Directory, issueID string, body string) error {
-	_, err := store.SaveComment(directory.Dir, store.SaveCommentInput{Issue: &issueID, Body: &body})
+func (storeIssues) SaveComment(ctx context.Context, directory questions.Directory, issueID string, body string, now time.Time, author string) error {
+	_, err := store.SaveComment(ctx, workspace.Workspace{Root: filepath.Dir(directory.Dir), Directory: directory.Dir}, store.SaveCommentInput{Issue: &issueID, Body: &body}, now, author)
 	return err
 }
 
@@ -234,7 +299,40 @@ func readWorkspaceProvenance(workingDirectory string, environment []string) (wor
 			mapped[name] = value
 		}
 	}
-	return workspace.ReadProvenance(workingDirectory, mapped)
+	return workspace.ReadProvenance(context.Background(), workingDirectory, mapped)
+}
+
+// currentTime は YARU_NOW を読む唯一の場所のひとつ。空では無い値だけ固定し、未設定なら今。
+// src/time.ts:43-45
+func currentTime() (time.Time, error) {
+	value, exists := os.LookupEnv("YARU_NOW")
+	if !exists {
+		return time.Now(), nil
+	}
+	return clock.ParseYaruNow(value)
+}
+
+func stateDirectory() string {
+	return workspace.StateDirectory(os.Getenv("YARU_STATE_DIR"), os.Getenv("XDG_STATE_HOME"), homeDirectory())
+}
+
+func homeDirectory() string {
+	if home := os.Getenv("HOME"); home != "" {
+		return home
+	}
+	current, err := user.Current()
+	if err != nil {
+		return ""
+	}
+	return current.HomeDir
+}
+
+func momentAndAuthor(active services, opened workspace.Workspace) (time.Time, string, error) {
+	moment, err := active.now()
+	if err != nil {
+		return time.Time{}, "", err
+	}
+	return moment, workspace.GitName(context.Background(), opened.Root), nil
 }
 
 func processEnvironment(environment []string) []string {

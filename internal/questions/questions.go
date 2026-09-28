@@ -4,6 +4,7 @@
 package questions
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -18,7 +19,9 @@ import (
 
 	"github.com/aovoq/yaru/internal/clock"
 	"github.com/aovoq/yaru/internal/document"
-	"github.com/aovoq/yaru/internal/workspace"
+	"github.com/aovoq/yaru/internal/errs"
+	"github.com/aovoq/yaru/internal/fsutil"
+	"github.com/aovoq/yaru/internal/store"
 )
 
 // 回答は本文の後ろに区切りを挟んで書く。frontmatter は 1 行ずつなので複数行の回答を置けないため (src/questions.ts:29-30)
@@ -30,28 +33,34 @@ const ExpiringNoticeMilliseconds = 15 * 60_000
 // 答えてから取り消せるまでの時間 (src/questions.ts:250-252)
 const UndoAnswerMilliseconds = 30_000
 
-// StoredQuestionStatuses はファイルに書く status。answered と expired は書かない (src/questions.ts:25)
-var StoredQuestionStatuses = []string{"open", "canceled"}
+// StoredQuestionStatuses はファイルに書く status の写し。 answered と expired は書かない (src/questions.ts:25)。
+func StoredQuestionStatuses() []string {
+	return []string{"open", "canceled"}
+}
 
-// QuestionStatuses は読むときに決まる状態 (src/questions.ts:26)
-var QuestionStatuses = []string{"open", "expired", "answered", "canceled"}
+// QuestionStatuses は読むときに決まる状態の写し (src/questions.ts:26)。
+func QuestionStatuses() []string {
+	return []string{"open", "expired", "answered", "canceled"}
+}
 
-// 優先度は issue と同じ列挙。internal/store は別の作業が作っている (src/store.ts:17)
-var priorities = []string{"urgent", "high", "medium", "low"}
-
-// 時刻、JSON、frontmatter、作業ディレクトリは土台の関数を使う。
-// time.Now、encoding/json の既定、os.Getwd は使わない。
+// Service は質問の読み書き。時刻と著者は引数で、 YARU_NOW と git は読まない。
 // docs/spec/yaru-format.md の「時刻」「JSON の escape」「共通の frontmatter」
-var (
-	formatDocument    = document.Format
-	parseDocument     = document.Parse
-	marshalJavaScript = document.MarshalJavaScript
-	currentTime       = clock.Now
-	isoString         = clock.ISOString
-	workingDirectory  = workspace.WorkingDirectory
-	gitName           = workspace.GitName
-	createFile        = createExclusive
-)
+type Service struct {
+	formatDocument    func(fields []document.Field, body string) string
+	parseDocument     func(text string) (document.Document, error)
+	marshalJavaScript func(value any) ([]byte, error)
+	isoString         func(moment time.Time) string
+}
+
+// NewService は frontmatter と ISO 時刻の既定を document と clock にする。
+func NewService() *Service {
+	return &Service{
+		formatDocument:    document.Format,
+		parseDocument:     document.Parse,
+		marshalJavaScript: document.MarshalJavaScript,
+		isoString:         clock.ISOString,
+	}
+}
 
 // Directory は質問ファイルを置く .yaru ディレクトリ。TS 版の Store.dir (src/store.ts:114-117)
 type Directory struct {
@@ -59,11 +68,11 @@ type Directory struct {
 }
 
 // IssueRecords は issue の存在確認と、期限後の回答をコメントへ写すこと。
-// 中身は internal/store。getIssue は staleAfter も検査する (src/questions.ts:580-584, src/store.ts:236)。
-// コメントの時刻は saveComment 自身が currentTime で決める (src/questions.ts:236-245, src/store.ts:661-662)。
+// 中身は internal/store。 getIssue は staleAfter も検査する (src/questions.ts:580-584, src/store.ts:236)。
+// コメントの時刻と著者は引数の now と author (src/questions.ts:236-245)。
 type IssueRecords interface {
-	GetIssue(directory Directory, id string) error
-	SaveComment(directory Directory, issueID string, body string) error
+	GetIssue(ctx context.Context, directory Directory, id string, now time.Time, author string) error
+	SaveComment(ctx context.Context, directory Directory, issueID string, body string, now time.Time, author string) error
 }
 
 // Provenance は質問を作ったエージェントの出どころ。作成時だけコピーする (src/questions.ts:172-174, src/provenance.ts:6-13)
@@ -150,130 +159,178 @@ type QuestionConflictError struct {
 
 func (err *QuestionConflictError) Error() string { return err.message }
 
+// Unwrap は errors.Is が errs.ErrConflict に届くようにする。 Error() の文は message のまま。
+// https://www.rfc-editor.org/rfc/rfc9110#section-15.5.10
+func (err *QuestionConflictError) Unwrap() error {
+	return fmt.Errorf("%s: %w", err.message, errs.ErrConflict)
+}
+
 type storedQuestion struct {
 	Question
 	canceled bool
 }
 
-// SaveQuestion は質問を作るか、id があれば更新する (src/questions.ts:119-193)
-func SaveQuestion(directory Directory, records IssueRecords, input SaveInput, now *time.Time) (Question, error) {
-	moment, err := resolveNow(now)
+type preparedQuestion struct {
+	storedStatus  *string
+	timestamp     string
+	priority      *string
+	prioritySet   bool
+	answerBy      *string
+	answerBySet   bool
+	defaultAction *string
+	defaultSet    bool
+	issue         *string
+	issueSet      bool
+	options       []string
+	optionsSet    bool
+}
+
+// SaveQuestion は質問を作るか、 id があれば更新する。
+// 更新は質問ファイルを、作成は questions ディレクトリをロックしてから書く (src/questions.ts:119-193)。
+func (service *Service) SaveQuestion(ctx context.Context, directory Directory, records IssueRecords, input SaveInput, now time.Time, author string) (Question, error) {
+	if err := ctx.Err(); err != nil {
+		return Question{}, err
+	}
+	prepared, err := service.prepareSave(ctx, directory, records, input, now, author)
 	if err != nil {
 		return Question{}, err
 	}
-	var storedStatus *string
+	if input.ID != nil && *input.ID != "" {
+		return service.updateQuestion(ctx, directory, input, now, prepared)
+	}
+	return service.createQuestion(ctx, directory, input, now, author, prepared)
+}
+
+func (service *Service) prepareSave(ctx context.Context, directory Directory, records IssueRecords, input SaveInput, now time.Time, author string) (preparedQuestion, error) {
+	prepared := preparedQuestion{timestamp: service.isoString(now)}
 	if input.Status != nil {
 		resolved, statusErr := resolveStoredStatus(*input.Status)
 		if statusErr != nil {
-			return Question{}, statusErr
+			return preparedQuestion{}, statusErr
 		}
-		storedStatus = &resolved
+		prepared.storedStatus = &resolved
 	}
-	timestamp := isoString(moment)
 	priority, prioritySet, err := resolvePriority(input.Priority)
 	if err != nil {
-		return Question{}, err
+		return preparedQuestion{}, err
 	}
-	answerBy, answerBySet, err := ResolveAnswerBy(input.AnswerBy, moment)
+	prepared.priority = priority
+	prepared.prioritySet = prioritySet
+	answerBy, answerBySet, err := ResolveAnswerBy(input.AnswerBy, now)
 	if err != nil {
-		return Question{}, err
+		return preparedQuestion{}, err
 	}
-	defaultAction, defaultSet := resolveSingleLine(input.DefaultAction)
-	issue, issueSet, err := resolveIssue(directory, records, input.Issue)
+	prepared.answerBy = answerBy
+	prepared.answerBySet = answerBySet
+	prepared.defaultAction, prepared.defaultSet = resolveSingleLine(input.DefaultAction)
+	issue, issueSet, err := resolveIssue(ctx, directory, records, input.Issue, now, author)
 	if err != nil {
-		return Question{}, err
+		return preparedQuestion{}, err
 	}
+	prepared.issue = issue
+	prepared.issueSet = issueSet
 	options, optionsSet, err := resolveOptions(input.Options)
 	if err != nil {
-		return Question{}, err
+		return preparedQuestion{}, err
 	}
+	prepared.options = options
+	prepared.optionsSet = optionsSet
 	if input.Body != nil {
 		if err := assertBody(*input.Body); err != nil {
-			return Question{}, err
+			return preparedQuestion{}, err
 		}
 	}
-	if input.ID != nil && *input.ID != "" {
-		path := questionPath(directory, *input.ID)
-		if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
-			return Question{}, fmt.Errorf("question not found: %s", *input.ID)
-		}
-		current, readErr := readQuestion(path, *input.ID)
-		if readErr != nil {
-			return Question{}, readErr
-		}
-		if input.Title != nil && jsTrim(*input.Title) == "" {
-			quoted, quoteErr := javaScriptString(*input.Title)
-			if quoteErr != nil {
-				return Question{}, quoteErr
-			}
-			return Question{}, fmt.Errorf("invalid title: expected a non-empty string, actual %s", quoted)
-		}
-		canceled := current.canceled
-		if storedStatus != nil {
-			canceled = *storedStatus == "canceled"
-		}
-		next := current
-		if input.Title != nil {
-			next.Title = singleLine(*input.Title)
-		}
-		if issueSet {
-			next.Issue = issue
-		}
-		if prioritySet {
-			next.Priority = priority
-		}
-		if defaultSet {
-			next.DefaultAction = defaultAction
-		}
-		if answerBySet {
-			next.AnswerBy = answerBy
-		}
-		if optionsSet {
-			next.Options = options
-		}
-		if input.Body != nil {
-			next.Body = *input.Body
-		}
-		next.canceled = canceled
-		if canceled {
-			if current.canceled {
-				next.CanceledAt = current.CanceledAt
-			} else {
-				next.CanceledAt = &timestamp
-			}
-		} else {
-			next.CanceledAt = nil
-		}
-		next.UpdatedAt = timestamp
-		formatted, formatErr := formatQuestion(next)
-		if formatErr != nil {
-			return Question{}, formatErr
-		}
-		if err := replaceFile(path, formatted); err != nil {
-			return Question{}, err
-		}
-		return withStatus(next, moment), nil
-	}
-	if input.Title == nil || jsTrim(*input.Title) == "" {
-		return Question{}, errors.New("title is required when creating a question")
-	}
-	title := singleLine(*input.Title)
-	issueValue := issue
-	if !issueSet {
-		issueValue = nil
-	}
-	if !input.Force {
-		if err := assertNotDuplicate(directory, title, issueValue, moment); err != nil {
-			return Question{}, err
-		}
-	}
-	if _, err := EnsureQuestionsDirectory(directory); err != nil {
+	return prepared, nil
+}
+
+func (service *Service) updateQuestion(ctx context.Context, directory Directory, input SaveInput, now time.Time, prepared preparedQuestion) (Question, error) {
+	path := questionPath(directory, *input.ID)
+	unlock, err := lockQuestion(ctx, path, *input.ID)
+	if err != nil {
 		return Question{}, err
 	}
+	defer unlock()
+	current, err := service.readExisting(path, *input.ID)
+	if err != nil {
+		return Question{}, err
+	}
+	if input.Title != nil && document.Trim(*input.Title) == "" {
+		quoted, quoteErr := document.Quote(*input.Title)
+		if quoteErr != nil {
+			return Question{}, quoteErr
+		}
+		return Question{}, failure(fmt.Sprintf("invalid title: expected a non-empty string, actual %s", quoted))
+	}
+	canceled := current.canceled
+	if prepared.storedStatus != nil {
+		canceled = *prepared.storedStatus == "canceled"
+	}
+	next := current
+	if input.Title != nil {
+		next.Title = singleLine(*input.Title)
+	}
+	if prepared.issueSet {
+		next.Issue = prepared.issue
+	}
+	if prepared.prioritySet {
+		next.Priority = prepared.priority
+	}
+	if prepared.defaultSet {
+		next.DefaultAction = prepared.defaultAction
+	}
+	if prepared.answerBySet {
+		next.AnswerBy = prepared.answerBy
+	}
+	if prepared.optionsSet {
+		next.Options = prepared.options
+	}
+	if input.Body != nil {
+		next.Body = *input.Body
+	}
+	next.canceled = canceled
+	if canceled {
+		if current.canceled {
+			next.CanceledAt = current.CanceledAt
+		} else {
+			canceledAt := prepared.timestamp
+			next.CanceledAt = &canceledAt
+		}
+	} else {
+		next.CanceledAt = nil
+	}
+	next.UpdatedAt = prepared.timestamp
+	if err := service.commit(path, next); err != nil {
+		return Question{}, err
+	}
+	return withStatus(next, now), nil
+}
+
+func (service *Service) createQuestion(ctx context.Context, directory Directory, input SaveInput, now time.Time, author string, prepared preparedQuestion) (Question, error) {
+	if input.Title == nil || document.Trim(*input.Title) == "" {
+		return Question{}, failure("title is required when creating a question")
+	}
+	title := singleLine(*input.Title)
+	issue := prepared.issue
+	if !prepared.issueSet {
+		issue = nil
+	}
+	questionsDirectory, err := service.EnsureQuestionsDirectory(ctx, directory)
+	if err != nil {
+		return Question{}, err
+	}
+	unlock, err := fsutil.Lock(ctx, questionsDirectory)
+	if err != nil {
+		return Question{}, err
+	}
+	defer unlock()
+	if !input.Force {
+		if err := service.assertNotDuplicate(ctx, directory, title, issue, now); err != nil {
+			return Question{}, err
+		}
+	}
 	for {
-		author, nameErr := currentGitName()
-		if nameErr != nil {
-			return Question{}, nameErr
+		if err := ctx.Err(); err != nil {
+			return Question{}, err
 		}
 		identifier, idErr := nextQuestionID(directory)
 		if idErr != nil {
@@ -282,11 +339,11 @@ func SaveQuestion(directory Directory, records IssueRecords, input SaveInput, no
 		created := storedQuestion{Question: Question{
 			ID:                 identifier,
 			Title:              title,
-			Issue:              issueValue,
-			Priority:           priority,
-			DefaultAction:      defaultAction,
-			AnswerBy:           answerBy,
-			Options:            nonNilOptions(options),
+			Issue:              issue,
+			Priority:           prepared.priority,
+			DefaultAction:      prepared.defaultAction,
+			AnswerBy:           prepared.answerBy,
+			Options:            nonNilOptions(prepared.options),
 			Author:             author,
 			Session:            provenanceField(input.Provenance, func(provenance Provenance) *string { return provenance.Session }),
 			Worktree:           provenanceField(input.Provenance, func(provenance Provenance) *string { return provenance.Worktree }),
@@ -296,42 +353,45 @@ func SaveQuestion(directory Directory, records IssueRecords, input SaveInput, no
 			AnsweredAt:         nil,
 			AcknowledgedAt:     nil,
 			NotifiedExpiringAt: nil,
-			CreatedAt:          timestamp,
-			UpdatedAt:          timestamp,
+			CreatedAt:          prepared.timestamp,
+			UpdatedAt:          prepared.timestamp,
 			Body:               "",
 		}}
 		if input.Body != nil {
 			created.Body = *input.Body
 		}
-		if storedStatus != nil && *storedStatus == "canceled" {
+		if prepared.storedStatus != nil && *prepared.storedStatus == "canceled" {
 			created.canceled = true
-			created.CanceledAt = &timestamp
+			canceledAt := prepared.timestamp
+			created.CanceledAt = &canceledAt
 		}
-		formatted, formatErr := formatQuestion(created)
+		formatted, formatErr := service.formatQuestion(created)
 		if formatErr != nil {
 			return Question{}, formatErr
 		}
-		err := createFile(questionPath(directory, created.ID), formatted)
-		if err == nil {
-			return withStatus(created, moment), nil
+		writeErr := fsutil.WriteCreate(questionPath(directory, created.ID), formatted)
+		if writeErr == nil {
+			return withStatus(created, now), nil
 		}
-		if !errors.Is(err, os.ErrExist) {
-			return Question{}, err
+		if !errors.Is(writeErr, os.ErrExist) {
+			return Question{}, writeErr
 		}
 	}
 }
 
-// AnswerQuestion は質問に答える。期限後で issue があれば、コメントを 1 件足す (src/questions.ts:195-248)
-func AnswerQuestion(directory Directory, records IssueRecords, id string, input AnswerInput, now *time.Time) (Question, error) {
-	moment, err := resolveNow(now)
-	if err != nil {
+// AnswerQuestion は質問に答える。期限後で issue があれば、コメントを 1 件足す (src/questions.ts:195-248)。
+// 質問ファイルをロックしてから読む。
+func (service *Service) AnswerQuestion(ctx context.Context, directory Directory, records IssueRecords, id string, input AnswerInput, now time.Time, author string) (Question, error) {
+	if err := ctx.Err(); err != nil {
 		return Question{}, err
 	}
 	path := questionPath(directory, id)
-	if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
-		return Question{}, fmt.Errorf("question not found: %s", id)
+	unlock, err := lockQuestion(ctx, path, id)
+	if err != nil {
+		return Question{}, err
 	}
-	current, err := readQuestion(path, id)
+	defer unlock()
+	current, err := service.readExisting(path, id)
 	if err != nil {
 		return Question{}, err
 	}
@@ -342,7 +402,7 @@ func AnswerQuestion(directory Directory, records IssueRecords, id string, input 
 			return Question{}, err
 		}
 	}
-	currentStatus := statusOf(current, moment)
+	currentStatus := statusOf(current, now)
 	replacing := input.Force || (input.ExpectedStatus != nil && expectedStatus == "answered")
 	if currentStatus == "canceled" || (currentStatus == "answered" && !replacing) {
 		message := fmt.Sprintf("cannot answer question %s: expected status open or expired, actual %s", id, currentStatus)
@@ -357,38 +417,31 @@ func AnswerQuestion(directory Directory, records IssueRecords, id string, input 
 			}
 			message += fmt.Sprintf(" (answered by %s at %s; force to replace the answer)", answeredBy, answeredAt)
 		}
-		return Question{}, &QuestionConflictError{message: message, Question: withStatus(current, moment)}
+		return Question{}, questionConflict(message, withStatus(current, now))
 	}
 	body := ""
 	if input.Body != nil {
 		body = *input.Body
 	}
-	if jsTrim(body) == "" {
-		quoted, quoteErr := javaScriptString(body)
+	if document.Trim(body) == "" {
+		quoted, quoteErr := document.Quote(body)
 		if quoteErr != nil {
 			return Question{}, quoteErr
 		}
-		return Question{}, fmt.Errorf("invalid answer: expected a non-empty string, actual %s", quoted)
+		return Question{}, failure(fmt.Sprintf("invalid answer: expected a non-empty string, actual %s", quoted))
 	}
 	if err := assertBody(body); err != nil {
 		return Question{}, err
 	}
-	timestamp := isoString(moment)
-	author, err := currentGitName()
-	if err != nil {
-		return Question{}, err
-	}
+	timestamp := service.isoString(now)
+	answeredBy := author
 	next := current
 	next.Answer = &body
-	next.AnsweredBy = &author
+	next.AnsweredBy = &answeredBy
 	next.AnsweredAt = &timestamp
 	next.AcknowledgedAt = nil
 	next.UpdatedAt = timestamp
-	formatted, err := formatQuestion(next)
-	if err != nil {
-		return Question{}, err
-	}
-	if err := replaceFile(path, formatted); err != nil {
+	if err := service.commit(path, next); err != nil {
 		return Question{}, err
 	}
 	if currentStatus == "expired" && current.Issue != nil {
@@ -398,74 +451,61 @@ func AnswerQuestion(directory Directory, records IssueRecords, id string, input 
 		}
 		comment := fmt.Sprintf("Late answer to Q%s (%s), %s:\n\n%s", id, current.Title, phrase, body)
 		if records == nil {
-			return Question{}, fmt.Errorf("issue not found: %s", *current.Issue)
+			return Question{}, failure(fmt.Sprintf("issue not found: %s", *current.Issue))
 		}
-		if err := records.SaveComment(directory, *current.Issue, comment); err != nil {
-			return Question{}, err
+		if err := records.SaveComment(ctx, directory, *current.Issue, comment, now, author); err != nil {
+			return Question{}, classify(err)
 		}
 	}
-	return withStatus(next, moment), nil
+	return withStatus(next, now), nil
 }
 
-// UndoAnswer は答えたばかりの答えを消して、質問を答え待ちに戻す (src/questions.ts:264-314)
-func UndoAnswer(directory Directory, id string, input UndoInput, now *time.Time) (Question, error) {
-	moment, err := resolveNow(now)
-	if err != nil {
+// UndoAnswer は答えたばかりの答えを消して、質問を答え待ちに戻す (src/questions.ts:264-314)。
+func (service *Service) UndoAnswer(ctx context.Context, directory Directory, id string, input UndoInput, now time.Time) (Question, error) {
+	if err := ctx.Err(); err != nil {
 		return Question{}, err
 	}
 	path := questionPath(directory, id)
-	if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
-		return Question{}, fmt.Errorf("question not found: %s", id)
-	}
-	current, err := readQuestion(path, id)
+	unlock, err := lockQuestion(ctx, path, id)
 	if err != nil {
 		return Question{}, err
 	}
-	currentStatus := statusOf(current, moment)
+	defer unlock()
+	current, err := service.readExisting(path, id)
+	if err != nil {
+		return Question{}, err
+	}
+	currentStatus := statusOf(current, now)
 	prefix := fmt.Sprintf("cannot undo the answer to question %s", id)
 	if currentStatus != "answered" || current.AnsweredAt == nil {
-		return Question{}, &QuestionConflictError{
-			message:  fmt.Sprintf("%s: expected status answered, actual %s", prefix, currentStatus),
-			Question: withStatus(current, moment),
-		}
+		return Question{}, questionConflict(fmt.Sprintf("%s: expected status answered, actual %s", prefix, currentStatus), withStatus(current, now))
 	}
 	if input.AnsweredAt != nil && *input.AnsweredAt != *current.AnsweredAt {
-		return Question{}, &QuestionConflictError{
-			message:  fmt.Sprintf("%s: expected answeredAt %s, actual %s", prefix, *input.AnsweredAt, *current.AnsweredAt),
-			Question: withStatus(current, moment),
-		}
+		return Question{}, questionConflict(fmt.Sprintf("%s: expected answeredAt %s, actual %s", prefix, *input.AnsweredAt, *current.AnsweredAt), withStatus(current, now))
 	}
 	if current.AcknowledgedAt != nil {
-		return Question{}, &QuestionConflictError{
-			message:  fmt.Sprintf("%s: expected the agent not to have picked it up, actual picked up at %s", prefix, *current.AcknowledgedAt),
-			Question: withStatus(current, moment),
-		}
+		return Question{}, questionConflict(fmt.Sprintf("%s: expected the agent not to have picked it up, actual picked up at %s", prefix, *current.AcknowledgedAt), withStatus(current, now))
 	}
-	if answeredAt, ok := parseJavaScriptTime(*current.AnsweredAt); ok {
-		elapsed := moment.Sub(answeredAt)
+	if answeredAt, ok := clock.ParseJavaScriptTime(*current.AnsweredAt); ok {
+		elapsed := now.Sub(answeredAt)
 		if elapsed > time.Duration(UndoAnswerMilliseconds)*time.Millisecond {
 			seconds := int(math.Round(float64(elapsed.Milliseconds()) / 1000))
-			return Question{}, fmt.Errorf("%s: expected within %ds of answering, actual %ds", prefix, UndoAnswerMilliseconds/1000, seconds)
+			return Question{}, failure(fmt.Sprintf("%s: expected within %ds of answering, actual %ds", prefix, UndoAnswerMilliseconds/1000, seconds))
 		}
 	}
 	if isLateAnswer(current.Issue, current.AnswerBy, *current.AnsweredAt) {
-		return Question{}, fmt.Errorf("%s: expected an answer before answerBy, actual a late answer already added to issue %s as a comment", prefix, *current.Issue)
+		return Question{}, failure(fmt.Sprintf("%s: expected an answer before answerBy, actual a late answer already added to issue %s as a comment", prefix, *current.Issue))
 	}
 	next := current
 	next.Answer = nil
 	next.AnsweredBy = nil
 	next.AnsweredAt = nil
 	next.AcknowledgedAt = nil
-	timestamp := isoString(moment)
-	next.UpdatedAt = timestamp
-	formatted, err := formatQuestion(next)
-	if err != nil {
+	next.UpdatedAt = service.isoString(now)
+	if err := service.commit(path, next); err != nil {
 		return Question{}, err
 	}
-	if err := replaceFile(path, formatted); err != nil {
-		return Question{}, err
-	}
-	return withStatus(next, moment), nil
+	return withStatus(next, now), nil
 }
 
 // UndoAnswerDeadline は取り消しの時間が終わる時刻。取り消せない答えなら nil (src/questions.ts:316-323)
@@ -476,7 +516,7 @@ func UndoAnswerDeadline(question Question) *time.Time {
 	if isLateAnswer(question.Issue, question.AnswerBy, *question.AnsweredAt) {
 		return nil
 	}
-	answeredAt, ok := parseJavaScriptTime(*question.AnsweredAt)
+	answeredAt, ok := clock.ParseJavaScriptTime(*question.AnsweredAt)
 	if !ok {
 		return nil
 	}
@@ -484,88 +524,88 @@ func UndoAnswerDeadline(question Question) *time.Time {
 	return &deadline
 }
 
-// CancelQuestion は答えを待っている質問を取り下げる (src/questions.ts:331-345)
-func CancelQuestion(directory Directory, id string, now *time.Time) (Question, error) {
-	moment, err := resolveNow(now)
-	if err != nil {
+// CancelQuestion は答えを待っている質問を取り下げる (src/questions.ts:331-345)。
+func (service *Service) CancelQuestion(ctx context.Context, directory Directory, id string, now time.Time) (Question, error) {
+	if err := ctx.Err(); err != nil {
 		return Question{}, err
 	}
 	path := questionPath(directory, id)
-	if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
-		return Question{}, fmt.Errorf("question not found: %s", id)
-	}
-	current, err := readQuestion(path, id)
+	unlock, err := lockQuestion(ctx, path, id)
 	if err != nil {
 		return Question{}, err
 	}
-	currentStatus := statusOf(current, moment)
+	defer unlock()
+	current, err := service.readExisting(path, id)
+	if err != nil {
+		return Question{}, err
+	}
+	currentStatus := statusOf(current, now)
 	if currentStatus == "canceled" {
-		return withStatus(current, moment), nil
+		return withStatus(current, now), nil
 	}
 	if currentStatus == "answered" {
-		return Question{}, &QuestionConflictError{
-			message:  fmt.Sprintf("cannot cancel question %s: expected status open or expired, actual answered", id),
-			Question: withStatus(current, moment),
-		}
+		return Question{}, questionConflict(fmt.Sprintf("cannot cancel question %s: expected status open or expired, actual answered", id), withStatus(current, now))
 	}
-	return SaveQuestion(directory, nil, SaveInput{ID: &id, Status: strPtr("canceled")}, &moment)
+	timestamp := service.isoString(now)
+	next := current
+	next.canceled = true
+	next.CanceledAt = &timestamp
+	next.UpdatedAt = timestamp
+	if err := service.commit(path, next); err != nil {
+		return Question{}, err
+	}
+	return withStatus(next, now), nil
 }
 
-// AcknowledgeQuestion はエージェントが答えを初めて受け取った時刻を残す。updatedAt は変えない (src/questions.ts:347-358)
-func AcknowledgeQuestion(directory Directory, id string, now *time.Time) (Question, error) {
-	moment, err := resolveNow(now)
-	if err != nil {
+// AcknowledgeQuestion はエージェントが答えを初めて受け取った時刻を残す。 updatedAt は変えない (src/questions.ts:347-358)。
+func (service *Service) AcknowledgeQuestion(ctx context.Context, directory Directory, id string, now time.Time) (Question, error) {
+	if err := ctx.Err(); err != nil {
 		return Question{}, err
 	}
 	path := questionPath(directory, id)
-	if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
-		return Question{}, fmt.Errorf("question not found: %s", id)
-	}
-	current, err := readQuestion(path, id)
+	unlock, err := lockQuestion(ctx, path, id)
 	if err != nil {
 		return Question{}, err
 	}
-	if statusOf(current, moment) != "answered" || current.AcknowledgedAt != nil {
-		return withStatus(current, moment), nil
+	defer unlock()
+	current, err := service.readExisting(path, id)
+	if err != nil {
+		return Question{}, err
+	}
+	if statusOf(current, now) != "answered" || current.AcknowledgedAt != nil {
+		return withStatus(current, now), nil
 	}
 	next := current
-	timestamp := isoString(moment)
+	timestamp := service.isoString(now)
 	next.AcknowledgedAt = &timestamp
-	formatted, err := formatQuestion(next)
-	if err != nil {
+	if err := service.commit(path, next); err != nil {
 		return Question{}, err
 	}
-	if err := replaceFile(path, formatted); err != nil {
-		return Question{}, err
-	}
-	return withStatus(next, moment), nil
+	return withStatus(next, now), nil
 }
 
-// MarkExpiringNotified は期限が近いことを知らせた時刻を残す。updatedAt は変えない (src/questions.ts:360-367)
-func MarkExpiringNotified(directory Directory, id string, now *time.Time) (Question, error) {
-	moment, err := resolveNow(now)
-	if err != nil {
+// MarkExpiringNotified は期限が近いことを知らせた時刻を残す。 updatedAt は変えない (src/questions.ts:360-367)。
+func (service *Service) MarkExpiringNotified(ctx context.Context, directory Directory, id string, now time.Time) (Question, error) {
+	if err := ctx.Err(); err != nil {
 		return Question{}, err
 	}
 	path := questionPath(directory, id)
-	if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
-		return Question{}, fmt.Errorf("question not found: %s", id)
+	unlock, err := lockQuestion(ctx, path, id)
+	if err != nil {
+		return Question{}, err
 	}
-	current, err := readQuestion(path, id)
+	defer unlock()
+	current, err := service.readExisting(path, id)
 	if err != nil {
 		return Question{}, err
 	}
 	next := current
-	timestamp := isoString(moment)
+	timestamp := service.isoString(now)
 	next.NotifiedExpiringAt = &timestamp
-	formatted, err := formatQuestion(next)
-	if err != nil {
+	if err := service.commit(path, next); err != nil {
 		return Question{}, err
 	}
-	if err := replaceFile(path, formatted); err != nil {
-		return Question{}, err
-	}
-	return withStatus(next, moment), nil
+	return withStatus(next, now), nil
 }
 
 // QuestionsAboutToExpire は、期限が窓の内に来る、まだ知らせていない open の質問 (src/questions.ts:369-379)
@@ -576,11 +616,11 @@ func QuestionsAboutToExpire(questions []Question, now time.Time) []Question {
 		if question.Status != "open" || question.AnswerBy == nil || question.NotifiedExpiringAt != nil {
 			continue
 		}
-		answerBy, ok := parseJavaScriptTime(*question.AnswerBy)
+		answerBy, ok := clock.ParseJavaScriptTime(*question.AnswerBy)
 		if !ok {
 			continue
 		}
-		if createdAt, createdOK := parseJavaScriptTime(question.CreatedAt); createdOK && answerBy.Sub(createdAt) <= window {
+		if createdAt, createdOK := clock.ParseJavaScriptTime(question.CreatedAt); createdOK && answerBy.Sub(createdAt) <= window {
 			continue
 		}
 		if answerBy.Sub(now) <= window {
@@ -590,43 +630,44 @@ func QuestionsAboutToExpire(questions []Question, now time.Time) []Question {
 	return result
 }
 
-// GetQuestion は 1 件を読む。壊れていても例外は飲みこまない (src/questions.ts:381-385)
-func GetQuestion(directory Directory, id string, now *time.Time) (Question, error) {
-	moment, err := resolveNow(now)
-	if err != nil {
+// GetQuestion は 1 件を読む。壊れていても例外は飲みこまない (src/questions.ts:381-385)。
+func (service *Service) GetQuestion(ctx context.Context, directory Directory, id string, now time.Time) (Question, error) {
+	if err := ctx.Err(); err != nil {
 		return Question{}, err
 	}
 	path := questionPath(directory, id)
-	if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
-		return Question{}, fmt.Errorf("question not found: %s", id)
-	}
-	question, err := readQuestion(path, id)
+	unlock, err := lockQuestion(ctx, path, id)
 	if err != nil {
 		return Question{}, err
 	}
-	return withStatus(question, moment), nil
+	defer unlock()
+	question, err := service.readExisting(path, id)
+	if err != nil {
+		return Question{}, err
+	}
+	return withStatus(question, now), nil
 }
 
-// ListQuestions は壊れたファイルを省き、人が先に見る順に並べる (src/questions.ts:387-400)
-func ListQuestions(directory Directory, filter QuestionFilter, now *time.Time) ([]Question, error) {
-	moment, err := resolveNow(now)
-	if err != nil {
+// ListQuestions は壊れたファイルを省き、人が先に見る順に並べる (src/questions.ts:387-400)。
+func (service *Service) ListQuestions(ctx context.Context, directory Directory, filter QuestionFilter, now time.Time) ([]Question, error) {
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	var status string
 	if filter.Status != nil {
-		status, err = resolveStatus(*filter.Status)
+		resolved, err := resolveStatus(*filter.Status)
 		if err != nil {
 			return nil, err
 		}
+		status = resolved
 	}
-	raw, err := loadRawQuestions(directory)
+	raw, err := service.loadRawQuestions(ctx, directory)
 	if err != nil {
 		return nil, err
 	}
 	questions := make([]Question, 0, len(raw))
 	for _, question := range raw {
-		questions = append(questions, withStatus(question, moment))
+		questions = append(questions, withStatus(question, now))
 	}
 	sort.SliceStable(questions, func(left, right int) bool {
 		return CompareQuestions(questions[left], questions[right]) < 0
@@ -715,14 +756,16 @@ func ResolveAnswerBy(value *string, now time.Time) (resolved *string, provided b
 		instant := now.UnixMilli() + milliseconds
 		if instant > 8_640_000_000_000_000 || instant < -8_640_000_000_000_000 {
 			//nolint:staticcheck // TS の message は大文字で始まる
-			return nil, true, errors.New("Invalid Date")
+			return nil, true, failure("Invalid Date")
 		}
-		text := isoString(time.UnixMilli(instant).UTC())
+		text := clock.ISOString(time.UnixMilli(instant).UTC())
 		return &text, true, nil
 	}
-	if parsed, ok := parseAnswerByInput(*trimmed); ok {
-		text := isoString(parsed)
-		return &text, true, nil
+	if answerByPattern.MatchString(*trimmed) {
+		if parsed, ok := clock.ParseJavaScriptTime(*trimmed); ok {
+			text := clock.ISOString(parsed)
+			return &text, true, nil
+		}
 	}
 	return nil, true, invalidAnswerBy(*value)
 }
@@ -730,7 +773,10 @@ func ResolveAnswerBy(value *string, now time.Time) (resolved *string, provided b
 // EnsureQuestionsDirectory は questions と、中身を無視する .gitignore を作る。
 // 既にある .gitignore は上書きしない (src/questions.ts:603-612)。
 // https://git-scm.com/docs/gitignore
-func EnsureQuestionsDirectory(directory Directory) (string, error) {
+func (service *Service) EnsureQuestionsDirectory(ctx context.Context, directory Directory) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	questionsDirectory := filepath.Join(directory.Dir, "questions")
 	if err := os.MkdirAll(questionsDirectory, 0o777); err != nil {
 		return "", err
@@ -741,10 +787,40 @@ func EnsureQuestionsDirectory(directory Directory) (string, error) {
 	} else if !os.IsNotExist(err) {
 		return "", err
 	}
-	if err := os.WriteFile(ignorePath, []byte("*\n"), 0o666); err != nil {
+	if err := fsutil.WriteCreate(ignorePath, "*\n"); err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return questionsDirectory, nil
+		}
 		return "", err
 	}
 	return questionsDirectory, nil
+}
+
+func (service *Service) commit(path string, question storedQuestion) error {
+	formatted, err := service.formatQuestion(question)
+	if err != nil {
+		return err
+	}
+	return fsutil.WriteReplace(path, formatted)
+}
+
+func questionConflict(message string, question Question) error {
+	return &QuestionConflictError{message: message, Question: question}
+}
+
+func questionNotFound(id string) error {
+	return failure(fmt.Sprintf("question not found: %s", id))
+}
+
+func lockQuestion(ctx context.Context, path string, id string) (func(), error) {
+	unlock, err := fsutil.Lock(ctx, path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, questionNotFound(id)
+		}
+		return nil, err
+	}
+	return unlock, nil
 }
 
 func questionRank(question Question) int {
@@ -777,8 +853,8 @@ func compareAnswerBy(a Question, b Question) int {
 }
 
 func compareIDAscending(a Question, b Question) int {
-	left, leftOK := javaScriptNumber(a.ID)
-	right, rightOK := javaScriptNumber(b.ID)
+	left, leftOK := document.ParseNumber(a.ID)
+	right, rightOK := document.ParseNumber(b.ID)
 	if !leftOK || !rightOK || math.IsNaN(left) || math.IsNaN(right) {
 		return 0
 	}
@@ -815,7 +891,7 @@ func statusOf(question storedQuestion, now time.Time) string {
 		return "answered"
 	}
 	if question.AnswerBy != nil {
-		if parsed, ok := parseJavaScriptTime(*question.AnswerBy); ok && !parsed.After(now) {
+		if parsed, ok := clock.ParseJavaScriptTime(*question.AnswerBy); ok && !parsed.After(now) {
 			return "expired"
 		}
 	}
@@ -826,8 +902,8 @@ func isLateAnswer(issue *string, answerBy *string, answeredAt string) bool {
 	if issue == nil || answerBy == nil {
 		return false
 	}
-	answerByTime, answerByOK := parseJavaScriptTime(*answerBy)
-	answeredAtTime, answeredAtOK := parseJavaScriptTime(answeredAt)
+	answerByTime, answerByOK := clock.ParseJavaScriptTime(*answerBy)
+	answeredAtTime, answeredAtOK := clock.ParseJavaScriptTime(answeredAt)
 	if !answerByOK || !answeredAtOK {
 		return false
 	}
@@ -835,25 +911,28 @@ func isLateAnswer(issue *string, answerBy *string, answeredAt string) bool {
 }
 
 func resolveStoredStatus(value string) (string, error) {
-	trimmed := jsTrim(value)
-	if !containsString(StoredQuestionStatuses, trimmed) {
-		return "", fmt.Errorf("invalid status: expected %s, actual %s", joinOr(StoredQuestionStatuses), value)
+	trimmed := document.Trim(value)
+	statuses := StoredQuestionStatuses()
+	if !containsString(statuses, trimmed) {
+		return "", failure(fmt.Sprintf("invalid status: expected %s, actual %s", joinOr(statuses), value))
 	}
 	return trimmed, nil
 }
 
 func resolveStatus(value string) (string, error) {
-	trimmed := jsTrim(value)
-	if !containsString(QuestionStatuses, trimmed) {
-		return "", fmt.Errorf("invalid status: expected %s, actual %s", joinOr(QuestionStatuses), value)
+	trimmed := document.Trim(value)
+	statuses := QuestionStatuses()
+	if !containsString(statuses, trimmed) {
+		return "", failure(fmt.Sprintf("invalid status: expected %s, actual %s", joinOr(statuses), value))
 	}
 	return trimmed, nil
 }
 
 func resolveExpectedStatus(value string) (string, error) {
-	trimmed := jsTrim(value)
-	if !containsString(QuestionStatuses, trimmed) {
-		return "", fmt.Errorf("invalid expectedStatus: expected %s, actual %s", joinOr(QuestionStatuses), value)
+	trimmed := document.Trim(value)
+	statuses := QuestionStatuses()
+	if !containsString(statuses, trimmed) {
+		return "", failure(fmt.Sprintf("invalid expectedStatus: expected %s, actual %s", joinOr(statuses), value))
 	}
 	return trimmed, nil
 }
@@ -863,8 +942,9 @@ func resolvePriority(value *string) (*string, bool, error) {
 	if !provided || resolved == nil {
 		return resolved, provided, nil
 	}
+	priorities := store.Priorities()
 	if !containsString(priorities, *resolved) {
-		return nil, true, fmt.Errorf("invalid priority: expected %s, actual %s", joinOr(priorities), *value)
+		return nil, true, failure(fmt.Sprintf("invalid priority: expected %s, actual %s", joinOr(priorities), *value))
 	}
 	return resolved, true, nil
 }
@@ -877,34 +957,34 @@ func resolveOptions(value *[]string) ([]string, bool, error) {
 	for _, option := range *value {
 		resolved := singleLine(option)
 		if resolved == "" {
-			quoted, err := javaScriptString(option)
+			quoted, err := document.Quote(option)
 			if err != nil {
 				return nil, true, err
 			}
-			return nil, true, fmt.Errorf("invalid option: expected a non-empty string, actual %s", quoted)
+			return nil, true, failure(fmt.Sprintf("invalid option: expected a non-empty string, actual %s", quoted))
 		}
 		if containsString(options, resolved) {
-			quoted, err := javaScriptString(resolved)
+			quoted, err := document.Quote(resolved)
 			if err != nil {
 				return nil, true, err
 			}
-			return nil, true, fmt.Errorf("invalid option: expected each option once, actual %s twice", quoted)
+			return nil, true, failure(fmt.Sprintf("invalid option: expected each option once, actual %s twice", quoted))
 		}
 		options = append(options, resolved)
 	}
 	return options, true, nil
 }
 
-func resolveIssue(directory Directory, records IssueRecords, value *string) (*string, bool, error) {
+func resolveIssue(ctx context.Context, directory Directory, records IssueRecords, value *string, now time.Time, author string) (*string, bool, error) {
 	resolved, provided := blankToNull(value)
 	if !provided || resolved == nil {
 		return resolved, provided, nil
 	}
 	if records == nil {
-		return nil, true, fmt.Errorf("issue not found: %s", *resolved)
+		return nil, true, failure(fmt.Sprintf("issue not found: %s", *resolved))
 	}
-	if err := records.GetIssue(directory, *resolved); err != nil {
-		return nil, true, err
+	if err := records.GetIssue(ctx, directory, *resolved, now, author); err != nil {
+		return nil, true, classify(err)
 	}
 	return resolved, true, nil
 }
@@ -918,8 +998,8 @@ func resolveSingleLine(value *string) (*string, bool) {
 	return &line, true
 }
 
-func assertNotDuplicate(directory Directory, title string, issue *string, now time.Time) error {
-	questions, err := loadRawQuestions(directory)
+func (service *Service) assertNotDuplicate(ctx context.Context, directory Directory, title string, issue *string, now time.Time) error {
+	questions, err := service.loadRawQuestions(ctx, directory)
 	if err != nil {
 		return err
 	}
@@ -931,11 +1011,11 @@ func assertNotDuplicate(directory Directory, title string, issue *string, now ti
 			if issue != nil {
 				place = "on issue " + *issue
 			}
-			quoted, quoteErr := javaScriptString(title)
+			quoted, quoteErr := document.Quote(title)
 			if quoteErr != nil {
 				return quoteErr
 			}
-			return fmt.Errorf("duplicate question: expected no open question titled %s %s, actual question %s is open; force to ask again", quoted, place, visible.ID)
+			return failure(fmt.Sprintf("duplicate question: expected no open question titled %s %s, actual question %s is open; force to ask again", quoted, place, visible.ID))
 		}
 	}
 	return nil
@@ -943,7 +1023,7 @@ func assertNotDuplicate(directory Directory, title string, issue *string, now ti
 
 func assertBody(body string) error {
 	if strings.Contains(body, QuestionAnswerMarker) {
-		return fmt.Errorf("invalid body: must not contain %s", QuestionAnswerMarker)
+		return failure(fmt.Sprintf("invalid body: must not contain %s", QuestionAnswerMarker))
 	}
 	return nil
 }
@@ -957,11 +1037,11 @@ func singleLine(value string) string {
 			continue
 		}
 		left := index
-		for left > start && isJavaScriptSpace(runes[left-1]) {
+		for left > start && document.IsJavaScriptWhitespace(runes[left-1]) {
 			left--
 		}
 		right := index + 1
-		for right < len(runes) && isJavaScriptSpace(runes[right]) {
+		for right < len(runes) && document.IsJavaScriptWhitespace(runes[right]) {
 			right++
 		}
 		builder.WriteString(string(runes[start:left]))
@@ -970,42 +1050,21 @@ func singleLine(value string) string {
 		index = right - 1
 	}
 	builder.WriteString(string(runes[start:]))
-	return jsTrim(builder.String())
+	return document.Trim(builder.String())
 }
 
 func blankToNull(value *string) (*string, bool) {
 	if value == nil {
 		return nil, false
 	}
-	trimmed := jsTrim(*value)
+	trimmed := document.Trim(*value)
 	if trimmed == "" || trimmed == "none" {
 		return nil, true
 	}
 	return &trimmed, true
 }
 
-func jsTrim(value string) string {
-	runes := []rune(value)
-	start := 0
-	for start < len(runes) && isJavaScriptSpace(runes[start]) {
-		start++
-	}
-	end := len(runes)
-	for end > start && isJavaScriptSpace(runes[end-1]) {
-		end--
-	}
-	return string(runes[start:end])
-}
-
-func isJavaScriptSpace(character rune) bool {
-	switch character {
-	case '\t', '\n', '\v', '\f', '\r', ' ', '\u00a0', '\u1680', '\u2028', '\u2029', '\u202f', '\u205f', '\u3000', '\ufeff':
-		return true
-	}
-	return character >= '\u2000' && character <= '\u200a'
-}
-
-func loadRawQuestions(directory Directory) ([]storedQuestion, error) {
+func (service *Service) loadRawQuestions(ctx context.Context, directory Directory) ([]storedQuestion, error) {
 	names, err := questionFileNames(directory)
 	if err != nil || names == nil {
 		return nil, err
@@ -1015,8 +1074,12 @@ func loadRawQuestions(directory Directory) ([]storedQuestion, error) {
 		if !strings.HasSuffix(name, ".md") {
 			continue
 		}
-		question, readErr := readQuestion(filepath.Join(directory.Dir, "questions", name), strings.TrimSuffix(name, ".md"))
+		path := filepath.Join(directory.Dir, "questions", name)
+		question, readErr := service.readQuestionLocked(ctx, path, strings.TrimSuffix(name, ".md"))
 		if readErr != nil {
+			if errors.Is(readErr, context.Canceled) || errors.Is(readErr, context.DeadlineExceeded) {
+				return nil, readErr
+			}
 			continue
 		}
 		questions = append(questions, question)
@@ -1024,7 +1087,26 @@ func loadRawQuestions(directory Directory) ([]storedQuestion, error) {
 	return questions, nil
 }
 
-func readQuestion(path string, stem string) (storedQuestion, error) {
+func (service *Service) readQuestionLocked(ctx context.Context, path string, stem string) (storedQuestion, error) {
+	unlock, err := fsutil.Lock(ctx, path)
+	if err != nil {
+		return storedQuestion{}, err
+	}
+	defer unlock()
+	return service.readQuestion(path, stem)
+}
+
+func (service *Service) readExisting(path string, id string) (storedQuestion, error) {
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return storedQuestion{}, questionNotFound(id)
+		}
+		return storedQuestion{}, err
+	}
+	return service.readQuestion(path, id)
+}
+
+func (service *Service) readQuestion(path string, stem string) (storedQuestion, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		return storedQuestion{}, err
@@ -1036,12 +1118,12 @@ func readQuestion(path string, stem string) (storedQuestion, error) {
 	if err != nil {
 		return storedQuestion{}, err
 	}
-	parsed, err := parseDocument(string(text))
+	parsed, err := service.parseDocument(string(text))
 	if err != nil {
 		return storedQuestion{}, err
 	}
 	if parsed.Meta["title"] == "" {
-		return storedQuestion{}, errors.New("invalid question file")
+		return storedQuestion{}, failure("invalid question file")
 	}
 	options, err := parseOptions(metaOrEmpty(parsed.Meta, "options"))
 	if err != nil {
@@ -1088,7 +1170,7 @@ func splitAnswer(body string) (string, *string) {
 	return questionBody, &answer
 }
 
-func formatQuestion(question storedQuestion) (string, error) {
+func (service *Service) formatQuestion(question storedQuestion) (string, error) {
 	body := question.Body
 	if question.Answer != nil {
 		if question.Body != "" {
@@ -1103,13 +1185,13 @@ func formatQuestion(question storedQuestion) (string, error) {
 	}
 	options := ""
 	if len(question.Options) > 0 {
-		encoded, err := marshalJavaScript(question.Options)
+		encoded, err := service.marshalJavaScript(question.Options)
 		if err != nil {
 			return "", err
 		}
 		options = string(encoded)
 	}
-	return formatDocument([]document.Field{
+	return service.formatDocument([]document.Field{
 		{Key: "id", Value: question.ID},
 		{Key: "title", Value: question.Title},
 		{Key: "status", Value: status},
@@ -1133,13 +1215,13 @@ func formatQuestion(question storedQuestion) (string, error) {
 }
 
 func parseOptions(value string) ([]string, error) {
-	trimmed := jsTrim(value)
+	trimmed := document.Trim(value)
 	if trimmed == "" {
 		return []string{}, nil
 	}
 	parsed, err := parseJSONStringArray(trimmed)
 	if err != nil {
-		return nil, errors.New("invalid question file")
+		return nil, failure("invalid question file")
 	}
 	return parsed, nil
 }
@@ -1173,58 +1255,23 @@ func nextQuestionID(directory Directory) (string, error) {
 var questionFilePattern = regexp.MustCompile(`^(\d+)\.md$`)
 
 func questionFileNames(directory Directory) ([]string, error) {
-	file, err := os.Open(filepath.Join(directory.Dir, "questions"))
+	names, err := fsutil.ReadDir(filepath.Join(directory.Dir, "questions"))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
 		}
 		return nil, err
 	}
-	defer func() { _ = file.Close() }()
-	return file.Readdirnames(-1)
-}
-
-func createExclusive(path string, text string) error {
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o666)
-	if err != nil {
-		return err
-	}
-	_, writeErr := file.WriteString(text)
-	closeErr := file.Close()
-	if writeErr != nil {
-		return writeErr
-	}
-	return closeErr
-}
-
-func replaceFile(path string, text string) error {
-	temporary := path + ".tmp"
-	if err := os.WriteFile(temporary, []byte(text), 0o666); err != nil {
-		return err
-	}
-	return os.Rename(temporary, path)
-}
-
-func currentGitName() (string, error) {
-	directory, err := workingDirectory()
-	if err != nil {
-		return "", err
-	}
-	return gitName(directory), nil
-}
-
-func resolveNow(now *time.Time) (time.Time, error) {
-	if now != nil {
-		return *now, nil
-	}
-	return currentTime()
+	return names, nil
 }
 
 func invalidAnswerBy(value string) error {
-	return fmt.Errorf("invalid answerBy: expected a duration like 30m, 2h, 1d or an ISO 8601 datetime, actual %s", value)
+	return failure(fmt.Sprintf("invalid answerBy: expected a duration like 30m, 2h, 1d or an ISO 8601 datetime, actual %s", value))
 }
 
 var durationPattern = regexp.MustCompile(`^(\d+)([mhd])$`)
+
+var answerByPattern = regexp.MustCompile(`^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?(Z|[+-]\d{2}:\d{2})$`)
 
 func parseDuration(value string) (int64, int64, bool) {
 	matches := durationPattern.FindStringSubmatch(value)
@@ -1253,120 +1300,6 @@ func multiplyDuration(amount int64, unit int64) (int64, bool) {
 		return 0, false
 	}
 	return amount * unit, true
-}
-
-var answerByPattern = regexp.MustCompile(`^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?(Z|[+-]\d{2}:\d{2})$`)
-
-func parseAnswerByInput(value string) (time.Time, bool) {
-	matches := answerByPattern.FindStringSubmatch(value)
-	if matches == nil {
-		return time.Time{}, false
-	}
-	return componentsToTime(matches[1], matches[2], matches[3], matches[4], matches[5], matches[6], matches[7], matches[8], time.UTC)
-}
-
-func parseJavaScriptTime(value string) (time.Time, bool) {
-	if parsed, ok := parseAnswerByInput(value); ok {
-		return parsed, true
-	}
-	if matches := dateOnlyPattern.FindStringSubmatch(value); matches != nil {
-		return componentsToTime(matches[1], matches[2], matches[3], "0", "0", "0", "", "Z", time.UTC)
-	}
-	if matches := localDateTimePattern.FindStringSubmatch(value); matches != nil {
-		return componentsToTime(matches[1], matches[2], matches[3], matches[4], matches[5], matches[6], matches[7], "Z", time.Local)
-	}
-	if matches := slashDatePattern.FindStringSubmatch(value); matches != nil {
-		return componentsToTime(matches[1], matches[2], matches[3], "0", "0", "0", "", "Z", time.Local)
-	}
-	if matches := monthFirstPattern.FindStringSubmatch(value); matches != nil {
-		return componentsToTime(matches[3], matches[1], matches[2], "0", "0", "0", "", "Z", time.Local)
-	}
-	if matches := spacedDateTimePattern.FindStringSubmatch(value); matches != nil {
-		return componentsToTime(matches[1], matches[2], matches[3], matches[4], matches[5], matches[6], matches[7], matches[8], time.UTC)
-	}
-	return time.Time{}, false
-}
-
-var (
-	dateOnlyPattern       = regexp.MustCompile(`^(\d{4})-(\d{2})-(\d{2})$`)
-	localDateTimePattern  = regexp.MustCompile(`^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?$`)
-	slashDatePattern      = regexp.MustCompile(`^(\d{4})/(\d{2})/(\d{2})$`)
-	monthFirstPattern     = regexp.MustCompile(`^(\d{2})/(\d{2})/(\d{4})$`)
-	spacedDateTimePattern = regexp.MustCompile(`^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?(Z|[+-]\d{2}:\d{2})$`)
-)
-
-func componentsToTime(yearText, monthText, dayText, hourText, minuteText, secondText, fraction, zone string, location *time.Location) (time.Time, bool) {
-	year, yearErr := strconv.Atoi(yearText)
-	month, monthErr := strconv.Atoi(monthText)
-	day, dayErr := strconv.Atoi(dayText)
-	hour, hourErr := strconv.Atoi(hourText)
-	minute, minuteErr := strconv.Atoi(minuteText)
-	second := 0
-	if secondText != "" {
-		parsed, err := strconv.Atoi(secondText)
-		if err != nil {
-			return time.Time{}, false
-		}
-		second = parsed
-	}
-	if yearErr != nil || monthErr != nil || dayErr != nil || hourErr != nil || minuteErr != nil {
-		return time.Time{}, false
-	}
-	millisecond := fractionMilliseconds(fraction)
-	if month < 1 || month > 12 || day < 1 || day > 31 || minute < 0 || minute > 59 || second < 0 || second > 59 {
-		return time.Time{}, false
-	}
-	if hour == 24 {
-		if minute != 0 || second != 0 || millisecond != 0 {
-			return time.Time{}, false
-		}
-		hour = 0
-		day++
-	} else if hour < 0 || hour > 23 {
-		return time.Time{}, false
-	}
-	moment := time.Date(year, time.Month(month), day, hour, minute, second, millisecond*1_000_000, location)
-	if zone == "" || zone == "Z" {
-		return moment, true
-	}
-	sign := 1
-	if zone[0] == '-' {
-		sign = -1
-	}
-	offsetHours, err := strconv.Atoi(zone[1:3])
-	if err != nil {
-		return time.Time{}, false
-	}
-	offsetMinutes, err := strconv.Atoi(zone[4:6])
-	if err != nil {
-		return time.Time{}, false
-	}
-	return moment.Add(-time.Duration(sign) * time.Duration(offsetHours*60+offsetMinutes) * time.Minute), true
-}
-
-func fractionMilliseconds(fraction string) int {
-	if fraction == "" {
-		return 0
-	}
-	if len(fraction) > 3 {
-		fraction = fraction[:3]
-	}
-	for len(fraction) < 3 {
-		fraction += "0"
-	}
-	parsed, err := strconv.Atoi(fraction)
-	if err != nil {
-		return 0
-	}
-	return parsed
-}
-
-func javaScriptString(value string) (string, error) {
-	encoded, err := marshalJavaScript(value)
-	if err != nil {
-		return "", err
-	}
-	return string(encoded), nil
 }
 
 func parseJSONStringArray(text string) ([]string, error) {
@@ -1522,18 +1455,6 @@ func skipJSONSpace(runes []rune, index int) int {
 	return index
 }
 
-func javaScriptNumber(value string) (float64, bool) {
-	trimmed := jsTrim(value)
-	if trimmed == "" {
-		return 0, true
-	}
-	parsed, err := strconv.ParseFloat(trimmed, 64)
-	if err != nil {
-		return 0, false
-	}
-	return parsed, true
-}
-
 func joinOr(items []string) string {
 	if len(items) <= 2 {
 		return strings.Join(items, " or ")
@@ -1598,3 +1519,39 @@ func copyString(value *string) *string {
 }
 
 func strPtr(value string) *string { return &value }
+
+func failure(message string) error {
+	kind := failureKind(message)
+	if kind == nil {
+		return errors.New(message)
+	}
+	return errs.Wrap(message, kind)
+}
+
+func failureKind(message string) error {
+	switch {
+	case strings.HasPrefix(message, "question not found"), strings.HasPrefix(message, "issue not found"):
+		return errs.ErrNotFound
+	case message == "Invalid Date", strings.HasPrefix(message, "title is required"), strings.HasPrefix(message, "invalid "):
+		return errs.ErrInvalidArgument
+	case strings.HasPrefix(message, "duplicate question"):
+		return errs.ErrConflict
+	default:
+		return nil
+	}
+}
+
+func classify(err error) error {
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, errs.ErrNotFound) || errors.Is(err, errs.ErrInvalidArgument) || errors.Is(err, errs.ErrConflict) {
+		return err
+	}
+	message := err.Error()
+	kind := failureKind(message)
+	if kind == nil {
+		return err
+	}
+	return errs.Wrap(message, kind)
+}

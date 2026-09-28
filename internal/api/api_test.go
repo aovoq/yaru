@@ -384,17 +384,17 @@ func TestListProjectsSkipsMissingConfig(t *testing.T) {
 	}
 	t.Chdir(firstRoot)
 	initGit(t, firstRoot)
-	if _, err := workspace.Init(firstRoot); err != nil {
+	if _, err := workspace.Init(context.Background(), firstRoot); err != nil {
 		t.Fatal(err)
 	}
 	initGit(t, secondRoot)
-	if _, err := workspace.Init(secondRoot); err != nil {
+	if _, err := workspace.Init(context.Background(), secondRoot); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := workspace.RegisterIn(firstRoot, state); err != nil {
+	if _, err := workspace.RegisterIn(context.Background(), firstRoot, state); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := workspace.RegisterIn(secondRoot, state); err != nil {
+	if _, err := workspace.RegisterIn(context.Background(), secondRoot, state); err != nil {
 		t.Fatal(err)
 	}
 	issues := issueClient(t)
@@ -523,12 +523,12 @@ func TestMatchesTypeScriptFiles(t *testing.T) {
 			t.Fatal(err)
 		}
 		initGit(t, root)
-		if _, err := workspace.Init(root); err != nil {
+		if _, err := workspace.Init(context.Background(), root); err != nil {
 			t.Fatal(err)
 		}
 	}
 	t.Chdir(goRoot)
-	registered, err := workspace.RegisterIn(goRoot, state)
+	registered, err := workspace.RegisterIn(context.Background(), goRoot, state)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -609,10 +609,10 @@ func newAPIWorkspace(t *testing.T) (string, string) {
 	}
 	t.Chdir(root)
 	initGit(t, root)
-	if _, err := workspace.Init(root); err != nil {
+	if _, err := workspace.Init(context.Background(), root); err != nil {
 		t.Fatal(err)
 	}
-	registered, err := workspace.RegisterIn(root, state)
+	registered, err := workspace.RegisterIn(context.Background(), root, state)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -710,7 +710,7 @@ func errorsAs(err error, target *connect.Error) bool {
 
 func workspaceRoot(t *testing.T, slug string) string {
 	t.Helper()
-	registered, found := workspace.Find(slug, workspace.StateDirectory())
+	registered, found := workspace.Find(context.Background(), slug, stateDirectory())
 	if !found {
 		t.Fatalf("workspace %s is not registered", slug)
 	}
@@ -804,6 +804,11 @@ func treeFiles(t *testing.T, root string) map[string]string {
 			return walkErr
 		}
 		if info.IsDir() {
+			return nil
+		}
+		// .lock は flock の副作用で、TS 版の .yaru には無い。
+		// https://pubs.opengroup.org/onlinepubs/9699919799/functions/flock.html
+		if strings.HasSuffix(info.Name(), ".lock") {
 			return nil
 		}
 		relative, err := filepath.Rel(root, path)

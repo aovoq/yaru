@@ -1,20 +1,20 @@
+//declscope:namespace issue
+
 // コメントの読み書き。パスは .yaru/comments/<id>.md
 // TS 版の src/store.ts:648-765。仕様は docs/spec/yaru-format.md の「comment」
-// 時刻は clock、JSON は document.MarshalJavaScript、作業ディレクトリは workspace.WorkingDirectory を使う
+// 時刻と作者は引数で受け取る。JSON は document、issue の検査は GetIssue を使う
 package store
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
-	"unicode"
 	"unicode/utf8"
 
 	"golang.org/x/text/collate"
@@ -22,6 +22,7 @@ import (
 
 	"github.com/aovoq/yaru/internal/clock"
 	"github.com/aovoq/yaru/internal/document"
+	"github.com/aovoq/yaru/internal/fsutil"
 	"github.com/aovoq/yaru/internal/workspace"
 )
 
@@ -52,22 +53,17 @@ var commentCollator = collate.New(language.AmericanEnglish)
 
 var commentNumericFilePattern = regexp.MustCompile(`^(\d+)\.md$`)
 
-var commentCalendarDatePattern = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
-
-var commentStaleAfterPattern = regexp.MustCompile(`^(\d+)([mhd])$`)
-
-var commentStatuses = []string{"backlog", "todo", "in_progress", "done", "canceled"}
-
-var commentPriorities = []string{"urgent", "high", "medium", "low"}
-
 // ListComments は issue のコメントを createdAt、同じなら id の順で返す
 // 壊れたファイルは 1 件だけ省く。issue 自体が読めなければ一覧全体が失敗する
 // docs/spec/yaru-format.md の「comment」。src/store.ts:648-652, src/store.ts:707-719
-func ListComments(directory string, issueID string) ([]Comment, error) {
-	if err := commentRequireIssue(directory, issueID); err != nil {
+func ListComments(ctx context.Context, space workspace.Workspace, issueID string, now time.Time, author string) ([]Comment, error) {
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	comments, err := commentLoad(directory)
+	if _, err := GetIssue(ctx, space, issueID, now, author); err != nil {
+		return nil, err
+	}
+	comments, err := commentLoad(space.Directory, author)
 	if err != nil {
 		return nil, err
 	}
@@ -82,53 +78,82 @@ func ListComments(directory string, issueID string) ([]Comment, error) {
 }
 
 // GetComment は 1 件を読む。ファイルが無ければ comment not found
-// 壊れていても省かない。src/store.ts:655-658
-func GetComment(directory string, commentID string) (Comment, error) {
-	comment, err := commentRead(commentPath(directory, commentID), commentID)
+// 壊れていても省かない。空の author は引数の作者に置き換える。ファイルは書き換えない。
+// src/store.ts:655-658、src/store.ts:746
+func GetComment(ctx context.Context, space workspace.Workspace, commentID string, author string) (Comment, error) {
+	if err := ctx.Err(); err != nil {
+		return Comment{}, err
+	}
+	comment, err := commentRead(commentPath(space.Directory, commentID), commentID, author)
 	if errors.Is(err, os.ErrNotExist) {
-		return Comment{}, fmt.Errorf("comment not found: %s", commentID)
+		return Comment{}, issueErrString(fmt.Sprintf("comment not found: %s", commentID))
 	}
 	return comment, err
 }
 
 // SaveComment は作成するか、id があれば本文を更新する
-// 時刻は引数では渡さず、常に clock.Now の ISO 文字列。src/store.ts:661-704
+// 時刻は引数 now の ISO 文字列。空の author は引数の作者に置き換える。src/store.ts:661-704
+// 更新はコメントファイル、作成は comments ディレクトリをロックする。
 // https://www.rfc-editor.org/rfc/rfc3339#section-5.6
-func SaveComment(directory string, input SaveCommentInput) (Comment, error) {
-	timestamp, err := commentTimestamp()
-	if err != nil {
+func SaveComment(ctx context.Context, space workspace.Workspace, input SaveCommentInput, now time.Time, author string) (Comment, error) {
+	if err := ctx.Err(); err != nil {
 		return Comment{}, err
 	}
+	timestamp := clock.ISOString(now)
 	if input.ID != nil && *input.ID != "" {
-		return commentUpdate(directory, *input.ID, input.Body, timestamp)
+		return commentUpdate(ctx, space, *input.ID, input.Body, timestamp, author)
 	}
-	return commentCreate(directory, input, timestamp)
+	return commentCreate(ctx, space, input, now, timestamp, author)
 }
 
-func commentUpdate(directory string, commentID string, body *string, timestamp string) (Comment, error) {
-	current, err := GetComment(directory, commentID)
+func commentUpdate(ctx context.Context, space workspace.Workspace, commentID string, body *string, timestamp string, author string) (Comment, error) {
+	path := commentPath(space.Directory, commentID)
+	if _, err := os.Stat(path); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return Comment{}, issueErrString(fmt.Sprintf("comment not found: %s", commentID))
+		}
+		return Comment{}, err
+	}
+	unlock, err := fsutil.Lock(ctx, path)
 	if err != nil {
 		return Comment{}, err
 	}
-	if body != nil && commentJavaScriptTrim(*body) == "" {
+	defer unlock()
+	current, err := commentRead(path, commentID, author)
+	if errors.Is(err, os.ErrNotExist) {
+		return Comment{}, issueErrString(fmt.Sprintf("comment not found: %s", commentID))
+	}
+	if err != nil {
+		return Comment{}, err
+	}
+	if body != nil && document.Trim(*body) == "" {
 		return Comment{}, commentInvalidBody(*body)
 	}
 	if body != nil {
 		current.Body = *body
 	}
 	current.UpdatedAt = timestamp
-	if err := commentReplace(commentPath(directory, current.ID), commentFormat(current)); err != nil {
+	if err := fsutil.WriteReplace(path, commentFormat(current)); err != nil {
 		return Comment{}, err
 	}
 	return current, nil
 }
 
-func commentCreate(directory string, input SaveCommentInput, timestamp string) (Comment, error) {
+func commentCreate(ctx context.Context, space workspace.Workspace, input SaveCommentInput, now time.Time, timestamp string, author string) (Comment, error) {
+	commentsDirectory := filepath.Join(space.Directory, "comments")
+	unlock, err := fsutil.Lock(ctx, commentsDirectory)
+	if err != nil {
+		return Comment{}, err
+	}
+	defer unlock()
 	var parent *Comment
 	if input.Parent != nil && *input.Parent != "" {
-		found, err := GetComment(directory, *input.Parent)
-		if err != nil {
-			return Comment{}, err
+		found, readErr := commentRead(commentPath(space.Directory, *input.Parent), *input.Parent, author)
+		if errors.Is(readErr, os.ErrNotExist) {
+			return Comment{}, issueErrString(fmt.Sprintf("comment not found: %s", *input.Parent))
+		}
+		if readErr != nil {
+			return Comment{}, readErr
 		}
 		parent = &found
 	}
@@ -139,29 +164,25 @@ func commentCreate(directory string, input SaveCommentInput, timestamp string) (
 		issueID = *input.Issue
 	}
 	if issueID == "" {
-		return Comment{}, errors.New("issue is required when creating a comment")
+		return Comment{}, issueErrString("issue is required when creating a comment")
 	}
-	// getIssue は時刻と staleAfter を先に見て、issue の形が壊れていれば作成しない
+	// getIssue は staleAfter を先に見て、issue の形が壊れていれば作成しない
 	// src/store.ts:236-237, src/store.ts:681
-	if err := commentRequireIssue(directory, issueID); err != nil {
+	if _, err := GetIssue(ctx, space, issueID, now, author); err != nil {
 		return Comment{}, err
 	}
 	body := ""
 	if input.Body != nil {
 		body = *input.Body
 	}
-	if commentJavaScriptTrim(body) == "" {
+	if document.Trim(body) == "" {
 		return Comment{}, commentInvalidBody(body)
 	}
-	if err := commentMkdir(filepath.Join(directory, "comments")); err != nil {
+	if err := commentMkdir(commentsDirectory); err != nil {
 		return Comment{}, err
 	}
 	var created Comment
-	_, err := commentCreateWithRetry(directory, func(commentID string) (string, error) {
-		author, nameErr := commentGitName()
-		if nameErr != nil {
-			return "", nameErr
-		}
+	_, err = commentCreateWithRetry(space.Directory, func(commentID string) (string, error) {
 		created = Comment{
 			ID:        commentID,
 			Issue:     issueID,
@@ -182,25 +203,17 @@ func commentCreate(directory string, input SaveCommentInput, timestamp string) (
 	return created, nil
 }
 
-func commentTimestamp() (string, error) {
-	moment, err := clock.Now()
-	if err != nil {
-		return "", err
-	}
-	return clock.ISOString(moment), nil
-}
-
 func commentInvalidBody(value string) error {
-	encoded, err := document.MarshalJavaScript(value)
+	encoded, err := document.Quote(value)
 	if err != nil {
 		return err
 	}
-	return fmt.Errorf("invalid body: expected a non-empty string, actual %s", encoded)
+	return issueErrString(fmt.Sprintf("invalid body: expected a non-empty string, actual %s", encoded))
 }
 
-func commentLoad(directory string) ([]Comment, error) {
+func commentLoad(directory string, author string) ([]Comment, error) {
 	commentsDirectory := filepath.Join(directory, "comments")
-	names, err := commentReaddir(commentsDirectory)
+	names, err := fsutil.ReadDir(commentsDirectory)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return []Comment{}, nil
@@ -212,7 +225,7 @@ func commentLoad(directory string) ([]Comment, error) {
 		if !strings.HasSuffix(name, ".md") {
 			continue
 		}
-		comment, readErr := commentRead(filepath.Join(commentsDirectory, name), strings.TrimSuffix(name, ".md"))
+		comment, readErr := commentRead(filepath.Join(commentsDirectory, name), strings.TrimSuffix(name, ".md"), author)
 		if readErr != nil {
 			continue
 		}
@@ -221,7 +234,7 @@ func commentLoad(directory string) ([]Comment, error) {
 	return comments, nil
 }
 
-func commentRead(path string, stem string) (Comment, error) {
+func commentRead(path string, stem string, author string) (Comment, error) {
 	text, err := commentReadFile(path)
 	if err != nil {
 		return Comment{}, err
@@ -229,26 +242,23 @@ func commentRead(path string, stem string) (Comment, error) {
 	parsed, err := document.Parse(text)
 	if err != nil {
 		// parseFrontmatter の失敗は、コメントでも invalid issue file。src/store.ts:790-791
-		return Comment{}, errors.New("invalid issue file")
+		return Comment{}, err
 	}
-	issueID := commentJavaScriptTrim(parsed.Meta["issue"])
+	issueID := document.Trim(parsed.Meta["issue"])
 	if issueID == "" {
-		return Comment{}, errors.New("invalid comment file")
+		return Comment{}, issueErrString("invalid comment file")
 	}
-	author := commentJavaScriptTrim(parsed.Meta["author"])
-	if author == "" {
-		author, err = commentGitName()
-		if err != nil {
-			return Comment{}, err
-		}
+	commentAuthor := document.Trim(parsed.Meta["author"])
+	if commentAuthor == "" {
+		commentAuthor = author
 	}
 	return Comment{
 		ID:        stem,
 		Issue:     issueID,
 		Parent:    commentBlankToNull(parsed.Meta["parent"]),
-		Author:    author,
-		CreatedAt: commentJavaScriptTrim(parsed.Meta["createdAt"]),
-		UpdatedAt: commentJavaScriptTrim(parsed.Meta["updatedAt"]),
+		Author:    commentAuthor,
+		CreatedAt: document.Trim(parsed.Meta["createdAt"]),
+		UpdatedAt: document.Trim(parsed.Meta["updatedAt"]),
 		Body:      parsed.Body,
 	}, nil
 }
@@ -274,7 +284,7 @@ func commentPath(directory string, commentID string) string {
 }
 
 func commentNextID(directory string) (string, error) {
-	names, err := commentReaddir(filepath.Join(directory, "comments"))
+	names, err := fsutil.ReadDir(filepath.Join(directory, "comments"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return "1", nil
@@ -287,15 +297,13 @@ func commentNextID(directory string) (string, error) {
 		if match == nil {
 			continue
 		}
-		number, parseErr := strconv.ParseFloat(match[1], 64)
-		if parseErr != nil && !errors.Is(parseErr, strconv.ErrRange) {
+		number, ok := document.ParseNumber(match[1])
+		if !ok || number <= maximum {
 			continue
 		}
-		if number > maximum {
-			maximum = number
-		}
+		maximum = number
 	}
-	return commentFormatJavaScriptNumber(maximum + 1), nil
+	return document.FormatNumber(maximum + 1), nil
 }
 
 func commentCreateWithRetry(directory string, render func(commentID string) (string, error)) (string, error) {
@@ -320,24 +328,11 @@ func commentCreateWithRetry(directory string, render func(commentID string) (str
 }
 
 func commentCreateExclusive(path string, text string) error {
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o666)
-	if err != nil {
-		return err
-	}
-	_, writeErr := file.Write([]byte(text))
-	closeErr := file.Close()
-	if writeErr != nil {
-		return writeErr
-	}
-	return closeErr
+	return fsutil.WriteCreate(path, text)
 }
 
 func commentReplace(path string, text string) error {
-	temporary := path + ".tmp"
-	if err := os.WriteFile(temporary, []byte(text), 0o666); err != nil {
-		return err
-	}
-	return os.Rename(temporary, path)
+	return fsutil.WriteReplace(path, text)
 }
 
 func commentMkdir(path string) error {
@@ -350,25 +345,6 @@ func commentMkdir(path string) error {
 		return fmt.Errorf("EEXIST: file already exists, mkdir '%s'", path)
 	}
 	return err
-}
-
-func commentReaddir(directory string) ([]string, error) {
-	file, err := os.Open(directory)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		_ = file.Close()
-	}()
-	entries, err := file.Readdir(-1)
-	if err != nil {
-		return nil, err
-	}
-	names := make([]string, 0, len(entries))
-	for _, entry := range entries {
-		names = append(names, entry.Name())
-	}
-	return names, nil
 }
 
 func commentReadFile(path string) (string, error) {
@@ -393,238 +369,15 @@ func commentDecodeUTF8(content []byte) string {
 	}
 	var builder strings.Builder
 	for len(content) > 0 {
-		runeValue, size := utf8.DecodeRune(content)
-		builder.WriteRune(runeValue)
+		character, size := utf8.DecodeRune(content)
+		builder.WriteRune(character)
 		content = content[size:]
 	}
 	return builder.String()
 }
 
-// commentRequireIssue は list と作成が getIssue を通るときの失敗だけを再現する
-// issue の型は別の担当が持つので、ここではエラーになる読み方だけを見る
-// src/store.ts:236-246, src/store.ts:649, src/store.ts:681
-func commentRequireIssue(directory string, issueID string) error {
-	if _, err := clock.Now(); err != nil {
-		return err
-	}
-	if _, err := commentReadStaleAfter(directory); err != nil {
-		return err
-	}
-	path := filepath.Join(directory, "issues", issueID+".md")
-	text, err := commentReadFile(path)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("issue not found: %s", issueID)
-		}
-		return err
-	}
-	parsed, err := document.Parse(text)
-	if err != nil {
-		return errors.New("invalid issue file")
-	}
-	return commentValidateIssueMeta(parsed.Meta)
-}
-
-func commentValidateIssueMeta(meta map[string]string) error {
-	status := commentJavaScriptTrim(meta["status"])
-	if status == "" {
-		status = "todo"
-	}
-	if err := commentResolveStatus(status); err != nil {
-		return err
-	}
-	if err := commentResolveAssignee(commentJavaScriptTrim(meta["assignee"])); err != nil {
-		return err
-	}
-	if err := commentResolveDueDate(commentJavaScriptTrim(meta["dueDate"])); err != nil {
-		return err
-	}
-	return commentResolvePriority(commentJavaScriptTrim(meta["priority"]))
-}
-
-func commentResolveStatus(value string) error {
-	trimmed := commentJavaScriptTrim(value)
-	for _, status := range commentStatuses {
-		if trimmed == status {
-			return nil
-		}
-	}
-	return fmt.Errorf("invalid status: expected %s, actual %s", commentJoinOr(commentStatuses), value)
-}
-
-func commentResolveAssignee(value string) error {
-	resolved := commentBlankToNull(value)
-	if resolved != nil && *resolved == "me" {
-		_, err := commentGitName()
-		return err
-	}
-	return nil
-}
-
-func commentResolveDueDate(value string) error {
-	resolved := commentBlankToNull(value)
-	if resolved == nil {
-		return nil
-	}
-	if !commentIsCalendarDate(*resolved) {
-		return fmt.Errorf("invalid dueDate: expected YYYY-MM-DD, actual %s", value)
-	}
-	return nil
-}
-
-func commentResolvePriority(value string) error {
-	resolved := commentBlankToNull(value)
-	if resolved == nil {
-		return nil
-	}
-	for _, priority := range commentPriorities {
-		if *resolved == priority {
-			return nil
-		}
-	}
-	return fmt.Errorf("invalid priority: expected %s, actual %s", commentJoinOr(commentPriorities), value)
-}
-
-func commentReadStaleAfter(directory string) (int64, error) {
-	value, found, err := commentReadConfigValue(directory, "staleAfter")
-	if err != nil {
-		return 0, err
-	}
-	if !found {
-		return 24 * 3_600_000, nil
-	}
-	return commentParseStaleAfter(value)
-}
-
-func commentParseStaleAfter(value string) (int64, error) {
-	match := commentStaleAfterPattern.FindStringSubmatch(commentJavaScriptTrim(value))
-	amount := 0.0
-	if match != nil {
-		parsed, err := strconv.ParseFloat(match[1], 64)
-		if err == nil || errors.Is(err, strconv.ErrRange) {
-			amount = parsed
-		}
-	}
-	if match == nil || amount <= 0 {
-		encoded, err := document.MarshalJavaScript(value)
-		if err != nil {
-			return 0, err
-		}
-		return 0, fmt.Errorf("invalid staleAfter: expected a positive duration such as 30m, 2h, or 1d, actual %s", encoded)
-	}
-	unit := map[string]float64{"m": 60_000, "h": 3_600_000, "d": 86_400_000}[match[2]]
-	return int64(amount * unit), nil
-}
-
-func commentReadConfigValue(directory string, key string) (string, bool, error) {
-	content, err := os.ReadFile(filepath.Join(directory, "config.yml"))
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return "", false, nil
-		}
-		return "", false, err
-	}
-	prefix := key + ":"
-	for _, line := range strings.Split(string(content), "\n") {
-		if !strings.HasPrefix(line, prefix) {
-			continue
-		}
-		value := commentJavaScriptTrim(line[len(prefix):])
-		if value == "" {
-			return "", false, nil
-		}
-		return value, true, nil
-	}
-	return "", false, nil
-}
-
-func commentGitName() (string, error) {
-	workingDirectory, err := workspace.WorkingDirectory()
-	if err != nil {
-		return "", err
-	}
-	return workspace.GitName(workingDirectory), nil
-}
-
 func commentBlankToNull(value string) *string {
-	trimmed := commentJavaScriptTrim(value)
-	if trimmed == "" || trimmed == "none" {
-		return nil
-	}
-	return &trimmed
-}
-
-func commentJoinOr(items []string) string {
-	if len(items) <= 2 {
-		return strings.Join(items, " or ")
-	}
-	return strings.Join(items[:len(items)-1], ", ") + ", or " + items[len(items)-1]
-}
-
-func commentIsCalendarDate(value string) bool {
-	if !commentCalendarDatePattern.MatchString(value) {
-		return false
-	}
-	year, _ := strconv.Atoi(value[0:4])
-	month, _ := strconv.Atoi(value[5:7])
-	day, _ := strconv.Atoi(value[8:10])
-	// JS の Date は 0 から 99 を 1900 年代にするので、読み直すと年が合わない
-	// https://tc39.es/ecma262/#sec-date-year-month-date
-	if year < 100 {
-		return false
-	}
-	parsed := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
-	return parsed.Year() == year && int(parsed.Month()) == month && parsed.Day() == day
-}
-
-func commentJavaScriptTrim(value string) string {
-	start := 0
-	end := len(value)
-	for start < end {
-		runeValue, size := utf8.DecodeRuneInString(value[start:])
-		if !commentIsJavaScriptWhitespace(runeValue) {
-			break
-		}
-		start += size
-	}
-	for end > start {
-		runeValue, size := utf8.DecodeLastRuneInString(value[:end])
-		if !commentIsJavaScriptWhitespace(runeValue) {
-			break
-		}
-		end -= size
-	}
-	return value[start:end]
-}
-
-func commentIsJavaScriptWhitespace(runeValue rune) bool {
-	switch runeValue {
-	case '\t', '\n', '\v', '\f', '\r', ' ', '\u00a0', '\ufeff', '\u2028', '\u2029':
-		return true
-	default:
-		return unicode.Is(unicode.Zs, runeValue)
-	}
-}
-
-func commentFormatJavaScriptNumber(value float64) string {
-	if math.IsNaN(value) {
-		return "NaN"
-	}
-	if math.IsInf(value, 1) {
-		return "Infinity"
-	}
-	if math.IsInf(value, -1) {
-		return "-Infinity"
-	}
-	if value == 0 {
-		return "0"
-	}
-	absolute := math.Abs(value)
-	// 1e21 以上は JS の Number#toString が指数表記になる。src/store.ts:364 の String(最大 + 1)
-	if absolute >= 1e21 {
-		return strconv.FormatFloat(value, 'e', -1, 64)
-	}
-	return strconv.FormatFloat(value, 'f', -1, 64)
+	return BlankToNull(Present(value)).Value
 }
 
 func commentCompare(left string, right string) int {

@@ -1,6 +1,7 @@
 package sessions_test
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -43,8 +44,15 @@ func homeOf(t *testing.T) string {
 }
 
 func options(home string) sessions.HealthOptions {
-	moment := now
-	return sessions.HealthOptions{Home: &home, Now: &moment}
+	return sessions.HealthOptions{Home: home, Now: now}
+}
+
+func readHealth(root string, healthOptions sessions.HealthOptions) (sessions.Health, error) {
+	return sessions.NewReader().ReadHealth(context.Background(), root, healthOptions)
+}
+
+func findSession(root string, id string, findOptions sessions.FindOptions) (*sessions.Summary, error) {
+	return sessions.NewReader().Find(context.Background(), root, id, findOptions)
 }
 
 func writeSession(t *testing.T, directory string, name string, lines []any, modified time.Time) string {
@@ -103,7 +111,7 @@ func TestClaudeProjectDirectory(t *testing.T) {
 }
 
 func TestReadSessionHealthWithoutLogs(t *testing.T) {
-	health, err := sessions.ReadSessionHealth(root, options(homeOf(t)))
+	health, err := readHealth(root, options(homeOf(t)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +141,7 @@ func TestReadSessionHealthPricesUsageOnceAndKeepsTitle(t *testing.T) {
 		map[string]any{"type": "ai-title", "aiTitle": "latest title"},
 		map[string]any{"type": "ai-title", "aiTitle": 12},
 	}, now)
-	health, err := sessions.ReadSessionHealth(root, options(home))
+	health, err := readHealth(root, options(home))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +196,7 @@ func TestReadSessionHealthToolsSubagentsAndInterruptions(t *testing.T) {
 	writeSession(t, filepath.Join(project, "s1", "subagents"), "top.jsonl", []any{
 		map[string]any{"type": "user", "timestamp": "2026-09-24T00:00:00.000Z", "message": map[string]any{"content": []any{}}},
 	}, now)
-	health, err := sessions.ReadSessionHealth(root, options(home))
+	health, err := readHealth(root, options(home))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +228,7 @@ func TestReadSessionHealthModelsPricesAndStringTokens(t *testing.T) {
 		assistant("m4", "2026-09-25T10:00:03.000Z", map[string]any{"input_tokens": 1_000_000, "output_tokens": 0, "speed": "fast"}, "claude-opus-5-5", nil),
 		assistant("m5", "2026-09-25T10:00:04.000Z", map[string]any{"input_tokens": 1_000_000, "output_tokens": 0, "speed": "Fast"}, "claude-opus-5-5", nil),
 	}, now)
-	health, err := sessions.ReadSessionHealth(root, options(home))
+	health, err := readHealth(root, options(home))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,7 +264,7 @@ func TestReadSessionHealthModelsPricesAndStringTokens(t *testing.T) {
 			assistant("m", stamp, map[string]any{"input_tokens": 1_000_000, "output_tokens": 0, "cache_read_input_tokens": 1_000_000}, model.name, nil),
 		}, now)
 	}
-	priced, err := sessions.ReadSessionHealth(root, options(priceHome))
+	priced, err := readHealth(root, options(priceHome))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -294,7 +302,7 @@ func TestReadSessionHealthModelsPricesAndStringTokens(t *testing.T) {
 		"input_tokens": 0, "output_tokens": 0, "cache_creation_input_tokens": 2_000_000,
 		"cache_creation": map[string]any{"ephemeral_1h_input_tokens": 500_000},
 	}, "claude-haiku-4-5", nil)}, now)
-	cached, err := sessions.ReadSessionHealth(root, options(cacheHome))
+	cached, err := readHealth(root, options(cacheHome))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -313,7 +321,7 @@ func TestReadSessionHealthModelsPricesAndStringTokens(t *testing.T) {
 			"id": "loose", "model": "claude-haiku-4-5", "usage": map[string]any{"input_tokens": "10", "output_tokens": 1}, "content": []any{},
 		}},
 	}, now)
-	textual, err := sessions.ReadSessionHealth(root, options(stringHome))
+	textual, err := readHealth(root, options(stringHome))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -339,7 +347,7 @@ func TestReadSessionHealthWindowOrderBoundaryAndBrokenLines(t *testing.T) {
 	}
 	writeSession(t, filepath.Join(project, "other"), "x.jsonl", []any{assistant("m6", "2026-09-25T12:00:00.000Z", usage, "claude-haiku-4-5", nil)}, now)
 	window := 7
-	health, err := sessions.ReadSessionHealth(root, sessions.HealthOptions{Home: &home, Now: &now, WindowDays: &window})
+	health, err := readHealth(root, sessions.HealthOptions{Home: home, Now: now, WindowDays: &window})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -360,7 +368,7 @@ func TestReadSessionHealthWindowOrderBoundaryAndBrokenLines(t *testing.T) {
 	writeSession(t, boundaryProject, "exact.jsonl", []any{assistant("m", "2026-09-25T00:00:00.000Z", usage, "claude-haiku-4-5", nil)}, since)
 	writeSession(t, boundaryProject, "before.jsonl", []any{assistant("m", "2026-09-25T00:00:00.000Z", usage, "claude-haiku-4-5", nil)}, since.Add(-time.Millisecond))
 	writeSession(t, boundaryProject, "after.jsonl", []any{assistant("m", "2026-09-25T00:00:00.000Z", usage, "claude-haiku-4-5", nil)}, since.Add(time.Millisecond))
-	boundary, err := sessions.ReadSessionHealth(root, sessions.HealthOptions{Home: &boundaryHome, Now: &now, WindowDays: &window})
+	boundary, err := readHealth(root, sessions.HealthOptions{Home: boundaryHome, Now: now, WindowDays: &window})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -372,7 +380,7 @@ func TestReadSessionHealthWindowOrderBoundaryAndBrokenLines(t *testing.T) {
 		t.Fatalf("%v", got)
 	}
 	zero := 0
-	zeroHealth, err := sessions.ReadSessionHealth(root, sessions.HealthOptions{Home: &boundaryHome, Now: &now, WindowDays: &zero})
+	zeroHealth, err := readHealth(root, sessions.HealthOptions{Home: boundaryHome, Now: now, WindowDays: &zero})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -392,7 +400,7 @@ func TestReadSessionHealthWindowOrderBoundaryAndBrokenLines(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(brokenProject, "s1.jsonl"), append([]byte("{\"type\":\"assistant\",\n"), append(encoded, '\n')...), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	broken, err := sessions.ReadSessionHealth(root, options(brokenHome))
+	broken, err := readHealth(root, options(brokenHome))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -410,7 +418,7 @@ func TestReadSessionHealthTimestampQuirksAndCache(t *testing.T) {
 		assistant("m3", "b-not-iso", map[string]any{"input_tokens": 1, "output_tokens": 1}, "claude-haiku-4-5", nil),
 		map[string]any{"type": "assistant", "timestamp": 123, "message": map[string]any{"id": "num", "model": "claude-haiku-4-5", "usage": map[string]any{"input_tokens": 1, "output_tokens": 1}, "content": []any{}}},
 	}, now)
-	health, err := sessions.ReadSessionHealth(root, options(home))
+	health, err := readHealth(root, options(home))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -424,7 +432,8 @@ func TestReadSessionHealthTimestampQuirksAndCache(t *testing.T) {
 	path := writeSession(t, staleProject, "s1.jsonl", []any{
 		assistant("m1", "2026-09-25T10:00:00.000Z", map[string]any{"input_tokens": 4, "output_tokens": 1}, "claude-haiku-4-5", nil),
 	}, now)
-	first, err := sessions.ReadSessionHealth(root, options(staleHome))
+	reader := sessions.NewReader()
+	first, err := reader.ReadHealth(context.Background(), root, options(staleHome))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -434,12 +443,19 @@ func TestReadSessionHealthTimestampQuirksAndCache(t *testing.T) {
 	if err := os.Chtimes(path, now, now); err != nil {
 		t.Fatal(err)
 	}
-	second, err := sessions.ReadSessionHealth(root, options(staleHome))
+	second, err := reader.ReadHealth(context.Background(), root, options(staleHome))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if first.Sessions[0].InputTokens.Number != 4 || second.Sessions[0].InputTokens.Number != 4 {
 		t.Fatalf("first %v second %v", first.Sessions[0].InputTokens, second.Sessions[0].InputTokens)
+	}
+	reread, err := sessions.NewReader().ReadHealth(context.Background(), root, options(staleHome))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reread.Sessions[0].InputTokens.Number != 9 {
+		t.Fatalf("new reader %v", reread.Sessions[0].InputTokens)
 	}
 
 	oldHome := homeOf(t)
@@ -448,7 +464,7 @@ func TestReadSessionHealthTimestampQuirksAndCache(t *testing.T) {
 	writeSession(t, filepath.Join(oldProject, "s1", "subagents"), "agent.jsonl", []any{
 		assistant("m2", "2026-09-25T10:00:00.000Z", map[string]any{"input_tokens": 50, "output_tokens": 1}, "claude-haiku-4-5", nil),
 	}, now)
-	old, err := sessions.ReadSessionHealth(root, options(oldHome))
+	old, err := readHealth(root, options(oldHome))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -462,7 +478,7 @@ func TestReadSessionHealthTimestampQuirksAndCache(t *testing.T) {
 	writeSession(t, filepath.Join(freshProject, "s1", "subagents"), "agent.jsonl", []any{
 		assistant("m2", "2026-09-01T00:00:00.000Z", map[string]any{"input_tokens": 50, "output_tokens": 1}, "claude-haiku-4-5", nil),
 	}, time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC))
-	fresh, err := sessions.ReadSessionHealth(root, options(freshHome))
+	fresh, err := readHealth(root, options(freshHome))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -486,7 +502,7 @@ func TestReadSessionHealthLinkedWorktrees(t *testing.T) {
 	writeSession(t, sessions.ClaudeProjectDirectory(linked, home), "in-worktree.jsonl", []any{
 		assistant("m2", "2026-09-25T11:00:00.000Z", usage, "claude-haiku-4-5", nil),
 	}, now)
-	health, err := sessions.ReadSessionHealth(main, options(home))
+	health, err := readHealth(main, options(home))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -498,7 +514,7 @@ func TestReadSessionHealthLinkedWorktrees(t *testing.T) {
 	writeSession(t, sessions.ClaudeProjectDirectory(linked, onlyHome), "only.jsonl", []any{
 		assistant("m2", "2026-09-25T11:00:00.000Z", usage, "claude-haiku-4-5", nil),
 	}, now)
-	only, err := sessions.ReadSessionHealth(main, options(onlyHome))
+	only, err := readHealth(main, options(onlyHome))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -510,7 +526,7 @@ func TestReadSessionHealthLinkedWorktrees(t *testing.T) {
 		t.Fatalf("main log dir exists: %v", statErr)
 	}
 
-	fromLinked, err := sessions.ReadSessionHealth(linked, options(home))
+	fromLinked, err := readHealth(linked, options(home))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -525,7 +541,7 @@ func TestFindSession(t *testing.T) {
 		assistant("m0", "2026-08-01T00:00:00.000Z", map[string]any{"input_tokens": 1, "output_tokens": 1}, "claude-opus-5-5", nil),
 		map[string]any{"type": "ai-title", "aiTitle": "一覧を直す"},
 	}, time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC))
-	found, err := sessions.FindSession(root, "old", sessions.FindOptions{Home: &home})
+	found, err := findSession(root, "old", sessions.FindOptions{Home: home})
 	if err != nil || found == nil || found.Title == nil || *found.Title != "一覧を直す" || found.Worktree != nil || found.LastActivityAt == nil || *found.LastActivityAt != "2026-08-01T00:00:00.000Z" {
 		t.Fatalf("%#v %v", found, err)
 	}
@@ -533,21 +549,21 @@ func TestFindSession(t *testing.T) {
 	writeSession(t, sessions.ClaudeProjectDirectory(removed, home), "gone.jsonl", []any{
 		map[string]any{"type": "ai-title", "aiTitle": "worktree での作業"},
 	}, now)
-	missing, err := sessions.FindSession(root, "gone", sessions.FindOptions{Home: &home})
+	missing, err := findSession(root, "gone", sessions.FindOptions{Home: home})
 	if err != nil || missing != nil {
 		t.Fatalf("%#v %v", missing, err)
 	}
-	gone, err := sessions.FindSession(root, "gone", sessions.FindOptions{Home: &home, Worktree: &removed})
+	gone, err := findSession(root, "gone", sessions.FindOptions{Home: home, Worktree: &removed})
 	if err != nil || gone == nil || gone.Worktree == nil || *gone.Worktree != "app-feature" || gone.Title == nil || *gone.Title != "worktree での作業" {
 		t.Fatalf("%#v %v", gone, err)
 	}
 	sameRoot := root
-	same, err := sessions.FindSession(root, "gone", sessions.FindOptions{Home: &home, Worktree: &sameRoot})
+	same, err := findSession(root, "gone", sessions.FindOptions{Home: home, Worktree: &sameRoot})
 	if err != nil || same != nil {
 		t.Fatalf("%#v %v", same, err)
 	}
 	for _, id := range []string{"missing", "../s1", "", "s1.jsonl", "a/b", "a.b", "none", "s1 "} {
-		found, findErr := sessions.FindSession(root, id, sessions.FindOptions{Home: &home})
+		found, findErr := findSession(root, id, sessions.FindOptions{Home: home})
 		if findErr != nil || found != nil {
 			t.Fatalf("id %q %#v %v", id, found, findErr)
 		}
@@ -555,7 +571,7 @@ func TestFindSession(t *testing.T) {
 	writeSession(t, sessions.ClaudeProjectDirectory(root, home), "s1.jsonl", []any{
 		map[string]any{"type": "ai-title", "aiTitle": "latest title"},
 	}, now)
-	upper, err := sessions.FindSession(root, "S1", sessions.FindOptions{Home: &home})
+	upper, err := findSession(root, "S1", sessions.FindOptions{Home: home})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -569,7 +585,7 @@ func TestFindSession(t *testing.T) {
 	}
 }
 
-func TestReadSessionHealthUsesYARUNowWhenNowIsOmitted(t *testing.T) {
+func TestReadSessionHealthIgnoresYARUNow(t *testing.T) {
 	home := homeOf(t)
 	project := sessions.ClaudeProjectDirectory(root, home)
 	fixed := time.Date(2026, 9, 28, 12, 0, 0, 0, time.UTC)
@@ -577,29 +593,24 @@ func TestReadSessionHealthUsesYARUNowWhenNowIsOmitted(t *testing.T) {
 	usage := map[string]any{"input_tokens": 1, "output_tokens": 1}
 	writeSession(t, project, "in.jsonl", []any{assistant("m", "2026-09-28T00:00:00.000Z", usage, "claude-haiku-4-5", nil)}, since)
 	writeSession(t, project, "out.jsonl", []any{assistant("m", "2026-09-21T00:00:00.000Z", usage, "claude-haiku-4-5", nil)}, since.Add(-time.Millisecond))
-	health, err := sessions.ReadSessionHealth(root, sessions.HealthOptions{Home: &home})
+	t.Setenv("YARU_NOW", "not-a-time")
+	health, err := readHealth(root, sessions.HealthOptions{Home: home, Now: fixed})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(health.Sessions) != 1 || health.Sessions[0].ID != "in" || health.WindowDays != 7 {
 		t.Fatalf("%#v", health.Sessions)
 	}
-	t.Setenv("YARU_NOW", "not-a-time")
-	_, err = sessions.ReadSessionHealth(root, sessions.HealthOptions{Home: &home})
-	if err == nil || err.Error() != `invalid YARU_NOW: expected an ISO 8601 datetime such as 2026-09-28T12:00:00.000Z, actual "not-a-time"` {
-		t.Fatalf("got %v", err)
-	}
 }
 
-func TestReadSessionHealthDefaultHome(t *testing.T) {
+func TestReadSessionHealthUsesGivenHome(t *testing.T) {
 	home := homeOf(t)
-	t.Setenv("HOME", home)
+	t.Setenv("HOME", t.TempDir())
 	project := sessions.ClaudeProjectDirectory(root, home)
 	writeSession(t, project, "s1.jsonl", []any{
 		assistant("m", "2026-09-25T10:00:00.000Z", map[string]any{"input_tokens": 1, "output_tokens": 1}, "claude-haiku-4-5", nil),
 	}, now)
-	moment := now
-	health, err := sessions.ReadSessionHealth(root, sessions.HealthOptions{Now: &moment})
+	health, err := readHealth(root, sessions.HealthOptions{Home: home, Now: now})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -614,7 +625,7 @@ func TestSessionErrors(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(project, "s1.jsonl"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	_, err := sessions.ReadSessionHealth(root, options(home))
+	_, err := readHealth(root, options(home))
 	if err == nil || err.Error() != "EISDIR: illegal operation on a directory, read" {
 		t.Fatalf("got %v", err)
 	}
@@ -628,7 +639,7 @@ func TestSessionErrors(t *testing.T) {
 	if err := os.WriteFile(fileDirectory, []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, err = sessions.ReadSessionHealth(root, options(fileHome))
+	_, err = readHealth(root, options(fileHome))
 	want := "ENOTDIR: not a directory, scandir '" + fileDirectory + "'"
 	if err == nil || err.Error() != want {
 		t.Fatalf("got %v want %s", err, want)
@@ -637,7 +648,7 @@ func TestSessionErrors(t *testing.T) {
 	nullHome := homeOf(t)
 	nullProject := sessions.ClaudeProjectDirectory(root, nullHome)
 	writeRaw(t, nullProject, "s1.jsonl", "{\"type\":\"assistant\",\"timestamp\":\"2026-09-25T10:00:00.000Z\",\"message\":{\"content\":[null]}}\n")
-	_, err = sessions.ReadSessionHealth(root, options(nullHome))
+	_, err = readHealth(root, options(nullHome))
 	if err == nil || err.Error() != "TypeError: null is not an object (evaluating 'block.type')" {
 		t.Fatalf("got %v", err)
 	}
@@ -645,7 +656,7 @@ func TestSessionErrors(t *testing.T) {
 	textHome := homeOf(t)
 	textProject := sessions.ClaudeProjectDirectory(root, textHome)
 	writeRaw(t, textProject, "bad.jsonl", "{\"type\":\"user\",\"timestamp\":\"t\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":1}]}}\n")
-	_, err = sessions.ReadSessionHealth(root, options(textHome))
+	_, err = readHealth(root, options(textHome))
 	if err == nil || err.Error() != "TypeError: block.text?.startsWith is not a function. (In 'block.text?.startsWith(INTERRUPTION_PREFIX)', 'block.text?.startsWith' is undefined)" {
 		t.Fatalf("got %v", err)
 	}

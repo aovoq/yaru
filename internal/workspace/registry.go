@@ -3,10 +3,12 @@
 package workspace
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"os/user"
 	"regexp"
+
+	"github.com/aovoq/yaru/internal/fsutil"
 )
 
 // RegisteredWorkspace は workspaces.json の 1 件。TS 版の src/workspaces.ts の Workspace
@@ -19,32 +21,27 @@ type RegisteredWorkspace struct {
 // 空文字は JavaScript では偽なので、YARU_STATE_DIR にも XDG_STATE_HOME にも入らない
 // src/workspaces.ts:18-21 docs/spec/yaru-format.md の「状態ディレクトリ」
 // https://specifications.freedesktop.org/basedir-spec/latest/
-func StateDirectory() string {
-	if directory := os.Getenv("YARU_STATE_DIR"); directory != "" {
-		return directory
+// StateDirectory は渡された値から状態ディレクトリを決める。環境変数は読まない。
+// 空文字は JavaScript では偽なので、YARU_STATE_DIR にも XDG_STATE_HOME にも入らない。
+// 既定の埋め方は cli が行う。src/workspaces.ts:18-21
+func StateDirectory(yaruStateDir string, xdgStateHome string, home string) string {
+	if yaruStateDir != "" {
+		return yaruStateDir
 	}
-	base := os.Getenv("XDG_STATE_HOME")
+	base := xdgStateHome
 	if base == "" {
-		base = nodeJoin(homeDirectory(), ".local", "state")
+		base = nodeJoin(home, ".local", "state")
 	}
 	return nodeJoin(base, "yaru")
-}
-
-func homeDirectory() string {
-	if home := os.Getenv("HOME"); home != "" {
-		return home
-	}
-	current, err := user.Current()
-	if err != nil {
-		return ""
-	}
-	return current.HomeDir
 }
 
 // RegisterIn は TS 版の registerWorkspace(root, directory) と同じく、slug を返す
 // 同じ root が既にあればファイルは書き換えない
 // src/workspaces.ts:24-39
-func RegisterIn(root string, stateDirectory string) (RegisteredWorkspace, error) {
+func RegisterIn(ctx context.Context, root string, stateDirectory string) (RegisteredWorkspace, error) {
+	if err := ctx.Err(); err != nil {
+		return RegisteredWorkspace{}, err
+	}
 	entries, err := readRegistry(stateDirectory)
 	if err != nil {
 		return RegisteredWorkspace{}, err
@@ -77,8 +74,8 @@ func RegisterIn(root string, stateDirectory string) (RegisteredWorkspace, error)
 // Slug は root を登録して、URL の /p/<slug>/ に使う名前を返す。既にあればその名前。
 // Register は error しか返さないので、CLI の知らせと板の URL はこちらを使う。
 // src/workspaces.ts:24-39
-func Slug(root string) (string, error) {
-	registered, err := RegisterIn(root, StateDirectory())
+func Slug(ctx context.Context, root string, stateDirectory string) (string, error) {
+	registered, err := RegisterIn(ctx, root, stateDirectory)
 	if err != nil {
 		return "", err
 	}
@@ -92,7 +89,10 @@ func slugTaken(taken map[string]struct{}, slug string) bool {
 
 // List は TS 版の listWorkspaces と同じく、config.yml がまだある登録をファイルの順で返す
 // src/workspaces.ts:42-46
-func List(stateDirectory string) []RegisteredWorkspace {
+func List(ctx context.Context, stateDirectory string) []RegisteredWorkspace {
+	if err := ctx.Err(); err != nil {
+		return []RegisteredWorkspace{}
+	}
 	entries, err := readRegistry(stateDirectory)
 	if err != nil {
 		return []RegisteredWorkspace{}
@@ -108,8 +108,8 @@ func List(stateDirectory string) []RegisteredWorkspace {
 
 // Find は TS 版の findWorkspace と同じく、slug が一致する登録を返す
 // src/workspaces.ts:49-50
-func Find(slug string, stateDirectory string) (RegisteredWorkspace, bool) {
-	for _, workspace := range List(stateDirectory) {
+func Find(ctx context.Context, slug string, stateDirectory string) (RegisteredWorkspace, bool) {
+	for _, workspace := range List(ctx, stateDirectory) {
 		if workspace.Slug == slug {
 			return workspace, true
 		}
@@ -194,13 +194,8 @@ func writeRegistry(directory string, entries []registryEntry) error {
 		return err
 	}
 	path := nodeJoin(directory, "workspaces.json")
-	// 一時ファイルの名前は本体のバイトに影響しない。TS 版は pid を付ける
-	// src/workspaces.ts:35-38
-	temporary := fmt.Sprintf("%s.%d.tmp", path, os.Getpid())
-	if err := os.WriteFile(temporary, []byte(encoded+"\n"), 0o666); err != nil {
-		return err
-	}
-	return os.Rename(temporary, path)
+	// 一時ファイルの名前は本体のバイトに影響しない。src/workspaces.ts:35-38
+	return fsutil.WriteReplace(path, encoded+"\n")
 }
 
 var nonSlugCharacters = regexp.MustCompile(`[^A-Za-z0-9._-]+`)

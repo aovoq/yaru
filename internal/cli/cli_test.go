@@ -4,6 +4,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"os"
@@ -158,7 +159,7 @@ func TestQuestionCreatedNotifyDropsParentSecrets(t *testing.T) {
 	t.Setenv("TMUX", "1")
 	parentPath := os.Getenv("PATH")
 	root := t.TempDir()
-	opened, err := workspace.Init(root)
+	opened, err := workspace.Init(context.Background(), root)
 	if err != nil {
 		t.Fatal(err)
 	}

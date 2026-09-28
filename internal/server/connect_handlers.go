@@ -9,7 +9,6 @@ import (
 
 	"github.com/aovoq/yaru/gen/yaru/v1/yaruv1connect"
 	"github.com/aovoq/yaru/internal/api"
-	"github.com/aovoq/yaru/internal/workspace"
 )
 
 // connect-go の既定は Connect と gRPC と gRPC-Web を全部受ける。ここではメディアタイプを先に限り、
@@ -26,7 +25,7 @@ func newConnectMux(configuration Configuration) *http.ServeMux {
 	mux := http.NewServeMux()
 	if configuration.WireServices {
 		// 質問、dashboard、受信箱は 1 つの mux。パスは手続きのフルパスのまま。internal/api/handler.go
-		questionServices := api.Handler(workspace.StateDirectory())
+		questionServices := api.Handler(stateDirectory())
 		mux.Handle("/yaru.v1.QuestionService/", questionServices)
 		mux.Handle("/yaru.v1.DashboardService/", questionServices)
 		mux.Handle("/yaru.v1.InboxService/", questionServices)
