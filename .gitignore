@@ -1,6 +1,8 @@
 node_modules/
 # bun run build が出力する bin 用の JS
 /dist
+# Vite の成果物。Go の embed はビルドした web/dist を配る
+/web/dist
 *.tgz
 
 REPORT.md
