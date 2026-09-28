@@ -421,18 +421,18 @@ Connect:
 
 - `returnTo` が `https://evil.example` 、 `//evil.example` 、 `/\evil.example` 、別ワークスペースのパスのとき、外部へ飛ばない。今の `formReturnPath` と同じく dashboard に戻る。
 
-## 未決
+## 決定 (2026-09-28)
 
-実装で埋めない。決まったらこの文書を更新する。
+段階 0 の確認で、ユーザーと「守りは tailscale で担保されているものとし、やりすぎない」と決めた。上の節で「未決」と書いた点は、次のとおりに読む。
 
-- 端末と書き込みを、案 A (モード `0600` の Unix ソケット) と案 B (起動ごとの秘密) のどちらで守るか。両方、または読み取りの GET まで秘密を要るかも未決。 Unix ソケットを採るなら、 Tailscale が書き換える `Host: localhost` と、ブラウザの `https://公開host` をどう照合するかも未決。秘密を採るなら、スマホの `tailscale serve` へ秘密をどう渡すかも未決。決まるまで実装はどちらも入れない。
-- 端末ページの `style-src` を、 nonce (xterm が作る `<style>` へ nonce を付ける改造が要る) と、そのページだけの `'unsafe-inline'` のどちらにするか。
-- 特定の `Tailscale-User-Login` だけを許すか。許すなら、ローカル直打ち (識別子が無い、または偽装できる) と Serve 経由を、 header 以外の何で見分けるか。今の TS 版は誰でも操作できる。許可リストの設定場所はソースに無い。共有を受けたユーザーを含むかは、公式ドキュメントが「共有相手にも識別子を付ける」と書いているので、許可制にするなら明示が要る。
-- `::1` で待つか。待たない前提だと、 `localhost` が `::1` に先に解ける環境では `http://localhost:P` が届かない。今の TS 版も届かない。
-- WebSocket 以外の herdr CLI が先にサーバを起こしたとき、 pane に `TERM` が付かない (`terminal.go:37` と `herdr.go:53` の差)。サーバを起こす入口を 1 つに揃えるかは未決。
-- yaru が `APP_HERDR_SESSION` を読むか。端末を切り替えの合格条件に入れない、という計画のため、製品としての端末の形は未決。
-- 端末 API が任意のコマンドと任意のキーを受けるか。 resident-app の `allowedKeys` を採用するかも未決。
-- 知らせコマンドへ渡す環境を、プロセス環境の展開から、 herdr と同じ許可リストへ狭めるか。
-- Markdown の、スキームの無い `//host` を拒否するか (`src/markdown.ts:148`)。許可スキームのとき、検査で読み飛ばした制御文字を href から除かず `trimmed` を残すこと (`src/markdown.ts:149`) を変えるかも未決。画面は今の関数をそのまま使う。
-- 失敗した回答の下書きを query に載せる今の形 (`src/web.tsx:149-157`) を SPA に残すか。残す場合でも `Referrer-Policy: no-referrer` は付ける。履歴への残りは、この形を残す限り続く。
-- `Tailscale-App-Capabilities` (`--accept-app-caps`) を認可に使うか。今は使わない。
+- 端末と書き込みは、Unix ソケットも起動ごとの秘密も入れない。`127.0.0.1` で待ち受け、`tailscale serve` を通して公開する。同じマシンのプロセス (同じ OS ユーザーのエージェントを含む) と他の OS ユーザーが `127.0.0.1` に繋げることは、受け入れる危険とする
+- ブラウザ向けの検査 (Host と、Host に対応する 1 つの Origin の照合、Connect は POST だけ、Content-Type の限定、WebSocket の Origin 必須) は残す。開いた Web サイトからの攻撃と DNS rebinding は tailscale では防げず、検査は安く入るため
+- 端末を載せるページだけ、`style-src` に `'unsafe-inline'` を許す。xterm.js が `<style>` を差し込むため。ほかのページは `style-src 'self'` のまま
+- `Tailscale-User-Login` などの識別子で利用者を絞らない。tailnet に入れる人は、今の TS 版と同じく全部を操作できる。`Tailscale-App-Capabilities` も使わない
+- 待ち受けは `127.0.0.1` だけで、`::1` では待たない (今の TS 版と同じ)
+- herdr のサーバーを起こす入口は、端末の PTY の経路に揃え、`TERM=xterm-256color` と `COLORTERM=truecolor` がどの経路でも同じになるようにする (端末の段階で実装する)
+- `APP_HERDR_SESSION` にあたる環境変数を読み、試験用のセッションを選べるようにする
+- 端末の WebSocket は任意のキーを受ける。resident-app の `allowedKeys` は、端末以外のキー送信の API にだけ使う
+- 知らせのコマンドへ渡す環境は、herdr と同じ許可リストに狭める
+- Markdown のスキームの無い `//host` は拒否する。許可スキームのときも、検査で読み飛ばした制御文字は href から除く
+- 失敗した回答の下書きは query に載せず、sessionStorage に残す。`Referrer-Policy: no-referrer` は付ける
