@@ -1,0 +1,18 @@
+{
+  "name": "gs-init-slug-unicode",
+  "description": "ASCII 以外だけのフォルダ名は slug が空になり、代わりに workspace になる",
+  "setup": {
+    "files": [
+      {
+        "path": "やる/keep",
+        "content": "x\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["init"],
+      "workingDirectory": "やる"
+    }
+  ]
+}

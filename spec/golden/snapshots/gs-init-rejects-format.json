@@ -1,0 +1,19 @@
+{
+  "name": "gs-init-rejects-format",
+  "steps": [
+    {
+      "arguments": ["init", "--format", "human"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --format\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

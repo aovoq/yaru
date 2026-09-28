@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-value-that-looks-like-cluster",
+  "description": "-hf のように 1 文字でない語はフラグではないので、前のフラグの値になり unknown flag になる",
+  "steps": [
+    {
+      "arguments": ["init", "--foo", "-hf"]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "gs-init-unexpected-argument-before-open",
+  "description": "余分な位置引数はワークスペースを開く前に拒否する。config.yml があっても登録しない",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "keep\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "list", "extra"]
+    }
+  ]
+}

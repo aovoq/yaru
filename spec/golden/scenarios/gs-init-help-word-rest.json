@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-help-word-rest",
+  "description": "help のうしろに init があっても、最初の語が help なので下位のヘルプは見ず全体のヘルプを出す",
+  "steps": [
+    {
+      "arguments": ["help", "init"]
+    }
+  ]
+}

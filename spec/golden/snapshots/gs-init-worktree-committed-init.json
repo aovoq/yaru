@@ -1,0 +1,24 @@
+{
+  "name": "gs-init-worktree-committed-init",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": "worktree:feature",
+      "stdout": "",
+      "stderr": "already a yaru workspace\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [
+    {
+      "path": "config.yml",
+      "content": ""
+    }
+  ],
+  "state": []
+}

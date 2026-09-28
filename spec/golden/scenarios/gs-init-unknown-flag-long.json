@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-unknown-flag-long",
+  "description": "init の未知の長いフラグは unknown flag: --foo で、初期化しない",
+  "steps": [
+    {
+      "arguments": ["init", "--foo", "bar"]
+    }
+  ]
+}

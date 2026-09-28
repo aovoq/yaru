@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-rejects-short-format",
+  "description": "init は -f を受け付けない。値を取らないフラグなので、うしろの human は値にならず unknown flag: -f になる",
+  "steps": [
+    {
+      "arguments": ["init", "-f", "human"]
+    }
+  ]
+}

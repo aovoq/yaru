@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-help-blocked-on-init",
+  "description": "init -h でも、うしろに値の無いフラグがあるとヘルプは出さず missing value で終わる。初期化しない",
+  "steps": [
+    {
+      "arguments": ["init", "-h", "--foo"]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-help-on-serve",
+  "description": "serve --help はサーバを起動しない。serve 専用の説明は無く、全体のヘルプを終了コード 0 で出す",
+  "steps": [
+    {
+      "arguments": ["serve", "--help"]
+    }
+  ]
+}

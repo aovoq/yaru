@@ -1,0 +1,17 @@
+{
+  "name": "gs-init-unknown-flag-before-open",
+  "description": "未知のフラグはワークスペースを開く前に拒否する。config.yml があっても登録しない",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "keep\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "list", "--foo", "bar"]
+    }
+  ]
+}

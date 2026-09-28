@@ -1,0 +1,13 @@
+{
+  "name": "gs-init-ignores-session",
+  "description": "init は CLAUDE_CODE_SESSION_ID と CODEX_SESSION_ID を .yaru に書かない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "session-claude",
+        "CODEX_SESSION_ID": "session-codex"
+      }
+    }
+  ]
+}

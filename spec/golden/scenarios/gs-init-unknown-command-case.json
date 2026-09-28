@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-unknown-command-case",
+  "description": "コマンド名の大文字小文字は区別し、Init は未知のコマンドである",
+  "steps": [
+    {
+      "arguments": ["Init"]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "gs-init-invalid-now-month",
+  "description": "月が 13 の YARU_NOW は受けない。init は失敗し、ファイルは作らない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-13-01T00:00:00.000Z"
+    }
+  ]
+}
