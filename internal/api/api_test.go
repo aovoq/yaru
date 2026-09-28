@@ -486,13 +486,6 @@ func TestPatchAndSelfBlock(t *testing.T) {
 	expectConnect(t, err, connect.CodeInvalidArgument, "invalid block: an issue cannot block itself, actual 1")
 }
 
-func TestPageRejectsUnknownView(t *testing.T) {
-	_, slug := newAPIWorkspace(t)
-	view := yaruv1.IssueView(99)
-	_, err := (pageService{}).GetPage(context.Background(), connect.NewRequest(&yaruv1.GetPageRequest{Workspace: slug, View: &view}))
-	expectConnect(t, err, connect.CodeInvalidArgument, "invalid view: expected list or board, actual 99")
-}
-
 func TestJSONKeepsEmptyLabels(t *testing.T) {
 	_, slug := newAPIWorkspace(t)
 	server := testServer(t)
@@ -599,6 +592,9 @@ await call("POST", "/api/issues", { id: "1", title: "Next" })
 await call("POST", "/api/comments", { issue: "1", body: "note" })
 `
 
+// page_service_test.go が未知の view を直接送るときに、同じ用意を使う
+//
+//declscope:package
 func newAPIWorkspace(t *testing.T) (string, string) {
 	t.Helper()
 	home := t.TempDir()
@@ -683,6 +679,9 @@ func projectClient(t *testing.T) yaruv1connect.ProjectServiceClient {
 	return yaruv1connect.NewProjectServiceClient(server.Client(), server.URL)
 }
 
+// page_service_test.go が Connect のコードと文を照合する
+//
+//declscope:package
 func expectConnect(t *testing.T, err error, code connect.Code, message string) {
 	t.Helper()
 	if err == nil {
