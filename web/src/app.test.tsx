@@ -22,6 +22,9 @@ test("each screen path renders its placeholder and unknown paths render not foun
     'data-screen="dashboard"',
   )
   expect(html("http://127.0.0.1/p/app/dashboard?q=3")).toContain('data-question="3"')
+  expect(html("http://127.0.0.1/terminal")).toContain('data-screen="terminal"')
+  expect(html("http://127.0.0.1/terminal")).toContain('data-csp-style="unsafe-inline"')
+  expect(html("http://127.0.0.1/")).not.toContain('data-csp-style="unsafe-inline"')
   expect(html("http://127.0.0.1/missing")).toContain('data-screen="not-found"')
   expect(html("http://127.0.0.1/p/app/nope")).toContain('data-screen="not-found"')
 })
