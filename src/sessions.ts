@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
 import { homedir } from "node:os"
 import { basename, join } from "node:path"
+import { currentTime } from "./time"
 
 // Claude Code のセッションログ (~/.claude/projects/<作業ディレクトリ>/<session>.jsonl) から、
 // エージェントの健康状態 (費用・キャッシュ・ツールのエラー・割り込み) を読む
@@ -92,7 +93,7 @@ export function readSessionHealth(
   root: string,
   options: { home?: string; now?: Date; windowDays?: number } = {},
 ): SessionHealth {
-  const now = options.now ?? new Date()
+  const now = options.now ?? currentTime()
   const windowDays = options.windowDays ?? SESSION_WINDOW_DAYS
   const since = now.getTime() - windowDays * 86_400_000
   const directory = claudeProjectDirectory(root, options.home)

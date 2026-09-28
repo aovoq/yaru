@@ -628,3 +628,30 @@ test("using yaru in a workspace registers it for yaru serve", () => {
     realpathSync(root),
   )
 })
+
+test("issue save stamps createdAt and updatedAt from YARU_NOW", () => {
+  const root = workspace()
+  const fixed = "2026-09-28T12:00:00.000Z"
+  const out = run(["issue", "save", "--title", "frozen clock"], root, undefined, {
+    YARU_NOW: fixed,
+  })
+  expect(out.exitCode).toBe(0)
+  const saved = JSON.parse(out.stdout.toString())
+  expect(saved.createdAt).toBe(fixed)
+  expect(saved.updatedAt).toBe(fixed)
+  const file = readFileSync(join(root, ".yaru", "issues", "1.md"), "utf8")
+  expect(file).toContain(`createdAt: ${fixed}`)
+  expect(file).toContain(`updatedAt: ${fixed}`)
+})
+
+test("issue save stops when YARU_NOW is not a datetime", () => {
+  const root = workspace()
+  const out = run(["issue", "save", "--title", "frozen clock"], root, undefined, {
+    YARU_NOW: "yesterday",
+  })
+  expect(out.exitCode).toBe(1)
+  expect(out.stderr.toString()).toContain(
+    'invalid YARU_NOW: expected an ISO 8601 datetime such as 2026-09-28T12:00:00.000Z, actual "yesterday"',
+  )
+  expect(existsSync(join(root, ".yaru", "issues", "1.md"))).toBe(false)
+})

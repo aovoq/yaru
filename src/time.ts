@@ -1,3 +1,25 @@
+// CLI とサーバーの「今」。環境変数 YARU_NOW があればその時刻に固定し、無ければ実行した瞬間を返す
+// 値は ISO 8601 の日時 (RFC 3339)。日付だけはタイムゾーンが曖昧なので受けない
+// https://www.rfc-editor.org/rfc/rfc3339#section-5.6
+const ISO_8601_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/
+
+export function currentTime(): Date {
+  const yaruNow = readYaruNow()
+  if (yaruNow === undefined) return new Date()
+  if (ISO_8601_DATETIME.test(yaruNow)) {
+    const parsedMilliseconds = Date.parse(yaruNow)
+    if (!Number.isNaN(parsedMilliseconds)) return new Date(parsedMilliseconds)
+  }
+  throw new Error(
+    `invalid YARU_NOW: expected an ISO 8601 datetime such as 2026-09-28T12:00:00.000Z, actual ${JSON.stringify(yaruNow)}`,
+  )
+}
+
+function readYaruNow(): string | undefined {
+  if (typeof process === "undefined" || process.env === undefined) return undefined
+  return process.env.YARU_NOW
+}
+
 // 画面に出す「3h ago」「in 2h」のような相対時刻。サーバーの描画とブラウザの両方で使う
 export function relativeTime(iso: string, now: Date): string {
   const target = Date.parse(iso)

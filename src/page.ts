@@ -18,6 +18,7 @@ import {
   type Issue,
   type Store,
 } from "./store"
+import { currentTime } from "./time"
 
 export const BLANK: Issue = {
   id: "",
@@ -90,7 +91,7 @@ export type PageData = {
   error?: string
 }
 
-export function getPageData(store: Store, url: URL, basePath = "", now = new Date()): PageData {
+export function getPageData(store: Store, url: URL, basePath = "", now = currentTime()): PageData {
   const query = url.searchParams.get("query") || ""
   const id = url.searchParams.get("id") || undefined
   const status = url.searchParams.get("status") || undefined

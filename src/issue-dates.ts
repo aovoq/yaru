@@ -1,3 +1,5 @@
+import { currentTime } from "./time"
+
 // issue の期日の扱い。期限切れかどうかと、画面に出す日付の書き方を決める
 // store.ts は node:fs を読み込むので、ブラウザでも動く部品 (DueStamp など) からはここを使う
 
@@ -9,7 +11,7 @@ const FINISHED_STATUSES = ["done", "canceled"]
 
 export function isIssueOverdue(
   issue: { dueDate: string | null; status: string },
-  now = new Date(),
+  now = currentTime(),
 ): boolean {
   if (issue.dueDate === null) return false
   if (FINISHED_STATUSES.includes(issue.status)) return false
@@ -18,7 +20,7 @@ export function isIssueOverdue(
 
 // 期日を「Oct 20」のように短く出す。今年でなければ「Oct 20, 2027」と年を添える
 // 期日は時刻を持たない暦の日付なので、Date に通さず文字列のまま読む。Date.parse は UTC の 0 時として読み、地域によって前の日にずれるため
-export function formatDueDate(dueDate: string, now = new Date()): string {
+export function formatDueDate(dueDate: string, now = currentTime()): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dueDate)
   if (!match) return dueDate
   const [, year, month, day] = match
