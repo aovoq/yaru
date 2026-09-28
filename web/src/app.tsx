@@ -12,8 +12,8 @@ import {
   readInboxQuery,
 } from "./route"
 
-// 経路と仮画面をつなぐ。板や dashboard の中身は次の担当
-// knownSlugs が無いあいだは、ワークスペースの path を pending のまま出す。一覧が来たら渡して、無い slug は 404 にする
+// 経路と画面をつなぐ。knownSlugs が無いあいだは、ワークスペースの path を pending のまま出す
+// 一覧が来たら渡して、無い slug は 404 にする
 export function App({ href, knownSlugs }: { href: string; knownSlugs?: ReadonlySet<string> }) {
   const url = new URL(href)
   const route = matchPath(url.pathname, knownSlugs)
@@ -35,7 +35,9 @@ export function App({ href, knownSlugs }: { href: string; knownSlugs?: ReadonlyS
         />
       ) : null}
       {route.name === "terminal" ? <TerminalPage /> : null}
-      {route.name === "not-found" ? <NotFoundPage /> : null}
+      {route.name === "not-found" ? (
+        <NotFoundPage pathname={url.pathname} knownSlugs={knownSlugs} />
+      ) : null}
     </div>
   )
 }
