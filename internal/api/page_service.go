@@ -24,15 +24,15 @@ var numericIssueID = regexp.MustCompile(`^[0-9]+$`)
 type pageService struct{}
 
 func (pageService) GetPage(ctx context.Context, request *connect.Request[yaruv1.GetPageRequest]) (*connect.Response[yaruv1.GetPageResponse], error) {
-	_ = ctx
 	moment, now, err := readNow()
 	if err != nil {
 		return nil, connectError(err)
 	}
-	space, err := openBySlug(request.Msg.GetWorkspace())
+	space, err := openBySlug(ctx, request.Msg.GetWorkspace())
 	if err != nil {
 		return nil, connectError(err)
 	}
+	author := workspace.GitName(ctx, space.Root)
 	query := ""
 	if request.Msg.Query != nil {
 		query = *request.Msg.Query
@@ -70,7 +70,8 @@ func (pageService) GetPage(ctx context.Context, request *connect.Request[yaruv1.
 		return nil, connectError(err)
 	}
 	directory := questions.Directory{Dir: space.Directory}
-	allQuestions, err := questions.ListQuestions(directory, questions.QuestionFilter{}, &moment)
+	questionService := questions.NewService()
+	allQuestions, err := questionService.ListQuestions(ctx, directory, questions.QuestionFilter{}, moment)
 	if err != nil {
 		return nil, connectError(err)
 	}
@@ -96,7 +97,7 @@ func (pageService) GetPage(ctx context.Context, request *connect.Request[yaruv1.
 	if query != "" {
 		filter.Query = store.Present(query)
 	}
-	listed, err := store.ListIssues(space, filter, &moment)
+	listed, err := store.ListIssues(ctx, space, filter, moment, author)
 	if err != nil {
 		return nil, connectError(err)
 	}
@@ -114,16 +115,11 @@ func (pageService) GetPage(ctx context.Context, request *connect.Request[yaruv1.
 		filtered = append(filtered, issue)
 	}
 	sorted := store.SortIssues(filtered, sortValue)
-	allIssues, err := store.ListIssues(space, store.Filter{}, &moment)
+	allIssues, err := store.ListIssues(ctx, space, store.Filter{}, moment, author)
 	if err != nil {
 		return nil, connectError(err)
 	}
-	workingDirectory, err := workspace.WorkingDirectory()
-	if err != nil {
-		return nil, connectError(err)
-	}
-	viewer := workspace.GitName(workingDirectory)
-	current, openedError, err := openPageIssue(space, request.Msg, statusName, viewer, moment)
+	current, openedError, err := openPageIssue(ctx, space, request.Msg, statusName, author, moment)
 	if err != nil {
 		return nil, connectError(err)
 	}
@@ -146,12 +142,12 @@ func (pageService) GetPage(ctx context.Context, request *connect.Request[yaruv1.
 			return nil, connectError(err)
 		}
 		if current.ID != "" {
-			loadedComments, commentErr := store.ListComments(space.Directory, current.ID)
+			loadedComments, commentErr := store.ListComments(ctx, space, current.ID, moment, author)
 			if commentErr != nil {
 				return nil, connectError(commentErr)
 			}
 			comments = commentMessages(loadedComments)
-			loadedQuestions, questionErr := questions.ListQuestions(directory, questions.QuestionFilter{Issue: current.ID}, &moment)
+			loadedQuestions, questionErr := questionService.ListQuestions(ctx, directory, questions.QuestionFilter{Issue: current.ID}, moment)
 			if questionErr != nil {
 				return nil, connectError(questionErr)
 			}
@@ -159,7 +155,7 @@ func (pageService) GetPage(ctx context.Context, request *connect.Request[yaruv1.
 			if err != nil {
 				return nil, connectError(err)
 			}
-			loadedEvents, eventErr := store.IssueEvents(space, current.ID)
+			loadedEvents, eventErr := store.IssueEvents(ctx, space, current.ID)
 			if eventErr != nil {
 				return nil, connectError(eventErr)
 			}
@@ -168,7 +164,7 @@ func (pageService) GetPage(ctx context.Context, request *connect.Request[yaruv1.
 				return nil, connectError(err)
 			}
 			if numericIssueID.MatchString(current.ID) {
-				loadedCommits, commitErr := repository.CommitsForIssue(space.Root, current.ID, current.Branch)
+				loadedCommits, commitErr := repository.CommitsForIssue(ctx, space.Root, current.ID, current.Branch)
 				if commitErr != nil {
 					return nil, connectError(commitErr)
 				}
@@ -196,7 +192,7 @@ func (pageService) GetPage(ctx context.Context, request *connect.Request[yaruv1.
 		View:                  view,
 		BasePath:              "/p/" + request.Msg.GetWorkspace(),
 		AwaitingQuestionCount: awaitingCount,
-		Viewer:                viewer,
+		Viewer:                author,
 		Now:                   now,
 	}
 	if assigneeSet {
@@ -221,7 +217,7 @@ func optionalStatus(value *yaruv1.IssueStatus) (string, *yaruv1.IssueStatus, err
 	}
 	name, ok := statusName(*value)
 	if !ok {
-		return "", nil, fmt.Errorf("invalid status: expected %s, actual %s", store.JoinOr(store.Statuses), enumActual(*value))
+		return "", nil, fmt.Errorf("invalid status: expected %s, actual %s", store.JoinOr(store.Statuses()), enumActual(*value))
 	}
 	echo := *value
 	return name, &echo, nil
@@ -273,7 +269,7 @@ func pageView(value *yaruv1.IssueView) (yaruv1.IssueView, error) {
 	return 0, fmt.Errorf("invalid view: expected list or board, actual %s", enumActual(*value))
 }
 
-func openPageIssue(space workspace.Workspace, request *yaruv1.GetPageRequest, statusName string, viewer string, moment time.Time) (*store.Issue, string, error) {
+func openPageIssue(ctx context.Context, space workspace.Workspace, request *yaruv1.GetPageRequest, statusName string, viewer string, moment time.Time) (*store.Issue, string, error) {
 	if request.Id == nil || *request.Id == "" {
 		return nil, "", nil
 	}
@@ -285,7 +281,7 @@ func openPageIssue(space workspace.Workspace, request *yaruv1.GetPageRequest, st
 		}
 		return draft, "", nil
 	}
-	issue, err := store.GetIssue(space, issueID, &moment)
+	issue, err := store.GetIssue(ctx, space, issueID, moment, viewer)
 	if err != nil {
 		if err.Error() == "issue not found: "+issueID {
 			return nil, err.Error(), nil
@@ -300,7 +296,7 @@ func newIssueDraft(request *yaruv1.GetPageRequest, filterStatus string, viewer s
 	if request.NewStatus != nil && *request.NewStatus != yaruv1.IssueStatus_ISSUE_STATUS_UNSPECIFIED {
 		name, ok := statusName(*request.NewStatus)
 		if !ok {
-			return nil, fmt.Errorf("invalid status: expected %s, actual %s", store.JoinOr(store.Statuses), enumActual(*request.NewStatus))
+			return nil, fmt.Errorf("invalid status: expected %s, actual %s", store.JoinOr(store.Statuses()), enumActual(*request.NewStatus))
 		}
 		status = name
 	} else if filterStatus != "" {

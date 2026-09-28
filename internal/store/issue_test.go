@@ -1,16 +1,20 @@
 package store
 
 import (
+	"context"
+	"errors"
 	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/aovoq/yaru/internal/clock"
 	"github.com/aovoq/yaru/internal/document"
+	"github.com/aovoq/yaru/internal/errs"
 	"github.com/aovoq/yaru/internal/workspace"
 )
 
@@ -45,11 +49,11 @@ func issueGitReady() (ready bool) {
 	if !issueDocumentReady() {
 		return false
 	}
-	workingDirectory, err := workspace.WorkingDirectory()
+	workingDirectory, err := workspace.WorkingDirectory(context.Background())
 	if err != nil {
 		return false
 	}
-	if workspace.GitName(workingDirectory) == "" {
+	if workspace.GitName(context.Background(), workingDirectory) == "" {
 		return false
 	}
 	return true
@@ -683,22 +687,23 @@ func TestWriteCreateAndReplace(t *testing.T) {
 	if _, err := os.Stat(path + ".tmp"); !os.IsNotExist(err) {
 		t.Fatal("temp file remained")
 	}
+	issueNoTemporaryFiles(t, filepath.Dir(path))
 }
 
 func TestIssueEventsReader(t *testing.T) {
 	space := issueTestWorkspace(t)
-	_, err := IssueEvents(space, "9")
+	_, err := IssueEvents(context.Background(), space, "9")
 	if err == nil || err.Error() != "issue not found: 9" {
 		t.Fatal(err)
 	}
 	issueWriteFile(t, filepath.Join(space.Directory, "issues", "1.md"), "x")
-	events, err := IssueEvents(space, "1")
+	events, err := IssueEvents(context.Background(), space, "1")
 	if err != nil || len(events) != 0 {
 		t.Fatal(events, err)
 	}
 	payload := "{\"field\":\"status\",\"from\":\"in_progress\",\"to\":\"done\",\"by\":\"Spec Author\",\"session\":\"session-1\",\"at\":\"2026-09-25T10:00:00.000Z\"}\n{broken\n\n{\"field\":\"nope\"}\n{\"field\":\"labels\",\"from\":[],\"to\":[\"ui\",\"本番\"],\"by\":\"Spec Author\",\"session\":null,\"at\":\"2026-09-25T09:00:00.000Z\",\"extra\":true}\n"
 	issueWriteFile(t, filepath.Join(space.Directory, "events", "1.jsonl"), payload)
-	events, err = IssueEvents(space, "1")
+	events, err = IssueEvents(context.Background(), space, "1")
 	if err != nil || len(events) != 2 {
 		t.Fatalf("%+v %v", events, err)
 	}
@@ -717,7 +722,7 @@ func TestIssueEventsReader(t *testing.T) {
 
 func TestAppendIssueEventsSkipsEmpty(t *testing.T) {
 	space := issueTestWorkspace(t)
-	if err := AppendIssueEvents(space, "1", nil, IssueEventContext{By: "Spec Author", At: "2026-09-25T09:00:00.000Z"}); err != nil {
+	if err := AppendIssueEvents(context.Background(), space, "1", nil, IssueEventContext{By: "Spec Author", At: "2026-09-25T09:00:00.000Z"}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(space.Directory, "events")); !os.IsNotExist(err) {
@@ -740,7 +745,7 @@ func TestFilterMatch(t *testing.T) {
 	child.Assignee = issueStringPointer("Ada")
 	child.Labels = []string{"cli"}
 	child.Body = "search me"
-	overdue, err := issueResolveListFilter(Filter{Due: Present("overdue")})
+	overdue, err := issueResolveListFilter(Filter{Due: Present("overdue")}, "Spec Author")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -748,35 +753,35 @@ func TestFilterMatch(t *testing.T) {
 	if issueIds(matched) != "1" {
 		t.Fatalf("overdue: %s", issueIds(matched))
 	}
-	parent, err := issueResolveListFilter(Filter{Parent: Present("none")})
+	parent, err := issueResolveListFilter(Filter{Parent: Present("none")}, "Spec Author")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if issueIds(filterIssues([]Issue{late, child}, parent, now)) != "1" {
 		t.Fatal("parent none")
 	}
-	unassigned, err := issueResolveListFilter(Filter{Assignee: Present("none")})
+	unassigned, err := issueResolveListFilter(Filter{Assignee: Present("none")}, "Spec Author")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if issueIds(filterIssues([]Issue{late, child}, unassigned, now)) != "1" {
 		t.Fatal("assignee none")
 	}
-	query, err := issueResolveListFilter(Filter{Query: Present("SEARCH")})
+	query, err := issueResolveListFilter(Filter{Query: Present("SEARCH")}, "Spec Author")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if issueIds(filterIssues([]Issue{late, child}, query, now)) != "4" {
 		t.Fatal("query")
 	}
-	label, err := issueResolveListFilter(Filter{Label: Present("cli")})
+	label, err := issueResolveListFilter(Filter{Label: Present("cli")}, "Spec Author")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if issueIds(filterIssues([]Issue{late, child}, label, now)) != "4" {
 		t.Fatal("label")
 	}
-	_, err = issueResolveListFilter(Filter{Status: Present("nope")})
+	_, err = issueResolveListFilter(Filter{Status: Present("nope")}, "Spec Author")
 	if err == nil || err.Error() != "invalid status: expected backlog, todo, in_progress, done, or canceled, actual nope" {
 		t.Fatal(err)
 	}
@@ -784,17 +789,17 @@ func TestFilterMatch(t *testing.T) {
 
 func TestReadStaleAfter(t *testing.T) {
 	space := issueTestWorkspace(t)
-	got, err := ReadStaleAfter(space)
+	got, err := ReadStaleAfter(context.Background(), space)
 	if err != nil || got != DefaultStaleAfterMilliseconds {
 		t.Fatal(got, err)
 	}
 	issueWriteFile(t, filepath.Join(space.Directory, "config.yml"), "notify: echo x\nstaleAfter: 90m\n")
-	got, err = ReadStaleAfter(space)
+	got, err = ReadStaleAfter(context.Background(), space)
 	if err != nil || got != 90*60_000 {
 		t.Fatal(got, err)
 	}
 	issueWriteFile(t, filepath.Join(space.Directory, "config.yml"), "staleAfter:\nnotify: x\n")
-	got, err = ReadStaleAfter(space)
+	got, err = ReadStaleAfter(context.Background(), space)
 	if err != nil || got != DefaultStaleAfterMilliseconds {
 		t.Fatal("empty staleAfter should fall through to the default", got, err)
 	}
@@ -805,18 +810,18 @@ func TestLoadRawIssuesSkipsCorruptFiles(t *testing.T) {
 	issueWriteFile(t, filepath.Join(space.Directory, "issues", "1.md"), specDoneIssue)
 	issueWriteFile(t, filepath.Join(space.Directory, "issues", "2.md"), "not an issue")
 	issueWriteFile(t, filepath.Join(space.Directory, "issues", "3.md"), "---\nid: 3\ntitle: bad\nstatus: nope\nassignee:\nlabels:\n---\n\nx\n")
-	issues, err := loadRawIssues(space)
+	issues, err := loadRawIssues(space, "Spec Author")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(issues) != 1 || issues[0].ID != "1" {
 		t.Fatalf("kept %s", issueIds(issues))
 	}
-	_, err = readIssue(filepath.Join(space.Directory, "issues", "2.md"), "2")
+	_, err = readIssue(filepath.Join(space.Directory, "issues", "2.md"), "2", "Spec Author")
 	if err == nil || err.Error() != "invalid issue file" {
 		t.Fatal(err)
 	}
-	_, err = readIssue(filepath.Join(space.Directory, "issues", "3.md"), "3")
+	_, err = readIssue(filepath.Join(space.Directory, "issues", "3.md"), "3", "Spec Author")
 	if err == nil || err.Error() != "invalid status: expected backlog, todo, in_progress, done, or canceled, actual nope" {
 		t.Fatal(err)
 	}
@@ -827,7 +832,7 @@ func TestFormatAndParseIssueMatchTheSpec(t *testing.T) {
 	if formatted != specDoneIssue {
 		t.Fatalf("format\nexpected:\n%s\nactual:\n%s", specDoneIssue, formatted)
 	}
-	parsed, err := parseIssue(specDoneIssue)
+	parsed, err := parseIssue(specDoneIssue, "Spec Author")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -856,7 +861,7 @@ func TestFormatAndParseIssueMatchTheSpec(t *testing.T) {
 
 func TestAppendIssueEventBytes(t *testing.T) {
 	space := issueTestWorkspace(t)
-	err := AppendIssueEvents(space, "1", []IssueChange{{
+	err := AppendIssueEvents(context.Background(), space, "1", []IssueChange{{
 		Field: "status",
 		From:  "in_progress",
 		To:    "done",
@@ -865,7 +870,7 @@ func TestAppendIssueEventBytes(t *testing.T) {
 		t.Fatal(err)
 	}
 	issueExpectFile(t, filepath.Join(space.Directory, "events", "1.jsonl"), "{\"field\":\"status\",\"from\":\"in_progress\",\"to\":\"done\",\"by\":\"Spec Author\",\"session\":\"session-1\",\"at\":\"2026-09-25T10:00:00.000Z\"}\n")
-	err = AppendIssueEvents(space, "2", []IssueChange{{
+	err = AppendIssueEvents(context.Background(), space, "2", []IssueChange{{
 		Field: "labels",
 		From:  []string{},
 		To:    []string{"ui", "本番"},
@@ -874,7 +879,7 @@ func TestAppendIssueEventBytes(t *testing.T) {
 		t.Fatal(err)
 	}
 	issueExpectFile(t, filepath.Join(space.Directory, "events", "2.jsonl"), "{\"field\":\"labels\",\"from\":[],\"to\":[\"ui\",\"本番\"],\"by\":\"Spec Author\",\"session\":null,\"at\":\"2026-09-25T09:00:00.000Z\"}\n")
-	err = AppendIssueEvents(space, "3", []IssueChange{{
+	err = AppendIssueEvents(context.Background(), space, "3", []IssueChange{{
 		Field: "title",
 		From:  "a",
 		To:    "b\nc",
@@ -883,7 +888,7 @@ func TestAppendIssueEventBytes(t *testing.T) {
 		t.Fatal(err)
 	}
 	issueExpectFile(t, filepath.Join(space.Directory, "events", "3.jsonl"), "{\"field\":\"title\",\"from\":\"a\",\"to\":\"b\\nc\",\"by\":\"Spec Author\",\"session\":null,\"at\":\"2026-09-25T09:00:00.000Z\"}\n")
-	err = AppendIssueEvents(space, "3", []IssueChange{{
+	err = AppendIssueEvents(context.Background(), space, "3", []IssueChange{{
 		Field: "blocks",
 		From:  []string{},
 		To:    []string{"4"},
@@ -916,7 +921,7 @@ func TestListAndGetDeriveRelations(t *testing.T) {
 	issueWriteFile(t, filepath.Join(space.Directory, "issues", "1.md"), formatIssue(parent))
 	issueWriteFile(t, filepath.Join(space.Directory, "issues", "2.md"), formatIssue(child))
 	issueWriteFile(t, filepath.Join(space.Directory, "issues", "9.md"), "not an issue")
-	listed, err := ListIssues(space, Filter{}, &now)
+	listed, err := ListIssues(context.Background(), space, Filter{}, now, "Spec Author")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -929,15 +934,15 @@ func TestListAndGetDeriveRelations(t *testing.T) {
 	if issueJoinIDs(listed[0].Children) != "2" || issueJoinIDs(listed[0].BlockedBy) != "2" {
 		t.Fatalf("derived: %+v", listed[0])
 	}
-	overdue, err := ListIssues(space, Filter{Due: Present("overdue")}, &now)
+	overdue, err := ListIssues(context.Background(), space, Filter{Due: Present("overdue")}, now, "Spec Author")
 	if err != nil || issueIds(overdue) != "1" {
 		t.Fatalf("overdue: %s %v", issueIds(overdue), err)
 	}
-	children, err := ListIssues(space, Filter{Parent: Present("1")}, &now)
+	children, err := ListIssues(context.Background(), space, Filter{Parent: Present("1")}, now, "Spec Author")
 	if err != nil || issueIds(children) != "2" {
 		t.Fatal(issueIds(children), err)
 	}
-	got, err := GetIssue(space, "2", &now)
+	got, err := GetIssue(context.Background(), space, "2", now, "Spec Author")
 	if err != nil || got.Parent == nil || *got.Parent != "1" || !got.Stale || issueJoinIDs(got.Blocks) != "1" {
 		t.Fatalf("%+v %v", got, err)
 	}
@@ -957,7 +962,7 @@ func TestSaveIssueBytes(t *testing.T) {
 	}
 	createdAt := time.Date(2026, 9, 25, 9, 0, 0, 0, time.UTC)
 	doneAt := time.Date(2026, 9, 25, 10, 0, 0, 0, time.UTC)
-	_, err := SaveIssue(space, SaveInput{
+	_, err := SaveIssue(context.Background(), space, SaveInput{
 		Title:    Present(`本番: "称号" #1`),
 		Status:   Present("in_progress"),
 		Assignee: Present("Spec Author"),
@@ -965,14 +970,14 @@ func TestSaveIssueBytes(t *testing.T) {
 		DueDate:  Present("2026-10-01"),
 		Priority: Present("high"),
 		Body:     Present("1 行目\n\n2 行目\n"),
-	}, SaveOptions{Now: &createdAt, Provenance: provenance})
+	}, SaveOptions{Author: "Spec Author", Now: createdAt, Provenance: provenance})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(space.Directory, "events")); !os.IsNotExist(err) {
 		t.Fatal("create wrote an event")
 	}
-	done, err := SaveIssue(space, SaveInput{ID: "1", Status: Present("done")}, SaveOptions{Now: &doneAt, Provenance: provenance})
+	done, err := SaveIssue(context.Background(), space, SaveInput{ID: "1", Status: Present("done")}, SaveOptions{Author: "Spec Author", Now: doneAt, Provenance: provenance})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -993,10 +998,10 @@ func TestSaveIssueChildAndBlockedBy(t *testing.T) {
 	}
 	createdAt := time.Date(2026, 9, 25, 9, 0, 0, 0, time.UTC)
 	updatedAt := time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC)
-	if _, err := SaveIssue(space, SaveInput{Title: Present("parent")}, SaveOptions{Now: &createdAt, Provenance: provenance}); err != nil {
+	if _, err := SaveIssue(context.Background(), space, SaveInput{Title: Present("parent")}, SaveOptions{Author: "Spec Author", Now: createdAt, Provenance: provenance}); err != nil {
 		t.Fatal(err)
 	}
-	child, err := SaveIssue(space, SaveInput{Title: Present("child"), Parent: Present("1"), AddBlocks: Present([]string{"1"})}, SaveOptions{Now: &createdAt, Provenance: provenance})
+	child, err := SaveIssue(context.Background(), space, SaveInput{Title: Present("child"), Parent: Present("1"), AddBlocks: Present([]string{"1"})}, SaveOptions{Author: "Spec Author", Now: createdAt, Provenance: provenance})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1004,27 +1009,27 @@ func TestSaveIssueChildAndBlockedBy(t *testing.T) {
 		t.Fatalf("child: %+v", child)
 	}
 	issueExpectFile(t, filepath.Join(space.Directory, "issues", "2.md"), specChildIssue)
-	parent, err := GetIssue(space, "1", &createdAt)
+	parent, err := GetIssue(context.Background(), space, "1", createdAt, "Spec Author")
 	if err != nil || issueJoinIDs(parent.Children) != "2" || issueJoinIDs(parent.BlockedBy) != "2" {
 		t.Fatalf("%+v %v", parent, err)
 	}
 	ownerAt := createdAt
-	if _, err := SaveIssue(space, SaveInput{Title: Present("owner")}, SaveOptions{Now: &ownerAt}); err != nil {
+	if _, err := SaveIssue(context.Background(), space, SaveInput{Title: Present("owner")}, SaveOptions{Author: "Spec Author", Now: ownerAt}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := SaveIssue(space, SaveInput{Title: Present("blocked")}, SaveOptions{Now: &ownerAt}); err != nil {
+	if _, err := SaveIssue(context.Background(), space, SaveInput{Title: Present("blocked")}, SaveOptions{Author: "Spec Author", Now: ownerAt}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := SaveIssue(space, SaveInput{ID: "4", AddBlockedBy: Present([]string{"3"})}, SaveOptions{Now: &updatedAt}); err != nil {
+	if _, err := SaveIssue(context.Background(), space, SaveInput{ID: "4", AddBlockedBy: Present([]string{"3"})}, SaveOptions{Author: "Spec Author", Now: updatedAt}); err != nil {
 		t.Fatal(err)
 	}
 	issueExpectFile(t, filepath.Join(space.Directory, "issues", "3.md"), specOwnerIssue)
 	issueExpectFile(t, filepath.Join(space.Directory, "events", "3.jsonl"), "{\"field\":\"blocks\",\"from\":[],\"to\":[\"4\"],\"by\":\"Spec Author\",\"session\":null,\"at\":\"2026-09-25T12:00:00.000Z\"}\n")
 	later := time.Date(2026, 9, 25, 13, 0, 0, 0, time.UTC)
-	if _, err := SaveIssue(space, SaveInput{ID: "4", AddBlockedBy: Present([]string{"3"})}, SaveOptions{Now: &later}); err != nil {
+	if _, err := SaveIssue(context.Background(), space, SaveInput{ID: "4", AddBlockedBy: Present([]string{"3"})}, SaveOptions{Author: "Spec Author", Now: later}); err != nil {
 		t.Fatal(err)
 	}
-	owner, err := GetIssue(space, "3", &later)
+	owner, err := GetIssue(context.Background(), space, "3", later, "Spec Author")
 	if err != nil || owner.UpdatedAt != "2026-09-25T13:00:00.000Z" || issueJoinIDs(owner.Blocks) != "4" {
 		t.Fatalf("repeat blockedBy: %+v %v", owner, err)
 	}
@@ -1035,17 +1040,17 @@ func TestSaveIssueTitleNewlineAndLabels(t *testing.T) {
 	issueSkipWithoutGitName(t)
 	space := issueGitWorkspace(t)
 	now := time.Date(2026, 9, 25, 9, 0, 0, 0, time.UTC)
-	if _, err := SaveIssue(space, SaveInput{Title: Present("a")}, SaveOptions{Now: &now}); err != nil {
+	if _, err := SaveIssue(context.Background(), space, SaveInput{Title: Present("a")}, SaveOptions{Author: "Spec Author", Now: now}); err != nil {
 		t.Fatal(err)
 	}
-	updated, err := SaveIssue(space, SaveInput{ID: "1", Title: Present("b\nc")}, SaveOptions{Now: &now})
+	updated, err := SaveIssue(context.Background(), space, SaveInput{ID: "1", Title: Present("b\nc")}, SaveOptions{Author: "Spec Author", Now: now})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if updated.Title != "b c" {
 		t.Fatalf("read title: %q", updated.Title)
 	}
-	events, err := IssueEvents(space, "1")
+	events, err := IssueEvents(context.Background(), space, "1")
 	if err != nil || len(events) != 1 || events[0].To != "b\nc" {
 		t.Fatalf("%+v %v", events, err)
 	}
@@ -1056,7 +1061,7 @@ func TestSaveIssueTitleNewlineAndLabels(t *testing.T) {
 	if string(eventText) != "{\"field\":\"title\",\"from\":\"a\",\"to\":\"b\\nc\",\"by\":\"Spec Author\",\"session\":null,\"at\":\"2026-09-25T09:00:00.000Z\"}\n" {
 		t.Fatalf("event bytes: %s", eventText)
 	}
-	saved, err := SaveIssue(space, SaveInput{Title: Present("labels"), Labels: Present([]string{" a ", "a, b", "c"})}, SaveOptions{Now: &now})
+	saved, err := SaveIssue(context.Background(), space, SaveInput{Title: Present("labels"), Labels: Present([]string{" a ", "a, b", "c"})}, SaveOptions{Author: "Spec Author", Now: now})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1076,41 +1081,41 @@ func TestSaveIssueErrorsLeaveFilesUntouched(t *testing.T) {
 	issueSkipWithoutGitName(t)
 	space := issueGitWorkspace(t)
 	now := time.Date(2026, 9, 25, 9, 0, 0, 0, time.UTC)
-	_, err := SaveIssue(space, SaveInput{DueDate: Present("2026-02-30")}, SaveOptions{Now: &now})
+	_, err := SaveIssue(context.Background(), space, SaveInput{DueDate: Present("2026-02-30")}, SaveOptions{Author: "Spec Author", Now: now})
 	if err == nil || err.Error() != "invalid dueDate: expected YYYY-MM-DD, actual 2026-02-30" {
 		t.Fatal(err)
 	}
 	if _, statErr := os.Stat(filepath.Join(space.Directory, "issues", "1.md")); !os.IsNotExist(statErr) {
 		t.Fatal("invalid due date created a file")
 	}
-	_, err = SaveIssue(space, SaveInput{}, SaveOptions{Now: &now})
+	_, err = SaveIssue(context.Background(), space, SaveInput{}, SaveOptions{Author: "Spec Author", Now: now})
 	if err == nil || err.Error() != "title is required when creating an issue" {
 		t.Fatal(err)
 	}
-	_, err = SaveIssue(space, SaveInput{Title: Present("   ")}, SaveOptions{Now: &now})
+	_, err = SaveIssue(context.Background(), space, SaveInput{Title: Present("   ")}, SaveOptions{Author: "Spec Author", Now: now})
 	if err == nil || err.Error() != "title is required when creating an issue" {
 		t.Fatal(err)
 	}
-	if _, err := SaveIssue(space, SaveInput{Title: Present("keep")}, SaveOptions{Now: &now}); err != nil {
+	if _, err := SaveIssue(context.Background(), space, SaveInput{Title: Present("keep")}, SaveOptions{Author: "Spec Author", Now: now}); err != nil {
 		t.Fatal(err)
 	}
-	_, err = SaveIssue(space, SaveInput{ID: "1", Title: Present("  ")}, SaveOptions{Now: &now})
+	_, err = SaveIssue(context.Background(), space, SaveInput{ID: "1", Title: Present("  ")}, SaveOptions{Author: "Spec Author", Now: now})
 	if err == nil || err.Error() != `invalid title: expected a non-empty string, actual "  "` {
 		t.Fatal(err)
 	}
-	kept, err := GetIssue(space, "1", &now)
+	kept, err := GetIssue(context.Background(), space, "1", now, "Spec Author")
 	if err != nil || kept.Title != "keep" {
 		t.Fatal(kept.Title, err)
 	}
-	_, err = SaveIssue(space, SaveInput{ID: "7", Title: Present("explicit")}, SaveOptions{Now: &now})
+	_, err = SaveIssue(context.Background(), space, SaveInput{ID: "7", Title: Present("explicit")}, SaveOptions{Author: "Spec Author", Now: now})
 	if err == nil || err.Error() != "issue not found: 7" {
 		t.Fatal(err)
 	}
-	_, err = SaveIssue(space, SaveInput{ID: "1", Body: Present("new"), PatchSet: true, Patch: []any{map[string]any{"op": "append", "text": "!"}}}, SaveOptions{Now: &now})
+	_, err = SaveIssue(context.Background(), space, SaveInput{ID: "1", Body: Present("new"), PatchSet: true, Patch: []any{map[string]any{"op": "append", "text": "!"}}}, SaveOptions{Author: "Spec Author", Now: now})
 	if err == nil || err.Error() != "cannot pass body and patch together" {
 		t.Fatal(err)
 	}
-	_, err = SaveIssue(space, SaveInput{Title: Present("x"), PatchSet: true, Patch: []any{map[string]any{"op": "append", "text": "!"}}}, SaveOptions{Now: &now})
+	_, err = SaveIssue(context.Background(), space, SaveInput{Title: Present("x"), PatchSet: true, Patch: []any{map[string]any{"op": "append", "text": "!"}}}, SaveOptions{Author: "Spec Author", Now: now})
 	if err == nil || err.Error() != "patch is only valid when updating an existing issue" {
 		t.Fatal(err)
 	}
@@ -1119,7 +1124,7 @@ func TestSaveIssueErrorsLeaveFilesUntouched(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = SaveIssue(space, SaveInput{Title: Present("task")}, SaveOptions{Now: &now})
+	_, err = SaveIssue(context.Background(), space, SaveInput{Title: Present("task")}, SaveOptions{Author: "Spec Author", Now: now})
 	if err == nil || err.Error() != `invalid staleAfter: expected a positive duration such as 30m, 2h, or 1d, actual "nope"` {
 		t.Fatal(err)
 	}
@@ -1134,7 +1139,7 @@ func TestSaveIssueKeepsProvenanceAndAssigneeMe(t *testing.T) {
 	space := issueGitWorkspace(t)
 	now := time.Date(2026, 9, 25, 9, 0, 0, 0, time.UTC)
 	provenance := &Provenance{Session: issueStringPointer("session-1"), Worktree: issueStringPointer("/work/feature"), Branch: issueStringPointer("feat/add-thing")}
-	created, err := SaveIssue(space, SaveInput{Title: Present("task"), Assignee: Present("me")}, SaveOptions{Now: &now, Provenance: provenance})
+	created, err := SaveIssue(context.Background(), space, SaveInput{Title: Present("task"), Assignee: Present("me")}, SaveOptions{Author: "Spec Author", Now: now, Provenance: provenance})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1144,14 +1149,14 @@ func TestSaveIssueKeepsProvenanceAndAssigneeMe(t *testing.T) {
 	if created.Session == nil || *created.Session != "session-1" || created.Branch == nil || *created.Branch != "feat/add-thing" {
 		t.Fatalf("provenance: %+v", created)
 	}
-	updated, err := SaveIssue(space, SaveInput{ID: "1", Status: Present("done")}, SaveOptions{Now: &now})
+	updated, err := SaveIssue(context.Background(), space, SaveInput{ID: "1", Status: Present("done")}, SaveOptions{Author: "Spec Author", Now: now})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if updated.Session == nil || *updated.Session != "session-1" || updated.Worktree == nil || *updated.Worktree != "/work/feature" {
 		t.Fatalf("provenance was cleared: %+v", updated)
 	}
-	none, err := SaveIssue(space, SaveInput{Title: Present("none")}, SaveOptions{Now: &now, Provenance: &Provenance{Session: issueStringPointer("none"), Worktree: issueStringPointer("none"), Branch: issueStringPointer("none")}})
+	none, err := SaveIssue(context.Background(), space, SaveInput{Title: Present("none")}, SaveOptions{Author: "Spec Author", Now: now, Provenance: &Provenance{Session: issueStringPointer("none"), Worktree: issueStringPointer("none"), Branch: issueStringPointer("none")}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1171,12 +1176,12 @@ func TestListSkipsCorruptAndUsesFilenameID(t *testing.T) {
 	issueSkipWithoutGitName(t)
 	space := issueGitWorkspace(t)
 	now := time.Date(2026, 9, 25, 9, 0, 0, 0, time.UTC)
-	if _, err := SaveIssue(space, SaveInput{Title: Present("ok")}, SaveOptions{Now: &now}); err != nil {
+	if _, err := SaveIssue(context.Background(), space, SaveInput{Title: Present("ok")}, SaveOptions{Author: "Spec Author", Now: now}); err != nil {
 		t.Fatal(err)
 	}
 	issueWriteFile(t, filepath.Join(space.Directory, "issues", "9.md"), "not an issue")
 	issueWriteFile(t, filepath.Join(space.Directory, "issues", "01.md"), "---\nid: 99\ntitle: padded\nstatus: todo\nassignee:\nlabels:\ncreatedAt: t\nupdatedAt: t\n---\n\nx\n")
-	listed, err := ListIssues(space, Filter{}, &now)
+	listed, err := ListIssues(context.Background(), space, Filter{}, now, "Spec Author")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1187,18 +1192,68 @@ func TestListSkipsCorruptAndUsesFilenameID(t *testing.T) {
 	if !found["1"] || !found["01"] || found["9"] {
 		t.Fatalf("ids: %s", issueIds(listed))
 	}
-	padded, err := GetIssue(space, "01", &now)
+	padded, err := GetIssue(context.Background(), space, "01", now, "Spec Author")
 	if err != nil || padded.ID != "01" {
 		t.Fatal(padded.ID, err)
 	}
-	_, err = GetIssue(space, "9", &now)
+	_, err = GetIssue(context.Background(), space, "9", now, "Spec Author")
 	if err == nil || err.Error() != "invalid issue file" {
 		t.Fatal(err)
 	}
-	next, err := SaveIssue(space, SaveInput{Title: Present("next")}, SaveOptions{Now: &now})
+	next, err := SaveIssue(context.Background(), space, SaveInput{Title: Present("next")}, SaveOptions{Author: "Spec Author", Now: now})
 	if err != nil || next.ID != "10" {
 		t.Fatalf("next: %+v %v", next, err)
 	}
+}
+
+func TestErrorKinds(t *testing.T) {
+	space := issueTestWorkspace(t)
+	now := time.Date(2026, 9, 28, 12, 0, 0, 0, time.UTC)
+	_, err := GetIssue(context.Background(), space, "missing", now, "Spec Author")
+	if err == nil || err.Error() != "issue not found: missing" || !errors.Is(err, errs.ErrNotFound) {
+		t.Fatal(err)
+	}
+	_, err = ResolvePriority(Present("nope"))
+	if err == nil || err.Error() != "invalid priority: expected urgent, high, medium, or low, actual nope" || !errors.Is(err, errs.ErrInvalidArgument) {
+		t.Fatal(err)
+	}
+}
+
+func TestConcurrentSaveKeepsBothFields(t *testing.T) {
+	space := issueTestWorkspace(t)
+	now := time.Date(2026, 9, 25, 9, 0, 0, 0, time.UTC)
+	ctx := context.Background()
+	if _, err := SaveIssue(ctx, space, SaveInput{Title: Present("start"), Status: Present("todo")}, SaveOptions{Author: "Spec Author", Now: now}); err != nil {
+		t.Fatal(err)
+	}
+	var wait sync.WaitGroup
+	errorChannel := make(chan error, 2)
+	wait.Add(2)
+	go func() {
+		defer wait.Done()
+		_, err := SaveIssue(ctx, space, SaveInput{ID: "1", Title: Present("renamed")}, SaveOptions{Author: "Spec Author", Now: now})
+		errorChannel <- err
+	}()
+	go func() {
+		defer wait.Done()
+		_, err := SaveIssue(ctx, space, SaveInput{ID: "1", Status: Present("done")}, SaveOptions{Author: "Spec Author", Now: now})
+		errorChannel <- err
+	}()
+	wait.Wait()
+	close(errorChannel)
+	for err := range errorChannel {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := GetIssue(ctx, space, "1", now, "Spec Author")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Title != "renamed" || got.Status != "done" {
+		t.Fatalf("lost update: title %q status %q", got.Title, got.Status)
+	}
+	issueNoTemporaryFiles(t, filepath.Join(space.Directory, "issues"))
 }
 
 const specDoneIssue = "" +
@@ -1450,6 +1505,17 @@ func issueExpectFile(t *testing.T, path string, expected string) {
 	}
 	if string(content) != expected {
 		t.Fatalf("file %s\nexpected:\n%s\nactual:\n%s", path, expected, content)
+	}
+}
+
+func issueNoTemporaryFiles(t *testing.T, directory string) {
+	t.Helper()
+	matches, err := filepath.Glob(filepath.Join(directory, "*.tmp"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 0 {
+		t.Fatalf("temporary files remained: %v", matches)
 	}
 }
 

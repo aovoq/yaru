@@ -7,8 +7,8 @@ import (
 
 	"connectrpc.com/connect"
 	yaruv1 "github.com/aovoq/yaru/gen/yaru/v1"
-	"github.com/aovoq/yaru/internal/clock"
 	"github.com/aovoq/yaru/internal/questions"
+	"github.com/aovoq/yaru/internal/workspace"
 )
 
 // questionService は質問の読み、回答、取り消し、取り下げ。作成と acknowledge は RPC にしない。
@@ -18,11 +18,11 @@ type questionService struct {
 }
 
 func (service *questionService) ListQuestions(ctx context.Context, request *connect.Request[yaruv1.ListQuestionsRequest]) (*connect.Response[yaruv1.ListQuestionsResponse], error) {
-	moment, err := clock.Now()
+	moment, now, err := readNow()
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
-	opened, err := openRegistered(service.stateDirectory, request.Msg.GetWorkspace())
+	opened, err := openRegistered(ctx, service.stateDirectory, request.Msg.GetWorkspace())
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
@@ -39,7 +39,7 @@ func (service *questionService) ListQuestions(ctx context.Context, request *conn
 	if request.Msg.Issue != nil && *request.Msg.Issue != "" {
 		filter.Issue = *request.Msg.Issue
 	}
-	listed, err := questions.ListQuestions(questionDirectory(opened), filter, &moment)
+	listed, err := questions.NewService().ListQuestions(ctx, questionDirectory(opened), filter, moment)
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
@@ -49,20 +49,20 @@ func (service *questionService) ListQuestions(ctx context.Context, request *conn
 	}
 	return connect.NewResponse(&yaruv1.ListQuestionsResponse{
 		Questions: converted,
-		Now:       clock.ISOString(moment),
+		Now:       now,
 	}), nil
 }
 
 func (service *questionService) GetQuestion(ctx context.Context, request *connect.Request[yaruv1.GetQuestionRequest]) (*connect.Response[yaruv1.GetQuestionResponse], error) {
-	moment, err := clock.Now()
+	moment, now, err := readNow()
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
-	opened, err := openRegistered(service.stateDirectory, request.Msg.GetWorkspace())
+	opened, err := openRegistered(ctx, service.stateDirectory, request.Msg.GetWorkspace())
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
-	question, err := questions.GetQuestion(questionDirectory(opened), request.Msg.GetId(), &moment)
+	question, err := questions.NewService().GetQuestion(ctx, questionDirectory(opened), request.Msg.GetId(), moment)
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
@@ -72,16 +72,16 @@ func (service *questionService) GetQuestion(ctx context.Context, request *connec
 	}
 	return connect.NewResponse(&yaruv1.GetQuestionResponse{
 		Question: converted,
-		Now:      clock.ISOString(moment),
+		Now:      now,
 	}), nil
 }
 
 func (service *questionService) AnswerQuestion(ctx context.Context, request *connect.Request[yaruv1.AnswerQuestionRequest]) (*connect.Response[yaruv1.AnswerQuestionResponse], error) {
-	moment, err := clock.Now()
+	moment, now, err := readNow()
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
-	opened, err := openRegistered(service.stateDirectory, request.Msg.GetWorkspace())
+	opened, err := openRegistered(ctx, service.stateDirectory, request.Msg.GetWorkspace())
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
@@ -103,9 +103,9 @@ func (service *questionService) AnswerQuestion(ctx context.Context, request *con
 		input.Force = true
 	}
 	directory := questionDirectory(opened)
-	saved, err := questions.AnswerQuestion(directory, storeIssues{space: opened}, request.Msg.GetId(), input, &moment)
+	saved, err := questions.NewService().AnswerQuestion(ctx, directory, storeIssues{space: opened}, request.Msg.GetId(), input, moment, workspace.GitName(ctx, opened.Root))
 	if err != nil {
-		return nil, questionFailure(directory, request.Msg.GetId(), &moment, err)
+		return nil, questionFailure(ctx, directory, request.Msg.GetId(), moment, err)
 	}
 	converted, err := questionMessage(saved)
 	if err != nil {
@@ -113,16 +113,16 @@ func (service *questionService) AnswerQuestion(ctx context.Context, request *con
 	}
 	return connect.NewResponse(&yaruv1.AnswerQuestionResponse{
 		Question: converted,
-		Now:      clock.ISOString(moment),
+		Now:      now,
 	}), nil
 }
 
 func (service *questionService) UndoAnswer(ctx context.Context, request *connect.Request[yaruv1.UndoAnswerRequest]) (*connect.Response[yaruv1.UndoAnswerResponse], error) {
-	moment, err := clock.Now()
+	moment, now, err := readNow()
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
-	opened, err := openRegistered(service.stateDirectory, request.Msg.GetWorkspace())
+	opened, err := openRegistered(ctx, service.stateDirectory, request.Msg.GetWorkspace())
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
@@ -132,9 +132,9 @@ func (service *questionService) UndoAnswer(ctx context.Context, request *connect
 		input.AnsweredAt = &answeredAt
 	}
 	directory := questionDirectory(opened)
-	saved, err := questions.UndoAnswer(directory, request.Msg.GetId(), input, &moment)
+	saved, err := questions.NewService().UndoAnswer(ctx, directory, request.Msg.GetId(), input, moment)
 	if err != nil {
-		return nil, questionFailure(directory, request.Msg.GetId(), &moment, err)
+		return nil, questionFailure(ctx, directory, request.Msg.GetId(), moment, err)
 	}
 	converted, err := questionMessage(saved)
 	if err != nil {
@@ -142,23 +142,23 @@ func (service *questionService) UndoAnswer(ctx context.Context, request *connect
 	}
 	return connect.NewResponse(&yaruv1.UndoAnswerResponse{
 		Question: converted,
-		Now:      clock.ISOString(moment),
+		Now:      now,
 	}), nil
 }
 
 func (service *questionService) CancelQuestion(ctx context.Context, request *connect.Request[yaruv1.CancelQuestionRequest]) (*connect.Response[yaruv1.CancelQuestionResponse], error) {
-	moment, err := clock.Now()
+	moment, now, err := readNow()
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
-	opened, err := openRegistered(service.stateDirectory, request.Msg.GetWorkspace())
+	opened, err := openRegistered(ctx, service.stateDirectory, request.Msg.GetWorkspace())
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
 	directory := questionDirectory(opened)
-	saved, err := questions.CancelQuestion(directory, request.Msg.GetId(), &moment)
+	saved, err := questions.NewService().CancelQuestion(ctx, directory, request.Msg.GetId(), moment)
 	if err != nil {
-		return nil, questionFailure(directory, request.Msg.GetId(), &moment, err)
+		return nil, questionFailure(ctx, directory, request.Msg.GetId(), moment, err)
 	}
 	converted, err := questionMessage(saved)
 	if err != nil {
@@ -166,7 +166,7 @@ func (service *questionService) CancelQuestion(ctx context.Context, request *con
 	}
 	return connect.NewResponse(&yaruv1.CancelQuestionResponse{
 		Question: converted,
-		Now:      clock.ISOString(moment),
+		Now:      now,
 	}), nil
 }
 

@@ -1,12 +1,15 @@
 package repository_test
 
 import (
+	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/aovoq/yaru/internal/errs"
 	"github.com/aovoq/yaru/internal/repository"
 )
 
@@ -99,7 +102,7 @@ func equalStrings(t *testing.T, got []string, want []string) {
 }
 
 func TestReadRepositoryStateOutsideGit(t *testing.T) {
-	state, err := repository.ReadRepositoryState(t.TempDir())
+	state, err := repository.ReadRepositoryState(context.Background(), t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +114,7 @@ func TestReadRepositoryStateOutsideGit(t *testing.T) {
 func TestReadRepositoryStateBareRepository(t *testing.T) {
 	directory := t.TempDir()
 	git(t, directory, "init", "-q", "--bare", "-b", "main")
-	state, err := repository.ReadRepositoryState(directory)
+	state, err := repository.ReadRepositoryState(context.Background(), directory)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +124,7 @@ func TestReadRepositoryStateBareRepository(t *testing.T) {
 }
 
 func TestReadRepositoryStateMissingDirectoryAndFile(t *testing.T) {
-	_, err := repository.ReadRepositoryState(filepath.Join(t.TempDir(), "missing"))
+	_, err := repository.ReadRepositoryState(context.Background(), filepath.Join(t.TempDir(), "missing"))
 	if err == nil || err.Error() != "ENOENT: no such file or directory, posix_spawn 'git'" {
 		t.Fatalf("got %v", err)
 	}
@@ -129,7 +132,7 @@ func TestReadRepositoryStateMissingDirectoryAndFile(t *testing.T) {
 	if writeErr := os.WriteFile(file, []byte("x"), 0o644); writeErr != nil {
 		t.Fatal(writeErr)
 	}
-	_, err = repository.ReadRepositoryState(file)
+	_, err = repository.ReadRepositoryState(context.Background(), file)
 	if err == nil || err.Error() != "ENOTDIR: not a directory, posix_spawn 'git'" {
 		t.Fatalf("got %v", err)
 	}
@@ -144,7 +147,7 @@ func TestReadRepositoryStatePermissionDenied(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.Chmod(directory, 0o755) })
-	_, err := repository.ReadRepositoryState(directory)
+	_, err := repository.ReadRepositoryState(context.Background(), directory)
 	if err == nil || err.Error() != "EACCES: permission denied, posix_spawn 'git'" {
 		t.Fatalf("got %v", err)
 	}
@@ -157,7 +160,7 @@ func TestReadRepositoryStateWithoutUpstream(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(directory, "dirty.txt"), []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	state, err := repository.ReadRepositoryState(directory)
+	state, err := repository.ReadRepositoryState(context.Background(), directory)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +185,7 @@ func TestReadRepositoryStateWithoutUpstream(t *testing.T) {
 
 func TestReadRepositoryStateDetachedAndEmpty(t *testing.T) {
 	empty := initRepo(t)
-	state, err := repository.ReadRepositoryState(empty)
+	state, err := repository.ReadRepositoryState(context.Background(), empty)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,7 +196,7 @@ func TestReadRepositoryStateDetachedAndEmpty(t *testing.T) {
 	detached := initRepo(t)
 	commitAtMinute(t, detached, "a.txt", "only", 0)
 	git(t, detached, "checkout", "-q", "--detach")
-	state, err = repository.ReadRepositoryState(detached)
+	state, err = repository.ReadRepositoryState(context.Background(), detached)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,7 +235,7 @@ func TestReadRepositoryStateAheadAndUncommittedLines(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(directory, "ignored.txt"), []byte("nope"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	state, err := repository.ReadRepositoryState(directory)
+	state, err := repository.ReadRepositoryState(context.Background(), directory)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -252,7 +255,7 @@ func TestReadRepositoryStateRecentCommitLimit(t *testing.T) {
 	for minute := 0; minute < 12; minute++ {
 		commitAtMinute(t, directory, twoDigits(minute)+".txt", "step "+twoDigits(minute), minute)
 	}
-	state, err := repository.ReadRepositoryState(directory)
+	state, err := repository.ReadRepositoryState(context.Background(), directory)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -276,7 +279,7 @@ func TestCommitsForIssueMentionsAndBranch(t *testing.T) {
 	git(t, directory, "switch", "-q", "main")
 
 	branch := "feature/x"
-	commits, err := repository.CommitsForIssue(directory, "1", &branch)
+	commits, err := repository.CommitsForIssue(context.Background(), directory, "1", &branch)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -284,25 +287,25 @@ func TestCommitsForIssueMentionsAndBranch(t *testing.T) {
 	if commits[0].Author != "tester" || commits[0].CommittedAt != "2026-09-20T00:05:00Z" || commits[0].Pushed != nil {
 		t.Fatalf("%#v", commits[0])
 	}
-	mention, err := repository.CommitsForIssue(directory, "1", nil)
+	mention, err := repository.CommitsForIssue(context.Background(), directory, "1", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	equalStrings(t, subjects(mention), []string{"続き (#1)", "一覧を直す #1"})
-	twelve, err := repository.CommitsForIssue(directory, "12", nil)
+	twelve, err := repository.CommitsForIssue(context.Background(), directory, "12", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	equalStrings(t, subjects(twelve), []string{"別の件 #12"})
 	empty := ""
-	same, err := repository.CommitsForIssue(directory, "1", &empty)
+	same, err := repository.CommitsForIssue(context.Background(), directory, "1", &empty)
 	if err != nil {
 		t.Fatal(err)
 	}
 	equalStrings(t, subjects(same), []string{"続き (#1)", "一覧を直す #1"})
 	for _, name := range []string{"deleted/branch", "--all", "main..feature/x", "main"} {
 		name := name
-		got, gotErr := repository.CommitsForIssue(directory, "12", &name)
+		got, gotErr := repository.CommitsForIssue(context.Background(), directory, "12", &name)
 		if gotErr != nil {
 			t.Fatal(gotErr)
 		}
@@ -322,7 +325,7 @@ func TestCommitsForIssuePushState(t *testing.T) {
 	commitAtMinute(t, directory, "c.txt", "ブランチの途中", 2)
 	git(t, directory, "switch", "-q", "main")
 	branch := "feature/x"
-	commits, err := repository.CommitsForIssue(directory, "1", &branch)
+	commits, err := repository.CommitsForIssue(context.Background(), directory, "1", &branch)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -349,7 +352,7 @@ func TestCommitsForIssuePatternsBodyTieOffsetSeparatorAndLimits(t *testing.T) {
 	for index, subject := range []string{"end #7", "twelve #78", "paren (#7)", "dot #7.", "word prefix#7", "letter #7a", "fullwidth ＃7", "space # 7", "double ##7"} {
 		commitAtMinute(t, patterns, twoDigits(index)+".txt", subject, index)
 	}
-	got, err := repository.CommitsForIssue(patterns, "7", nil)
+	got, err := repository.CommitsForIssue(context.Background(), patterns, "7", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -357,7 +360,7 @@ func TestCommitsForIssuePatternsBodyTieOffsetSeparatorAndLimits(t *testing.T) {
 
 	body := initRepo(t)
 	commitAt(t, body, "a.txt", "題名だけ\n\n本文に #4 がある", "2026-09-20T00:00:00Z")
-	got, err = repository.CommitsForIssue(body, "4", nil)
+	got, err = repository.CommitsForIssue(context.Background(), body, "4", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -368,7 +371,7 @@ func TestCommitsForIssuePatternsBodyTieOffsetSeparatorAndLimits(t *testing.T) {
 	tie := initRepo(t)
 	commitAt(t, tie, "a.txt", "first #8", "2026-09-20T00:10:00Z")
 	commitAt(t, tie, "b.txt", "second #8", "2026-09-20T00:10:00Z")
-	got, err = repository.CommitsForIssue(tie, "8", nil)
+	got, err = repository.CommitsForIssue(context.Background(), tie, "8", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -377,7 +380,7 @@ func TestCommitsForIssuePatternsBodyTieOffsetSeparatorAndLimits(t *testing.T) {
 	offset := initRepo(t)
 	commitAt(t, offset, "a.txt", "later Z #6", "2026-09-20T13:00:00Z")
 	commitAt(t, offset, "b.txt", "earlier offset #6", "2026-09-20T21:00:00+09:00")
-	got, err = repository.CommitsForIssue(offset, "6", nil)
+	got, err = repository.CommitsForIssue(context.Background(), offset, "6", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -393,7 +396,7 @@ func TestCommitsForIssuePatternsBodyTieOffsetSeparatorAndLimits(t *testing.T) {
 	if output, commitErr := command.CombinedOutput(); commitErr != nil {
 		t.Fatalf("%v\n%s", commitErr, output)
 	}
-	got, err = repository.CommitsForIssue(split, "5", nil)
+	got, err = repository.CommitsForIssue(context.Background(), split, "5", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -405,7 +408,7 @@ func TestCommitsForIssuePatternsBodyTieOffsetSeparatorAndLimits(t *testing.T) {
 	for index := 0; index < 25; index++ {
 		commitAtMinute(t, capped, twoDigits(index)+".txt", "step "+itoa(index)+" #3", index)
 	}
-	got, err = repository.CommitsForIssue(capped, "3", nil)
+	got, err = repository.CommitsForIssue(context.Background(), capped, "3", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -423,7 +426,7 @@ func TestCommitsForIssuePatternsBodyTieOffsetSeparatorAndLimits(t *testing.T) {
 	}
 	git(t, mixed, "switch", "-q", "main")
 	branch := "feature/y"
-	got, err = repository.CommitsForIssue(mixed, "9", &branch)
+	got, err = repository.CommitsForIssue(context.Background(), mixed, "9", &branch)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -434,7 +437,7 @@ func TestCommitsForIssuePatternsBodyTieOffsetSeparatorAndLimits(t *testing.T) {
 
 func TestCommitsForIssueOutsideGitAndInvalidID(t *testing.T) {
 	branch := "main"
-	commits, err := repository.CommitsForIssue(t.TempDir(), "1", &branch)
+	commits, err := repository.CommitsForIssue(context.Background(), t.TempDir(), "1", &branch)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -463,13 +466,13 @@ func TestCommitsForIssueOutsideGitAndInvalidID(t *testing.T) {
 		{id: "-1", want: `invalid issue id: expected digits, actual "-1"`},
 	}
 	for _, item := range cases {
-		_, gotErr := repository.CommitsForIssue(filepath.Join(t.TempDir(), "missing"), item.id, nil)
-		if gotErr == nil || gotErr.Error() != item.want {
+		_, gotErr := repository.CommitsForIssue(context.Background(), filepath.Join(t.TempDir(), "missing"), item.id, nil)
+		if gotErr == nil || gotErr.Error() != item.want || !errors.Is(gotErr, errs.ErrInvalidArgument) {
 			t.Fatalf("id %q got %v", item.id, gotErr)
 		}
 	}
 	for _, id := range []string{"0", "01"} {
-		got, gotErr := repository.CommitsForIssue(t.TempDir(), id, nil)
+		got, gotErr := repository.CommitsForIssue(context.Background(), t.TempDir(), id, nil)
 		if gotErr != nil || len(got) != 0 {
 			t.Fatalf("id %s got %#v %v", id, got, gotErr)
 		}

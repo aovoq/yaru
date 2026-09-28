@@ -3,25 +3,25 @@
 package store
 
 import (
+	"context"
 	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/aovoq/yaru/internal/document"
+	"github.com/aovoq/yaru/internal/fsutil"
 	"github.com/aovoq/yaru/internal/workspace"
 )
 
 // SaveIssue は issue を作るか更新する。書く前に staleAfter を読み、不正なら何も書かない。
 // 作成だけではイベントを足さない。src/store.ts:248-315、docs/spec/yaru-format.md の「issue」。
-func SaveIssue(space workspace.Workspace, input SaveInput, options SaveOptions) (Issue, error) {
-	moment, err := issueCurrentMoment(options.Now)
-	if err != nil {
+// issues ディレクトリを先にロックし、更新対象のファイルもロックする。イベントの追記までその中で行う。
+func SaveIssue(ctx context.Context, space workspace.Workspace, input SaveInput, options SaveOptions) (Issue, error) {
+	if err := ctx.Err(); err != nil {
 		return Issue{}, err
 	}
-	nowISO := issueIsoTimestamp(moment)
-	staleAfter, err := ReadStaleAfter(space)
-	if err != nil {
-		return Issue{}, err
-	}
-	gitAuthor, err := issueCurrentGitName()
+	nowISO := issueIsoTimestamp(options.Now)
+	staleAfter, err := ReadStaleAfter(ctx, space)
 	if err != nil {
 		return Issue{}, err
 	}
@@ -29,8 +29,8 @@ func SaveIssue(space workspace.Workspace, input SaveInput, options SaveOptions) 
 	if options.Provenance != nil {
 		session = options.Provenance.Session
 	}
-	eventContext := IssueEventContext{By: gitAuthor, Session: session, At: nowISO}
-	assignee, err := issueResolveAssignee(input.Assignee)
+	eventContext := IssueEventContext{By: options.Author, Session: session, At: nowISO}
+	assignee, err := issueResolveAssignee(input.Assignee, options.Author)
 	if err != nil {
 		return Issue{}, err
 	}
@@ -66,17 +66,23 @@ func SaveIssue(space workspace.Workspace, input SaveInput, options SaveOptions) 
 	if input.PatchSet && input.ID == "" {
 		return Issue{}, issueErrString("patch is only valid when updating an existing issue")
 	}
-	all, err := loadRawIssues(space)
+	unlockDirectory, err := fsutil.Lock(ctx, filepath.Join(space.Directory, "issues"))
+	if err != nil {
+		return Issue{}, err
+	}
+	defer unlockDirectory()
+	all, err := loadRawIssues(space, options.Author)
 	if err != nil {
 		return Issue{}, err
 	}
 	if input.ID != "" {
-		return updateIssue(space, input, options, all, moment, nowISO, staleAfter, assignee, dueDate, priority, status, patch, eventContext)
+		return updateIssue(ctx, space, input, options, all, options.Now, nowISO, staleAfter, assignee, dueDate, priority, status, patch, eventContext)
 	}
-	return createIssue(space, input, options, all, moment, nowISO, staleAfter, assignee, dueDate, priority, status, eventContext)
+	return createIssue(ctx, space, input, options, all, options.Now, nowISO, staleAfter, assignee, dueDate, priority, status, eventContext)
 }
 
 func updateIssue(
+	ctx context.Context,
 	space workspace.Workspace,
 	input SaveInput,
 	options SaveOptions,
@@ -98,15 +104,20 @@ func updateIssue(
 		}
 		return Issue{}, err
 	}
-	current, err := readIssue(path, input.ID)
+	unlockIssue, err := fsutil.Lock(ctx, path)
+	if err != nil {
+		return Issue{}, err
+	}
+	defer unlockIssue()
+	current, err := readIssue(path, input.ID, options.Author)
 	if err != nil {
 		return Issue{}, err
 	}
 	if input.Title.Set {
-		if input.Title.Value == nil || issueJavascriptTrim(*input.Title.Value) == "" {
+		if input.Title.Value == nil || document.Trim(*input.Title.Value) == "" {
 			actual := "null"
 			if input.Title.Value != nil {
-				quoted, quoteErr := issueQuoteJavaScript(*input.Title.Value)
+				quoted, quoteErr := document.Quote(*input.Title.Value)
 				if quoteErr != nil {
 					return Issue{}, quoteErr
 				}
@@ -133,7 +144,7 @@ func updateIssue(
 	}
 	next := current
 	if input.Title.Set {
-		next.Title = issueJavascriptTrim(*input.Title.Value)
+		next.Title = document.Trim(*input.Title.Value)
 	}
 	next.Status = nextStatus
 	if assignee.Set {
@@ -168,19 +179,20 @@ func updateIssue(
 		next.Worktree = options.Provenance.Worktree
 		next.Branch = options.Provenance.Branch
 	}
-	if err := issueWriteReplace(path, formatIssue(next)); err != nil {
+	if err := fsutil.WriteReplace(path, formatIssue(next)); err != nil {
 		return Issue{}, err
 	}
-	if err := AppendIssueEvents(space, next.ID, DiffIssue(current, next), eventContext); err != nil {
+	if err := AppendIssueEvents(ctx, space, next.ID, DiffIssue(current, next), eventContext); err != nil {
 		return Issue{}, err
 	}
-	if err := issueWriteBlockOwners(space, relations.owners, nowISO, eventContext); err != nil {
+	if err := issueWriteBlockOwners(ctx, space, relations.owners, nowISO, eventContext, options.Author); err != nil {
 		return Issue{}, err
 	}
-	return readDerivedIssue(space, next.ID, moment, staleAfter)
+	return readDerivedIssue(space, next.ID, moment, staleAfter, options.Author)
 }
 
 func createIssue(
+	ctx context.Context,
 	space workspace.Workspace,
 	input SaveInput,
 	options SaveOptions,
@@ -214,17 +226,17 @@ func createIssue(
 			return Issue{}, err
 		}
 		created.Blocks = relations.blocks
-		err = issueWriteCreate(issuePath(space, created.ID), formatIssue(created))
+		err = fsutil.WriteCreate(issuePath(space, created.ID), formatIssue(created))
 		if err != nil {
 			if issueIsExist(err) {
 				continue
 			}
 			return Issue{}, err
 		}
-		if err := issueWriteBlockOwners(space, relations.owners, nowISO, eventContext); err != nil {
+		if err := issueWriteBlockOwners(ctx, space, relations.owners, nowISO, eventContext, options.Author); err != nil {
 			return Issue{}, err
 		}
-		return readDerivedIssue(space, created.ID, moment, staleAfter)
+		return readDerivedIssue(space, created.ID, moment, staleAfter, options.Author)
 	}
 }
 
@@ -238,7 +250,7 @@ func newIssue(
 	nowISO string,
 	provenance *Provenance,
 ) (Issue, error) {
-	if !input.Title.Set || input.Title.Value == nil || issueJavascriptTrim(*input.Title.Value) == "" {
+	if !input.Title.Set || input.Title.Value == nil || document.Trim(*input.Title.Value) == "" {
 		return Issue{}, issueErrString("title is required when creating an issue")
 	}
 	if !input.Status.Set {
@@ -247,7 +259,7 @@ func newIssue(
 	times := issueStatusTimestamps(nil, status, nowISO)
 	issue := Issue{
 		ID:          issueID,
-		Title:       issueJavascriptTrim(*input.Title.Value),
+		Title:       document.Trim(*input.Title.Value),
 		Status:      status,
 		Labels:      []string{},
 		Blocks:      []string{},
@@ -516,24 +528,33 @@ func issueHasPath(graph map[string][]string, from string, to string) bool {
 	return false
 }
 
-func issueWriteBlockOwners(space workspace.Workspace, owners []issueBlockOwner, nowISO string, eventContext IssueEventContext) error {
+func issueWriteBlockOwners(ctx context.Context, space workspace.Workspace, owners []issueBlockOwner, nowISO string, eventContext IssueEventContext, author string) error {
 	for _, owner := range owners {
-		path := issuePath(space, owner.id)
-		issue, err := readIssue(path, owner.id)
-		if err != nil {
-			return err
-		}
-		next := issue
-		next.Blocks = issueCopyStrings(owner.blocks)
-		next.UpdatedAt = nowISO
-		if err := issueWriteReplace(path, formatIssue(next)); err != nil {
-			return err
-		}
-		if err := AppendIssueEvents(space, owner.id, DiffIssue(issue, next), eventContext); err != nil {
+		if err := issueWriteBlockOwner(ctx, space, owner, nowISO, eventContext, author); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func issueWriteBlockOwner(ctx context.Context, space workspace.Workspace, owner issueBlockOwner, nowISO string, eventContext IssueEventContext, author string) error {
+	path := issuePath(space, owner.id)
+	unlock, err := fsutil.Lock(ctx, path)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	issue, err := readIssue(path, owner.id, author)
+	if err != nil {
+		return err
+	}
+	next := issue
+	next.Blocks = issueCopyStrings(owner.blocks)
+	next.UpdatedAt = nowISO
+	if err := fsutil.WriteReplace(path, formatIssue(next)); err != nil {
+		return err
+	}
+	return AppendIssueEvents(ctx, space, owner.id, DiffIssue(issue, next), eventContext)
 }
 
 func issueOptionalList(value Optional[[]string]) ([]string, bool) {

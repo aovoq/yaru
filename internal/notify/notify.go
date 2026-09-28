@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -22,8 +21,8 @@ import (
 const notifyTimeout = 10 * time.Second
 
 // BaseURL は src/notify.ts:50 の notifyBaseUrl。config.yml の publicUrl が無ければ fallback
-func BaseURL(opened workspace.Workspace, fallback string) (string, error) {
-	publicURL, found := workspace.ReadConfigValue(opened, "publicUrl")
+func BaseURL(ctx context.Context, opened workspace.Workspace, fallback string) (string, error) {
+	publicURL, found := workspace.ReadConfigValue(ctx, opened, "publicUrl")
 	if !found {
 		return fallback, nil
 	}
@@ -37,9 +36,10 @@ func QuestionURL(baseURL string, slug string, questionID string) string {
 }
 
 // QuestionCreated は event question.created を config.yml の notify コマンドへ送る
+// environment が nil でもプロセスの環境は読まず、空の環境に知らせの変数だけを足す
 // 送り先が無い、または終了コード 0 なら警告文は空。失敗なら src/notify.ts:185-192 の文を返す
-func QuestionCreated(opened workspace.Workspace, url string, question questions.Question) (string, error) {
-	command, found := workspace.ReadConfigValue(opened, "notify")
+func QuestionCreated(ctx context.Context, opened workspace.Workspace, url string, question questions.Question, environment []string) (string, error) {
+	command, found := workspace.ReadConfigValue(ctx, opened, "notify")
 	if !found {
 		return "", nil
 	}
@@ -51,7 +51,7 @@ func QuestionCreated(opened workspace.Workspace, url string, question questions.
 	if err != nil {
 		return "", err
 	}
-	return runNotify(opened.Root, command, payload, map[string]string{
+	return runNotify(ctx, opened.Root, command, payload, environment, map[string]string{
 		"YARU_EVENT":          "question.created",
 		"YARU_URL":            url,
 		"YARU_QUESTION_ID":    question.ID,
@@ -107,8 +107,8 @@ func wireQuestion(question questions.Question) questionWire {
 	}
 }
 
-func runNotify(root string, command string, payload []byte, extra map[string]string) (string, error) {
-	timeout, cancel := context.WithTimeout(context.Background(), notifyTimeout)
+func runNotify(ctx context.Context, root string, command string, payload []byte, environment []string, extra map[string]string) (string, error) {
+	timeout, cancel := context.WithTimeout(ctx, notifyTimeout)
 	defer cancel()
 	child := exec.CommandContext(timeout, "sh", "-c", command)
 	child.Dir = root
@@ -116,7 +116,7 @@ func runNotify(root string, command string, payload []byte, extra map[string]str
 	child.Stdout = io.Discard
 	var stderr bytes.Buffer
 	child.Stderr = &stderr
-	child.Env = notifyEnvironment(os.Environ(), extra)
+	child.Env = notifyEnvironment(environment, extra)
 	err := child.Run()
 	if timeout.Err() == context.DeadlineExceeded {
 		return fmt.Sprintf("notify command failed: expected to finish within %dms, actual timed out", notifyTimeout.Milliseconds()), nil

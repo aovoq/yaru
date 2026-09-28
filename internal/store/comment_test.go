@@ -1,6 +1,9 @@
+//declscope:namespace issue
+
 package store
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -9,6 +12,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/aovoq/yaru/internal/document"
+	"github.com/aovoq/yaru/internal/workspace"
 )
 
 // commentRun は土台 (document・clock・workspace) が panic している間、そのテストを飛ばす
@@ -32,6 +39,34 @@ func commentRun(t *testing.T, run func() error) error {
 
 func commentString(value string) *string {
 	return &value
+}
+
+func commentSpace(directory string) workspace.Workspace {
+	return workspace.Workspace{Root: filepath.Dir(directory), Directory: directory}
+}
+
+func commentAt(value string) time.Time {
+	parsed, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil {
+		panic(err)
+	}
+	return parsed
+}
+
+func commentSave(directory string, input SaveCommentInput, now ...time.Time) (Comment, error) {
+	moment := commentAt("2026-09-28T12:00:00.000Z")
+	if len(now) > 0 {
+		moment = now[0]
+	}
+	return SaveComment(context.Background(), commentSpace(directory), input, moment, "Spec Author")
+}
+
+func commentList(directory string, issueID string) ([]Comment, error) {
+	return ListComments(context.Background(), commentSpace(directory), issueID, commentAt("2026-09-28T12:00:00.000Z"), "Spec Author")
+}
+
+func commentGet(directory string, commentID string) (Comment, error) {
+	return GetComment(context.Background(), commentSpace(directory), commentID, "Spec Author")
 }
 
 func commentMust(t *testing.T, err error) {
@@ -118,7 +153,7 @@ func commentPointer(value *string) string {
 
 func TestGetCommentMissing(t *testing.T) {
 	directory := t.TempDir()
-	_, err := GetComment(directory, "9")
+	_, err := commentGet(directory, "9")
 	if err == nil || err.Error() != "comment not found: 9" {
 		t.Fatalf("error = %v, want comment not found: 9", err)
 	}
@@ -126,7 +161,7 @@ func TestGetCommentMissing(t *testing.T) {
 
 func TestGetCommentEmptyID(t *testing.T) {
 	directory := t.TempDir()
-	_, err := GetComment(directory, "")
+	_, err := commentGet(directory, "")
 	if err == nil || err.Error() != "comment not found: " {
 		t.Fatalf("error = %v, want comment not found: ", err)
 	}
@@ -135,7 +170,7 @@ func TestGetCommentEmptyID(t *testing.T) {
 func TestGetCommentDirectory(t *testing.T) {
 	directory := t.TempDir()
 	commentMust(t, os.MkdirAll(filepath.Join(directory, "comments", "dir.md"), 0o777))
-	_, err := GetComment(directory, "dir")
+	_, err := commentGet(directory, "dir")
 	if err == nil || err.Error() != "EISDIR: illegal operation on a directory, read" {
 		t.Fatalf("error = %v, want EISDIR", err)
 	}
@@ -143,22 +178,22 @@ func TestGetCommentDirectory(t *testing.T) {
 
 func TestCommentJavaScriptTrim(t *testing.T) {
 	// src/store.ts:665 の trim。U+0085 は削らず、U+FEFF と U+2028 は削る
-	if got := commentJavaScriptTrim(" \n\t"); got != "" {
+	if got := document.Trim(" \n\t"); got != "" {
 		t.Fatalf("trim = %q", got)
 	}
-	if got := commentJavaScriptTrim("\uFEFF"); got != "" {
+	if got := document.Trim("\uFEFF"); got != "" {
 		t.Fatalf("feff trim = %q", got)
 	}
-	if got := commentJavaScriptTrim("\u2028"); got != "" {
+	if got := document.Trim("\u2028"); got != "" {
 		t.Fatalf("line separator trim = %q", got)
 	}
-	if got := commentJavaScriptTrim("\u3000"); got != "" {
+	if got := document.Trim("\u3000"); got != "" {
 		t.Fatalf("ideographic space trim = %q", got)
 	}
-	if got := commentJavaScriptTrim("\u0085x"); got != "\u0085x" {
+	if got := document.Trim("\u0085x"); got != "\u0085x" {
 		t.Fatalf("nel trim = %q", got)
 	}
-	if got := commentJavaScriptTrim("  a  "); got != "a" {
+	if got := document.Trim("  a  "); got != "a" {
 		t.Fatalf("trim = %q", got)
 	}
 }
@@ -181,11 +216,11 @@ func TestCommentBlankToNull(t *testing.T) {
 func TestCommentIsCalendarDate(t *testing.T) {
 	// docs/spec/yaru-format.md の dueDate。0000-0099 は JS の Date が 1900 年代にずらす
 	// https://tc39.es/ecma262/#sec-date-year-month-date
-	if !commentIsCalendarDate("2024-02-29") || !commentIsCalendarDate("0100-01-01") || !commentIsCalendarDate("2026-09-28") {
+	if !issueIsCalendarDate("2024-02-29") || !issueIsCalendarDate("0100-01-01") || !issueIsCalendarDate("2026-09-28") {
 		t.Fatal("expected valid dates")
 	}
 	for _, value := range []string{"2026-02-29", "2026-02-30", "0001-01-01", "2026-08-20T00:00:00Z", "20260820"} {
-		if commentIsCalendarDate(value) {
+		if issueIsCalendarDate(value) {
 			t.Fatalf("%s should be invalid", value)
 		}
 	}
@@ -205,11 +240,11 @@ func TestCommentFormatJavaScriptNumber(t *testing.T) {
 		{1e22, "1e+22"},
 	}
 	for _, test := range cases {
-		if got := commentFormatJavaScriptNumber(test.value); got != test.want {
+		if got := document.FormatNumber(test.value); got != test.want {
 			t.Fatalf("format(%v) = %s, want %s", test.value, got, test.want)
 		}
 	}
-	if got := commentFormatJavaScriptNumber(math.Inf(1)); got != "Infinity" {
+	if got := document.FormatNumber(math.Inf(1)); got != "Infinity" {
 		t.Fatalf("infinity = %s", got)
 	}
 }
@@ -270,42 +305,43 @@ func TestCommentCompare(t *testing.T) {
 
 func TestCommentJoinOr(t *testing.T) {
 	// src/store.ts:450-452
-	if got := commentJoinOr([]string{"backlog", "todo", "in_progress", "done", "canceled"}); got != "backlog, todo, in_progress, done, or canceled" {
+	if got := JoinOr([]string{"backlog", "todo", "in_progress", "done", "canceled"}); got != "backlog, todo, in_progress, done, or canceled" {
 		t.Fatal(got)
 	}
-	if got := commentJoinOr([]string{"urgent", "high", "medium", "low"}); got != "urgent, high, medium, or low" {
+	if got := JoinOr([]string{"urgent", "high", "medium", "low"}); got != "urgent, high, medium, or low" {
 		t.Fatal(got)
 	}
 }
 
 func TestCommentReadStaleAfter(t *testing.T) {
 	directory := t.TempDir()
-	got, err := commentReadStaleAfter(directory)
+	space := commentSpace(directory)
+	got, err := ReadStaleAfter(context.Background(), space)
 	commentMust(t, err)
 	if got != 24*3_600_000 {
 		t.Fatalf("default = %d", got)
 	}
 	config := filepath.Join(directory, "config.yml")
 	commentMust(t, os.WriteFile(config, []byte("staleAfter:\nstaleAfter: nope\n"), 0o666))
-	got, err = commentReadStaleAfter(directory)
+	got, err = ReadStaleAfter(context.Background(), space)
 	commentMust(t, err)
 	if got != 24*3_600_000 {
 		t.Fatalf("empty first line = %d", got)
 	}
 	commentMust(t, os.WriteFile(config, []byte("notify: echo\nstaleAfter: 90m\n"), 0o666))
-	got, err = commentReadStaleAfter(directory)
+	got, err = ReadStaleAfter(context.Background(), space)
 	commentMust(t, err)
 	if got != 90*60_000 {
 		t.Fatalf("90m = %d", got)
 	}
-	if got, err := commentParseStaleAfter(" 2h "); err != nil || got != 2*3_600_000 {
+	if got, err := ParseStaleAfter(" 2h "); err != nil || got != 2*3_600_000 {
 		t.Fatalf("2h = %d, %v", got, err)
 	}
-	if got, err := commentParseStaleAfter("3d"); err != nil || got != 3*86_400_000 {
+	if got, err := ParseStaleAfter("3d"); err != nil || got != 3*86_400_000 {
 		t.Fatalf("3d = %d, %v", got, err)
 	}
 	err = commentRun(t, func() error {
-		_, parseErr := commentParseStaleAfter("0h")
+		_, parseErr := ParseStaleAfter("0h")
 		return parseErr
 	})
 	if err == nil || err.Error() != `invalid staleAfter: expected a positive duration such as 30m, 2h, or 1d, actual "0h"` {
@@ -334,6 +370,7 @@ func TestCommentReplace(t *testing.T) {
 	if _, err := os.Stat(path + ".tmp"); !os.IsNotExist(err) {
 		t.Fatal("temporary file remains")
 	}
+	issueNoTemporaryFiles(t, filepath.Dir(path))
 }
 
 func TestCommentCreateExclusiveRetries(t *testing.T) {
@@ -368,7 +405,7 @@ func TestSaveCommentBytes(t *testing.T) {
 	var created Comment
 	err := commentRun(t, func() error {
 		var saveErr error
-		created, saveErr = SaveComment(directory, SaveCommentInput{Issue: commentString("1"), Body: commentString("コメント\n次の行")})
+		created, saveErr = commentSave(directory, SaveCommentInput{Issue: commentString("1"), Body: commentString("コメント\n次の行")}, commentAt("2026-09-28T12:05:00.000Z"))
 		return saveErr
 	})
 	commentMust(t, err)
@@ -391,10 +428,10 @@ func TestSaveCommentBytes(t *testing.T) {
 func TestSaveCommentReplyKeepsSpaces(t *testing.T) {
 	directory := commentTestDirectory(t)
 	err := commentRun(t, func() error {
-		if _, saveErr := SaveComment(directory, SaveCommentInput{Issue: commentString("1"), Body: commentString("first")}); saveErr != nil {
+		if _, saveErr := commentSave(directory, SaveCommentInput{Issue: commentString("1"), Body: commentString("first")}); saveErr != nil {
 			return saveErr
 		}
-		reply, saveErr := SaveComment(directory, SaveCommentInput{Issue: commentString("999"), Parent: commentString("1"), Body: commentString("  reply  ")})
+		reply, saveErr := commentSave(directory, SaveCommentInput{Issue: commentString("999"), Parent: commentString("1"), Body: commentString("  reply  ")})
 		if saveErr != nil {
 			return saveErr
 		}
@@ -414,11 +451,11 @@ func TestSaveCommentReplyKeepsSpaces(t *testing.T) {
 func TestSaveCommentUpdate(t *testing.T) {
 	directory := commentTestDirectory(t)
 	err := commentRun(t, func() error {
-		if _, saveErr := SaveComment(directory, SaveCommentInput{Issue: commentString("1"), Body: commentString("first")}); saveErr != nil {
+		if _, saveErr := commentSave(directory, SaveCommentInput{Issue: commentString("1"), Body: commentString("first")}); saveErr != nil {
 			return saveErr
 		}
 		t.Setenv("YARU_NOW", "2026-09-28T13:00:00.000Z")
-		kept, saveErr := SaveComment(directory, SaveCommentInput{ID: commentString("1")})
+		kept, saveErr := commentSave(directory, SaveCommentInput{ID: commentString("1")}, commentAt("2026-09-28T13:00:00.000Z"))
 		if saveErr != nil {
 			return saveErr
 		}
@@ -426,7 +463,7 @@ func TestSaveCommentUpdate(t *testing.T) {
 			return fmt.Errorf("kept = %+v", kept)
 		}
 		t.Setenv("YARU_NOW", "2026-09-28T14:00:00.000Z")
-		edited, saveErr := SaveComment(directory, SaveCommentInput{ID: commentString("1"), Issue: commentString("9"), Parent: commentString("9"), Body: commentString("edited\n")})
+		edited, saveErr := commentSave(directory, SaveCommentInput{ID: commentString("1"), Issue: commentString("9"), Parent: commentString("9"), Body: commentString("edited\n")}, commentAt("2026-09-28T14:00:00.000Z"))
 		if saveErr != nil {
 			return saveErr
 		}
@@ -445,6 +482,7 @@ func TestSaveCommentUpdate(t *testing.T) {
 	if _, err := os.Stat(commentPath(directory, "1") + ".tmp"); !os.IsNotExist(err) {
 		t.Fatal("temporary file remains")
 	}
+	issueNoTemporaryFiles(t, filepath.Join(directory, "comments"))
 }
 
 func TestSaveCommentErrors(t *testing.T) {
@@ -467,7 +505,7 @@ func TestSaveCommentErrors(t *testing.T) {
 	for _, test := range cases {
 		t.Run(test.name, func(t *testing.T) {
 			err := commentRun(t, func() error {
-				_, saveErr := SaveComment(directory, test.input)
+				_, saveErr := commentSave(directory, test.input)
 				return saveErr
 			})
 			if err == nil || err.Error() != test.want {
@@ -480,14 +518,14 @@ func TestSaveCommentErrors(t *testing.T) {
 func TestSaveCommentUpdateErrors(t *testing.T) {
 	directory := commentTestDirectory(t)
 	err := commentRun(t, func() error {
-		if _, saveErr := SaveComment(directory, SaveCommentInput{Issue: commentString("1"), Body: commentString("first")}); saveErr != nil {
+		if _, saveErr := commentSave(directory, SaveCommentInput{Issue: commentString("1"), Body: commentString("first")}); saveErr != nil {
 			return saveErr
 		}
-		_, saveErr := SaveComment(directory, SaveCommentInput{ID: commentString("1"), Body: commentString("  ")})
+		_, saveErr := commentSave(directory, SaveCommentInput{ID: commentString("1"), Body: commentString("  ")})
 		if saveErr == nil || saveErr.Error() != `invalid body: expected a non-empty string, actual "  "` {
 			return fmt.Errorf("whitespace = %v", saveErr)
 		}
-		_, saveErr = SaveComment(directory, SaveCommentInput{ID: commentString("9"), Body: commentString("x")})
+		_, saveErr = commentSave(directory, SaveCommentInput{ID: commentString("9"), Body: commentString("x")})
 		if saveErr == nil || saveErr.Error() != "comment not found: 9" {
 			return fmt.Errorf("missing = %v", saveErr)
 		}
@@ -496,15 +534,14 @@ func TestSaveCommentUpdateErrors(t *testing.T) {
 	commentMust(t, err)
 }
 
-func TestSaveCommentClockBeforeMissingComment(t *testing.T) {
+func TestSaveCommentIgnoresInvalidYaruNow(t *testing.T) {
 	directory := commentTestDirectory(t)
 	t.Setenv("YARU_NOW", "yesterday")
 	err := commentRun(t, func() error {
-		_, saveErr := SaveComment(directory, SaveCommentInput{ID: commentString("missing"), Body: commentString("z")})
+		_, saveErr := commentSave(directory, SaveCommentInput{ID: commentString("missing"), Body: commentString("z")}, commentAt("2026-09-28T12:00:00.000Z"))
 		return saveErr
 	})
-	want := `invalid YARU_NOW: expected an ISO 8601 datetime such as 2026-09-28T12:00:00.000Z, actual "yesterday"`
-	if err == nil || err.Error() != want {
+	if err == nil || err.Error() != "comment not found: missing" {
 		t.Fatalf("error = %v", err)
 	}
 }
@@ -523,7 +560,7 @@ func TestListCommentsOrderAndSkip(t *testing.T) {
 	var comments []Comment
 	err := commentRun(t, func() error {
 		var listErr error
-		comments, listErr = ListComments(directory, "1")
+		comments, listErr = commentList(directory, "1")
 		return listErr
 	})
 	commentMust(t, err)
@@ -557,7 +594,7 @@ func TestCommentFormatRoundTrip(t *testing.T) {
 		t.Fatalf("bytes = %q, want %q", text, want)
 	}
 	commentMust(t, os.WriteFile(commentPath(directory, "1"), []byte(text), 0o666))
-	got, err := GetComment(directory, "1")
+	got, err := commentGet(directory, "1")
 	commentMust(t, err)
 	commentEqual(t, got, original)
 
@@ -576,7 +613,7 @@ func TestCommentFormatRoundTrip(t *testing.T) {
 		t.Fatalf("reply = %q", replyText)
 	}
 	commentMust(t, os.WriteFile(commentPath(directory, "2"), []byte(replyText), 0o666))
-	got, err = GetComment(directory, "2")
+	got, err = commentGet(directory, "2")
 	commentMust(t, err)
 	commentEqual(t, got, reply)
 }
@@ -594,7 +631,7 @@ func TestSaveCommentUpdateSeeded(t *testing.T) {
 	})
 	commentMust(t, os.WriteFile(commentPath(directory, "1"), []byte(seed), 0o666))
 	t.Setenv("YARU_NOW", "2026-09-28T13:00:00.000Z")
-	kept, err := SaveComment(directory, SaveCommentInput{ID: commentString("1")})
+	kept, err := commentSave(directory, SaveCommentInput{ID: commentString("1")}, commentAt("2026-09-28T13:00:00.000Z"))
 	commentMust(t, err)
 	commentEqual(t, kept, Comment{
 		ID:        "1",
@@ -605,12 +642,12 @@ func TestSaveCommentUpdateSeeded(t *testing.T) {
 		Body:      "first",
 	})
 	t.Setenv("YARU_NOW", "2026-09-28T14:00:00.000Z")
-	edited, err := SaveComment(directory, SaveCommentInput{
+	edited, err := commentSave(directory, SaveCommentInput{
 		ID:     commentString("1"),
 		Issue:  commentString("9"),
 		Parent: commentString("9"),
 		Body:   commentString("edited\n"),
-	})
+	}, commentAt("2026-09-28T14:00:00.000Z"))
 	commentMust(t, err)
 	commentEqual(t, edited, Comment{
 		ID:        "1",
@@ -629,6 +666,7 @@ func TestSaveCommentUpdateSeeded(t *testing.T) {
 	if _, statErr := os.Stat(commentPath(directory, "1") + ".tmp"); !os.IsNotExist(statErr) {
 		t.Fatal("temporary file remains")
 	}
+	issueNoTemporaryFiles(t, filepath.Join(directory, "comments"))
 }
 
 func TestGetCommentDoesNotUseClockOrRewriteAuthor(t *testing.T) {
@@ -639,7 +677,7 @@ func TestGetCommentDoesNotUseClockOrRewriteAuthor(t *testing.T) {
 	var got Comment
 	err := commentRun(t, func() error {
 		var readErr error
-		got, readErr = GetComment(directory, "blank")
+		got, readErr = commentGet(directory, "blank")
 		return readErr
 	})
 	commentMust(t, err)
@@ -659,7 +697,7 @@ func TestSaveCommentFillsEmptyAuthor(t *testing.T) {
 	commentMust(t, os.WriteFile(commentPath(directory, "blank"), []byte(text), 0o666))
 	t.Setenv("YARU_NOW", "2026-09-28T15:00:00.000Z")
 	err := commentRun(t, func() error {
-		updated, saveErr := SaveComment(directory, SaveCommentInput{ID: commentString("blank")})
+		updated, saveErr := commentSave(directory, SaveCommentInput{ID: commentString("blank")}, commentAt("2026-09-28T15:00:00.000Z"))
 		if saveErr != nil {
 			return saveErr
 		}
@@ -686,33 +724,33 @@ func TestCommentInvalidFiles(t *testing.T) {
 	commentMust(t, os.WriteFile(commentPath(directory, "01"), []byte("---\nid: 99\nissue: 1\nauthor: Ann\ncreatedAt: 2019-01-01T00:00:00.000Z\nupdatedAt: 2019-01-01T00:00:00.000Z\n---\n\nold\n"), 0o666))
 	commentMust(t, os.WriteFile(commentPath(directory, "closer"), []byte("---\nissue: 1\nauthor: Ann\ncreatedAt: 2026-01-03T00:00:00.000Z\n---\n\nbefore\n---\nafter\n"), 0o666))
 	err := commentRun(t, func() error {
-		_, readErr := GetComment(directory, "bad")
+		_, readErr := commentGet(directory, "bad")
 		if readErr == nil || readErr.Error() != "invalid issue file" {
 			return fmt.Errorf("bad = %v", readErr)
 		}
-		_, readErr = GetComment(directory, "nokey")
+		_, readErr = commentGet(directory, "nokey")
 		if readErr == nil || readErr.Error() != "invalid comment file" {
 			return fmt.Errorf("nokey = %v", readErr)
 		}
-		_, readErr = GetComment(directory, "emptyissue")
+		_, readErr = commentGet(directory, "emptyissue")
 		if readErr == nil || readErr.Error() != "invalid comment file" {
 			return fmt.Errorf("empty = %v", readErr)
 		}
-		got, readErr := GetComment(directory, "issuenone")
+		got, readErr := commentGet(directory, "issuenone")
 		if readErr != nil {
 			return readErr
 		}
 		if got.Issue != "none" || got.ID != "issuenone" || got.Body != "body" || got.UpdatedAt != "" {
 			return fmt.Errorf("none = %+v", got)
 		}
-		got, readErr = GetComment(directory, "01")
+		got, readErr = commentGet(directory, "01")
 		if readErr != nil {
 			return readErr
 		}
 		if got.ID != "01" || got.Body != "old" {
 			return fmt.Errorf("stem = %+v", got)
 		}
-		got, readErr = GetComment(directory, "closer")
+		got, readErr = commentGet(directory, "closer")
 		if readErr != nil {
 			return readErr
 		}
@@ -728,17 +766,19 @@ func TestListCommentsRequiresReadableIssue(t *testing.T) {
 	directory := commentTestDirectory(t)
 	t.Setenv("YARU_NOW", "yesterday")
 	err := commentRun(t, func() error {
-		_, listErr := ListComments(directory, "1")
-		return listErr
+		comments, listErr := commentList(directory, "1")
+		if listErr != nil {
+			return listErr
+		}
+		if len(comments) != 0 {
+			return fmt.Errorf("len = %d", len(comments))
+		}
+		return nil
 	})
-	want := `invalid YARU_NOW: expected an ISO 8601 datetime such as 2026-09-28T12:00:00.000Z, actual "yesterday"`
-	if err == nil || err.Error() != want {
-		t.Fatalf("clock = %v", err)
-	}
-	t.Setenv("YARU_NOW", "2026-09-28T12:00:00.000Z")
+	commentMust(t, err)
 	commentMust(t, os.WriteFile(filepath.Join(directory, "config.yml"), []byte("staleAfter: nope\n"), 0o666))
 	err = commentRun(t, func() error {
-		_, listErr := ListComments(directory, "9")
+		_, listErr := commentList(directory, "9")
 		return listErr
 	})
 	if err == nil || err.Error() != `invalid staleAfter: expected a positive duration such as 30m, 2h, or 1d, actual "nope"` {
@@ -747,7 +787,7 @@ func TestListCommentsRequiresReadableIssue(t *testing.T) {
 	commentMust(t, os.WriteFile(filepath.Join(directory, "config.yml"), nil, 0o666))
 	commentTestWriteIssue(t, directory, "1", "nope", "", "")
 	err = commentRun(t, func() error {
-		_, saveErr := SaveComment(directory, SaveCommentInput{Issue: commentString("1"), Body: commentString("")})
+		_, saveErr := commentSave(directory, SaveCommentInput{Issue: commentString("1"), Body: commentString("")})
 		return saveErr
 	})
 	if err == nil || err.Error() != "invalid status: expected backlog, todo, in_progress, done, or canceled, actual nope" {
@@ -755,7 +795,7 @@ func TestListCommentsRequiresReadableIssue(t *testing.T) {
 	}
 	commentTestWriteIssue(t, directory, "1", "todo", "2026-02-30", "")
 	err = commentRun(t, func() error {
-		_, listErr := ListComments(directory, "1")
+		_, listErr := commentList(directory, "1")
 		return listErr
 	})
 	if err == nil || err.Error() != "invalid dueDate: expected YYYY-MM-DD, actual 2026-02-30" {
@@ -763,7 +803,7 @@ func TestListCommentsRequiresReadableIssue(t *testing.T) {
 	}
 	commentTestWriteIssue(t, directory, "1", "todo", "0001-01-01", "")
 	err = commentRun(t, func() error {
-		_, listErr := ListComments(directory, "1")
+		_, listErr := commentList(directory, "1")
 		return listErr
 	})
 	if err == nil || err.Error() != "invalid dueDate: expected YYYY-MM-DD, actual 0001-01-01" {
@@ -771,7 +811,7 @@ func TestListCommentsRequiresReadableIssue(t *testing.T) {
 	}
 	commentTestWriteIssue(t, directory, "1", "todo", "0100-01-01", "NOW")
 	err = commentRun(t, func() error {
-		_, listErr := ListComments(directory, "1")
+		_, listErr := commentList(directory, "1")
 		return listErr
 	})
 	if err == nil || err.Error() != "invalid priority: expected urgent, high, medium, or low, actual NOW" {
@@ -779,7 +819,7 @@ func TestListCommentsRequiresReadableIssue(t *testing.T) {
 	}
 	commentTestWriteIssue(t, directory, "1", "todo", "none", "none")
 	err = commentRun(t, func() error {
-		comments, listErr := ListComments(directory, "1")
+		comments, listErr := commentList(directory, "1")
 		if listErr != nil {
 			return listErr
 		}
@@ -794,19 +834,19 @@ func TestListCommentsRequiresReadableIssue(t *testing.T) {
 func TestSaveCommentUpdateIgnoresStaleAfter(t *testing.T) {
 	directory := commentTestDirectory(t)
 	err := commentRun(t, func() error {
-		if _, saveErr := SaveComment(directory, SaveCommentInput{Issue: commentString("1"), Body: commentString("first")}); saveErr != nil {
+		if _, saveErr := commentSave(directory, SaveCommentInput{Issue: commentString("1"), Body: commentString("first")}); saveErr != nil {
 			return saveErr
 		}
 		commentMust(t, os.WriteFile(filepath.Join(directory, "config.yml"), []byte("staleAfter: 0h\n"), 0o666))
-		t.Setenv("YARU_NOW", "2026-09-28T17:00:00.000Z")
-		updated, saveErr := SaveComment(directory, SaveCommentInput{ID: commentString("1"), Body: commentString("still")})
+		t.Setenv("YARU_NOW", "yesterday")
+		updated, saveErr := commentSave(directory, SaveCommentInput{ID: commentString("1"), Body: commentString("still")}, commentAt("2026-09-28T17:00:00.000Z"))
 		if saveErr != nil {
 			return saveErr
 		}
 		if updated.Body != "still" || updated.UpdatedAt != "2026-09-28T17:00:00.000Z" {
 			return fmt.Errorf("updated = %+v", updated)
 		}
-		_, saveErr = SaveComment(directory, SaveCommentInput{Issue: commentString("1"), Body: commentString("nope")})
+		_, saveErr = commentSave(directory, SaveCommentInput{Issue: commentString("1"), Body: commentString("nope")})
 		if saveErr == nil || saveErr.Error() != `invalid staleAfter: expected a positive duration such as 30m, 2h, or 1d, actual "0h"` {
 			return fmt.Errorf("create = %v", saveErr)
 		}
@@ -819,7 +859,7 @@ func TestSaveCommentKeepsAnswerMarker(t *testing.T) {
 	directory := commentTestDirectory(t)
 	body := "before\n<!-- yaru:answer -->\nafter"
 	err := commentRun(t, func() error {
-		saved, saveErr := SaveComment(directory, SaveCommentInput{Issue: commentString("1"), Body: &body})
+		saved, saveErr := commentSave(directory, SaveCommentInput{Issue: commentString("1"), Body: &body})
 		if saveErr != nil {
 			return saveErr
 		}

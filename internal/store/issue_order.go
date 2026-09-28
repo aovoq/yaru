@@ -5,9 +5,11 @@ package store
 import (
 	"math"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
+
+	"github.com/aovoq/yaru/internal/clock"
+	"github.com/aovoq/yaru/internal/document"
 )
 
 // 板の並び。既定は優先度の高い順、同じ優先度なら id の大きい順。
@@ -39,8 +41,13 @@ type IssueDisplay struct {
 	Completed string
 }
 
-// DefaultIssueDisplay は優先度順、状態でグループ、終わって 7 日以内だけ見せる。
-var DefaultIssueDisplay = IssueDisplay{Sort: SortPriority, Group: GroupStatus, Completed: CompletedRecent}
+// defaultIssueDisplay は優先度順、状態でグループ、終わって 7 日以内だけ見せる。
+var defaultIssueDisplay = IssueDisplay{Sort: SortPriority, Group: GroupStatus, Completed: CompletedRecent}
+
+// DefaultIssueDisplay は板の既定の写しを返す。src/issue-order.ts:17-27
+func DefaultIssueDisplay() IssueDisplay {
+	return defaultIssueDisplay
+}
 
 var issueSorts = []string{SortPriority, SortUpdated, SortCreated, SortDue}
 var issueGroups = []string{GroupStatus, GroupPriority, GroupLabel, GroupNone}
@@ -50,17 +57,17 @@ const issueNoPriorityRank = 4
 
 // ParseIssueSort は未知の値を拒み、空は既定の priority にする。src/issue-order.ts:37-39
 func ParseIssueSort(value *string) (string, error) {
-	return issueParseChoice("sort", issueSorts, DefaultIssueDisplay.Sort, value)
+	return issueParseChoice("sort", issueSorts, DefaultIssueDisplay().Sort, value)
 }
 
 // ParseIssueGroup は未知の値を拒み、空は既定の status にする。src/issue-order.ts:41-43
 func ParseIssueGroup(value *string) (string, error) {
-	return issueParseChoice("group", issueGroups, DefaultIssueDisplay.Group, value)
+	return issueParseChoice("group", issueGroups, DefaultIssueDisplay().Group, value)
 }
 
 // ParseCompletedVisibility は未知の値を拒み、空は既定の recent にする。src/issue-order.ts:45-47
 func ParseCompletedVisibility(value *string) (string, error) {
-	return issueParseChoice("completed", issueCompletedVisibilities, DefaultIssueDisplay.Completed, value)
+	return issueParseChoice("completed", issueCompletedVisibilities, DefaultIssueDisplay().Completed, value)
 }
 
 // SortIssues は入力の並びを変えずに、指定した順の新しいスライスを返す。src/issue-order.ts:49-51
@@ -93,7 +100,7 @@ func MatchesCompletedVisibility(issue Issue, visibility string, now time.Time) b
 	if finished != nil {
 		finishedText = *finished
 	}
-	parsed, ok := issueJavascriptTime(finishedText)
+	parsed, ok := clock.ParseJavaScriptTime(finishedText)
 	if !ok {
 		return true
 	}
@@ -163,8 +170,8 @@ func issuePriorityRank(issue Issue) int {
 // compareIDDescending は数として大きい id を前に置く。数でない名前は文字の降順。
 // src/issue-order.ts:101-104
 func issueCompareIDDescending(left Issue, right Issue) int {
-	rightNumber, rightOK := issueJavascriptNumber(right.ID)
-	leftNumber, leftOK := issueJavascriptNumber(left.ID)
+	rightNumber, rightOK := document.ParseNumber(right.ID)
+	leftNumber, leftOK := document.ParseNumber(left.ID)
 	if !rightOK || !leftOK {
 		return strings.Compare(right.ID, left.ID)
 	}
@@ -190,23 +197,11 @@ func issueParseChoice(name string, choices []string, fallback string, value *str
 			return choice, nil
 		}
 	}
-	quoted, err := issueQuoteJavaScript(*value)
+	quoted, err := document.Quote(*value)
 	if err != nil {
 		return "", err
 	}
 	return "", issueErrString("invalid " + name + ": expected " + JoinOr(choices) + ", actual " + quoted)
-}
-
-func issueJavascriptNumber(value string) (float64, bool) {
-	trimmed := issueJavascriptTrim(value)
-	if trimmed == "" {
-		return 0, true
-	}
-	parsed, err := strconv.ParseFloat(trimmed, 64)
-	if err != nil {
-		return 0, false
-	}
-	return parsed, true
 }
 
 // sortIssuesForList は updatedAt の降順、同じなら id を文字の降順にする。数としては比べない。

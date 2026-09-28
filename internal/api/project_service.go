@@ -18,21 +18,21 @@ import (
 type projectService struct{}
 
 func (projectService) ListProjects(ctx context.Context, request *connect.Request[yaruv1.ListProjectsRequest]) (*connect.Response[yaruv1.ListProjectsResponse], error) {
-	_ = ctx
 	_ = request
 	moment, now, err := readNow()
 	if err != nil {
 		return nil, connectError(err)
 	}
-	registered := workspace.List(workspace.StateDirectory())
+	questionService := questions.NewService()
+	registered := workspace.List(ctx, stateDirectory())
 	projects := make([]*yaruv1.Project, 0, len(registered))
 	for _, entry := range registered {
-		space, openErr := workspace.Open(entry.Root)
+		space, openErr := workspace.Open(ctx, entry.Root)
 		if openErr != nil {
 			return nil, connectError(openErr)
 		}
 		directory := questions.Directory{Dir: space.Directory}
-		loaded, listErr := questions.ListQuestions(directory, questions.QuestionFilter{}, &moment)
+		loaded, listErr := questionService.ListQuestions(ctx, directory, questions.QuestionFilter{}, moment)
 		if listErr != nil {
 			return nil, connectError(listErr)
 		}
@@ -46,7 +46,7 @@ func (projectService) ListProjects(ctx context.Context, request *connect.Request
 		if convertErr != nil {
 			return nil, connectError(convertErr)
 		}
-		inProgress, issueErr := store.ListIssues(space, store.Filter{Status: store.Present("in_progress")}, &moment)
+		inProgress, issueErr := store.ListIssues(ctx, space, store.Filter{Status: store.Present("in_progress")}, moment, workspace.GitName(ctx, space.Root))
 		if issueErr != nil {
 			return nil, connectError(issueErr)
 		}

@@ -3,6 +3,8 @@
 package workspace
 
 import (
+	"context"
+	"github.com/aovoq/yaru/internal/document"
 	"math"
 	"os"
 	"os/exec"
@@ -96,7 +98,7 @@ func stringValue(value *string) string {
 
 func TestInitCreatesTheWorkspaceMarker(t *testing.T) {
 	root := filepath.Join(physicalDirectory(t), "AsukaTravel")
-	workspace, err := Init(root)
+	workspace, err := Init(context.Background(), root)
 	if err != nil {
 		t.Fatalf("Init: %v", err)
 	}
@@ -128,7 +130,7 @@ func TestInitCreatesTheWorkspaceMarker(t *testing.T) {
 		}
 	}
 
-	opened, err := Open(root)
+	opened, err := Open(context.Background(), root)
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
@@ -139,7 +141,7 @@ func TestInitCreatesTheWorkspaceMarker(t *testing.T) {
 
 func TestInitRejectsAnExistingWorkspaceAndKeepsConfigBytes(t *testing.T) {
 	root := filepath.Join(physicalDirectory(t), "AsukaTravel")
-	workspace, err := Init(root)
+	workspace, err := Init(context.Background(), root)
 	if err != nil {
 		t.Fatalf("Init: %v", err)
 	}
@@ -147,7 +149,7 @@ func TestInitRejectsAnExistingWorkspaceAndKeepsConfigBytes(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(workspace.Directory, "config.yml"), []byte(kept), 0o666); err != nil {
 		t.Fatal(err)
 	}
-	_, err = Init(root)
+	_, err = Init(context.Background(), root)
 	requireError(t, err, "already a yaru workspace")
 	got, err := os.ReadFile(filepath.Join(workspace.Directory, "config.yml"))
 	if err != nil {
@@ -160,7 +162,7 @@ func TestInitRejectsAnExistingWorkspaceAndKeepsConfigBytes(t *testing.T) {
 
 func TestInitCreatesMissingParents(t *testing.T) {
 	root := filepath.Join(physicalDirectory(t), "does-not-exist-yet")
-	workspace, err := Init(root)
+	workspace, err := Init(context.Background(), root)
 	if err != nil {
 		t.Fatalf("Init: %v", err)
 	}
@@ -174,28 +176,28 @@ func TestInitCreatesMissingParents(t *testing.T) {
 
 func TestOpenWalksUpUntilItFindsConfig(t *testing.T) {
 	root := filepath.Join(physicalDirectory(t), "AsukaTravel")
-	if _, err := Init(root); err != nil {
+	if _, err := Init(context.Background(), root); err != nil {
 		t.Fatal(err)
 	}
 	nested := filepath.Join(root, "a", "b")
 	if err := os.MkdirAll(nested, 0o777); err != nil {
 		t.Fatal(err)
 	}
-	opened, err := Open(nested)
+	opened, err := Open(context.Background(), nested)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if opened.Root != root || opened.Directory != filepath.Join(root, ".yaru") {
 		t.Fatalf("opened %+v", opened)
 	}
-	found, err := FindRoot(filepath.Join(root, "a", "no-such-child"))
+	found, err := FindRoot(context.Background(), filepath.Join(root, "a", "no-such-child"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if found != root {
 		t.Fatalf("FindRoot %q, want %q", found, root)
 	}
-	_, err = Open(filepath.Dir(root))
+	_, err = Open(context.Background(), filepath.Dir(root))
 	requireError(t, err, "not a yaru workspace (run yaru init)")
 }
 
@@ -206,7 +208,7 @@ func TestOpenAcceptsADirectoryNamedConfig(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, ".yaru", "config.yml"), 0o777); err != nil {
 		t.Fatal(err)
 	}
-	opened, err := Open(root)
+	opened, err := Open(context.Background(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,24 +219,24 @@ func TestOpenAcceptsADirectoryNamedConfig(t *testing.T) {
 
 func TestFindRootOnAFileReturnsTheTypeScriptSpawnError(t *testing.T) {
 	root := filepath.Join(physicalDirectory(t), "AsukaTravel")
-	if _, err := Init(root); err != nil {
+	if _, err := Init(context.Background(), root); err != nil {
 		t.Fatal(err)
 	}
 	file := filepath.Join(root, "file.txt")
 	if err := os.WriteFile(file, []byte("x"), 0o666); err != nil {
 		t.Fatal(err)
 	}
-	_, err := FindRoot(file)
+	_, err := FindRoot(context.Background(), file)
 	requireError(t, err, "ENOTDIR: not a directory, posix_spawn 'git'")
-	_, err = ReadProvenance(file, map[string]string{})
+	_, err = ReadProvenance(context.Background(), file, map[string]string{})
 	requireError(t, err, "ENOTDIR: not a directory, posix_spawn 'git'")
-	_, err = ReadProvenance(filepath.Join(root, "missing-dir"), map[string]string{})
+	_, err = ReadProvenance(context.Background(), filepath.Join(root, "missing-dir"), map[string]string{})
 	requireError(t, err, "ENOENT: no such file or directory, posix_spawn 'git'")
 }
 
 func TestSymlinkPathOutsideGitDoesNotResolveTheTarget(t *testing.T) {
 	root := filepath.Join(physicalDirectory(t), "AsukaTravel")
-	if _, err := Init(root); err != nil {
+	if _, err := Init(context.Background(), root); err != nil {
 		t.Fatal(err)
 	}
 	nested := filepath.Join(root, "a", "b")
@@ -246,19 +248,19 @@ func TestSymlinkPathOutsideGitDoesNotResolveTheTarget(t *testing.T) {
 	if err := os.Symlink(nested, link); err != nil {
 		t.Fatal(err)
 	}
-	_, err := FindRoot(link)
+	_, err := FindRoot(context.Background(), link)
 	requireError(t, err, "not a yaru workspace (run yaru init)")
 
 	t.Chdir(link)
 	t.Setenv("PWD", link)
-	workingDirectory, err := WorkingDirectory()
+	workingDirectory, err := WorkingDirectory(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 	if workingDirectory != nested {
 		t.Fatalf("WorkingDirectory %q, want %q", workingDirectory, nested)
 	}
-	opened, err := Open(workingDirectory)
+	opened, err := Open(context.Background(), workingDirectory)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -270,28 +272,28 @@ func TestSymlinkPathOutsideGitDoesNotResolveTheTarget(t *testing.T) {
 func TestGitNameUsesTheWorkingDirectory(t *testing.T) {
 	repository := physicalDirectory(t)
 	initRepository(t, repository)
-	if got := GitName(repository); got != "Yaru Test" {
+	if got := GitName(context.Background(), repository); got != "Yaru Test" {
 		t.Fatalf("GitName %q, want Yaru Test", got)
 	}
 	runGit(t, repository, "config", "--unset", "user.name")
-	if got := GitName(repository); got != "me" {
+	if got := GitName(context.Background(), repository); got != "me" {
 		t.Fatalf("unset GitName %q, want me", got)
 	}
-	if got := GitName(physicalDirectory(t)); got != "me" {
+	if got := GitName(context.Background(), physicalDirectory(t)); got != "me" {
 		t.Fatalf("outside GitName %q, want me", got)
 	}
-	if got := GitName(filepath.Join(repository, "missing")); got != "me" {
+	if got := GitName(context.Background(), filepath.Join(repository, "missing")); got != "me" {
 		t.Fatalf("missing GitName %q, want me", got)
 	}
 }
 
 func TestReadConfigValue(t *testing.T) {
 	root := filepath.Join(physicalDirectory(t), "cfg")
-	workspace, err := Init(root)
+	workspace, err := Init(context.Background(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if value, ok := ReadConfigValue(workspace, "staleAfter"); ok {
+	if value, ok := ReadConfigValue(context.Background(), workspace, "staleAfter"); ok {
 		t.Fatalf("empty config returned %q", value)
 	}
 	body := "notify: curl -d 'a: b' https://ntfy.sh/x\nstaleAfter:\n  staleAfter: 1h\n# notify: hidden\nnotify: second\npublicUrl: https://example.test/p/\nquote: \"hello\"\n"
@@ -300,7 +302,7 @@ func TestReadConfigValue(t *testing.T) {
 	}
 	assertConfig := func(key string, want string, wantOK bool) {
 		t.Helper()
-		got, ok := ReadConfigValue(workspace, key)
+		got, ok := ReadConfigValue(context.Background(), workspace, key)
 		if ok != wantOK || got != want {
 			t.Fatalf("key %q got %q ok=%v, want %q ok=%v", key, got, ok, want, wantOK)
 		}
@@ -332,22 +334,16 @@ func TestReadConfigValue(t *testing.T) {
 }
 
 func TestStateDirectory(t *testing.T) {
-	t.Setenv("YARU_STATE_DIR", "/explicit")
-	if got := StateDirectory(); got != "/explicit" {
+	if got := StateDirectory("/explicit", "/xdg", "/home/tester"); got != "/explicit" {
 		t.Fatalf("explicit %q", got)
 	}
-	t.Setenv("YARU_STATE_DIR", "")
-	t.Setenv("XDG_STATE_HOME", "/xdg")
-	if got := StateDirectory(); got != "/xdg/yaru" {
+	if got := StateDirectory("", "/xdg", "/home/tester"); got != "/xdg/yaru" {
 		t.Fatalf("xdg %q", got)
 	}
-	t.Setenv("XDG_STATE_HOME", "")
-	t.Setenv("HOME", "/home/tester")
-	if got := StateDirectory(); got != "/home/tester/.local/state/yaru" {
+	if got := StateDirectory("", "", "/home/tester"); got != "/home/tester/.local/state/yaru" {
 		t.Fatalf("home %q", got)
 	}
-	t.Setenv("YARU_STATE_DIR", "relative-state")
-	if got := StateDirectory(); got != "relative-state" {
+	if got := StateDirectory("relative-state", "", ""); got != "relative-state" {
 		t.Fatalf("relative %q", got)
 	}
 }
@@ -368,7 +364,7 @@ func TestRegisterNamesAndBytes(t *testing.T) {
 	}
 	var slugs []string
 	for _, root := range roots {
-		registered, err := RegisterIn(root, stateDirectory)
+		registered, err := RegisterIn(context.Background(), root, stateDirectory)
 		if err != nil {
 			t.Fatalf("register %q: %v", root, err)
 		}
@@ -386,7 +382,7 @@ func TestRegisterNamesAndBytes(t *testing.T) {
 			t.Fatalf("slugs %v, want %v", slugs, wantSlugs)
 		}
 	}
-	again, err := RegisterIn("/projects/app", stateDirectory)
+	again, err := RegisterIn(context.Background(), "/projects/app", stateDirectory)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -416,7 +412,7 @@ func TestRegisterPreservesExtraKeysAndDropsInvalidEntries(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(stateDirectory, "workspaces.json"), []byte(input), 0o666); err != nil {
 		t.Fatal(err)
 	}
-	registered, err := RegisterIn("/projects/Added", stateDirectory)
+	registered, err := RegisterIn(context.Background(), "/projects/Added", stateDirectory)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -439,7 +435,7 @@ func TestRegisterCollapsesDuplicateKeysOnTheNextWrite(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(stateDirectory, "workspaces.json"), []byte(input), 0o666); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := RegisterIn("/b", stateDirectory); err != nil {
+	if _, err := RegisterIn(context.Background(), "/b", stateDirectory); err != nil {
 		t.Fatal(err)
 	}
 	got, err := os.ReadFile(filepath.Join(stateDirectory, "workspaces.json"))
@@ -459,7 +455,7 @@ func TestRegisterDoesNotRewriteAnExistingRoot(t *testing.T) {
 	if err := os.WriteFile(path, []byte(original), 0o666); err != nil {
 		t.Fatal(err)
 	}
-	registered, err := RegisterIn("/formatted/root", stateDirectory)
+	registered, err := RegisterIn(context.Background(), "/formatted/root", stateDirectory)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -482,7 +478,7 @@ func TestRegisterReplacesACorruptRegistry(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(stateDirectory, "workspaces.json"), []byte(input), 0o666); err != nil {
 			t.Fatal(err)
 		}
-		registered, err := RegisterIn("/projects/Fresh", stateDirectory)
+		registered, err := RegisterIn(context.Background(), "/projects/Fresh", stateDirectory)
 		if err != nil {
 			t.Fatalf("input %q: %v", input, err)
 		}
@@ -506,31 +502,31 @@ func TestRemovedWorkspaceStaysRegisteredButLeavesTheList(t *testing.T) {
 	second := filepath.Join(physicalDirectory(t), "app")
 	third := filepath.Join(physicalDirectory(t), "app")
 	for _, root := range []string{first, second} {
-		if _, err := Init(root); err != nil {
+		if _, err := Init(context.Background(), root); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := RegisterIn(root, stateDirectory); err != nil {
+		if _, err := RegisterIn(context.Background(), root, stateDirectory); err != nil {
 			t.Fatal(err)
 		}
 	}
 	if err := os.RemoveAll(filepath.Join(first, ".yaru")); err != nil {
 		t.Fatal(err)
 	}
-	listed := List(stateDirectory)
+	listed := List(context.Background(), stateDirectory)
 	if len(listed) != 1 || listed[0].Root != second || listed[0].Slug != "app-2" {
 		t.Fatalf("list %+v", listed)
 	}
-	if _, found := Find("app", stateDirectory); found {
+	if _, found := Find(context.Background(), "app", stateDirectory); found {
 		t.Fatal("removed slug is still listed")
 	}
-	found, ok := Find("app-2", stateDirectory)
+	found, ok := Find(context.Background(), "app-2", stateDirectory)
 	if !ok || found.Root != second {
 		t.Fatalf("find %+v %v", found, ok)
 	}
-	if _, err := Init(third); err != nil {
+	if _, err := Init(context.Background(), third); err != nil {
 		t.Fatal(err)
 	}
-	registered, err := RegisterIn(third, stateDirectory)
+	registered, err := RegisterIn(context.Background(), third, stateDirectory)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -544,10 +540,10 @@ func TestRemovedWorkspaceStaysRegisteredButLeavesTheList(t *testing.T) {
 	if !strings.Contains(string(body), first) || !strings.Contains(string(body), second) || !strings.Contains(string(body), third) {
 		t.Fatalf("file dropped a root:\n%s", body)
 	}
-	if len(List(physicalDirectory(t))) != 0 {
+	if len(List(context.Background(), physicalDirectory(t))) != 0 {
 		t.Fatal("empty state directory listed a workspace")
 	}
-	if _, found := Find("gone", physicalDirectory(t)); found {
+	if _, found := Find(context.Background(), "gone", physicalDirectory(t)); found {
 		t.Fatal("empty state directory found a slug")
 	}
 }
@@ -562,10 +558,10 @@ func TestNodePathMatchesJavaScript(t *testing.T) {
 	if nodeJoin("/main", "") != "/main" || nodeJoin("/main", "../x") != "/x" || nodeJoin("/foo", "/bar") != "/foo/bar" || nodeJoin("/a/b", ".yaru", "config.yml") != "/a/b/.yaru/config.yml" {
 		t.Fatalf("join mismatch")
 	}
-	if nodeRelative("/private/var/x", "/private/var/x") != "" || nodeRelative("/private/var/x", "/private/var/x/sub") != "sub" || nodeRelative("/private/var/x", "/private/var/y") != "../y" {
+	if nodeRelative(context.Background(), "/private/var/x", "/private/var/x") != "" || nodeRelative(context.Background(), "/private/var/x", "/private/var/x/sub") != "sub" || nodeRelative(context.Background(), "/private/var/x", "/private/var/y") != "../y" {
 		t.Fatalf("relative mismatch")
 	}
-	if nodeRelative("/tmp/foo/../bar", "/tmp/bar") != "" || nodeRelative("/var/folders/x", "/private/var/folders/x") != "../../../private/var/folders/x" {
+	if nodeRelative(context.Background(), "/tmp/foo/../bar", "/tmp/bar") != "" || nodeRelative(context.Background(), "/var/folders/x", "/private/var/folders/x") != "../../../private/var/folders/x" {
 		t.Fatalf("relative normalize mismatch")
 	}
 }
@@ -593,7 +589,7 @@ func TestJavaScriptNumberMatchesJSONStringify(t *testing.T) {
 		{9007199254740993, "9007199254740992"},
 	}
 	for _, testCase := range cases {
-		if got := formatJavaScriptNumber(testCase.number); got != testCase.text {
+		if got := document.FormatJSONNumber(testCase.number); got != testCase.text {
 			t.Fatalf("number %v got %s want %s", testCase.number, got, testCase.text)
 		}
 	}
@@ -601,16 +597,15 @@ func TestJavaScriptNumberMatchesJSONStringify(t *testing.T) {
 
 func TestRegisterUsesTheStateDirectory(t *testing.T) {
 	stateDirectory := physicalDirectory(t)
-	t.Setenv("YARU_STATE_DIR", stateDirectory)
 	root := filepath.Join(physicalDirectory(t), "AsukaTravel")
-	workspace, err := Init(root)
+	workspace, err := Init(context.Background(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Register(workspace); err != nil {
+	if err := Register(context.Background(), workspace, stateDirectory); err != nil {
 		t.Fatal(err)
 	}
-	listed := List(stateDirectory)
+	listed := List(context.Background(), stateDirectory)
 	if len(listed) != 1 || listed[0].Slug != "AsukaTravel" || listed[0].Root != root {
 		t.Fatalf("list %+v", listed)
 	}
@@ -629,7 +624,7 @@ func TestReadProvenance(t *testing.T) {
 	if err := os.MkdirAll(nested, 0o777); err != nil {
 		t.Fatal(err)
 	}
-	provenance, err := ReadProvenance(nested, map[string]string{})
+	provenance, err := ReadProvenance(context.Background(), nested, map[string]string{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -639,7 +634,7 @@ func TestReadProvenance(t *testing.T) {
 
 	linked := filepath.Join(physicalDirectory(t), "linked")
 	runGit(t, repository, "worktree", "add", "--quiet", "-b", "feat/fix-other", linked)
-	provenance, err = ReadProvenance(linked, map[string]string{})
+	provenance, err = ReadProvenance(context.Background(), linked, map[string]string{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -648,7 +643,7 @@ func TestReadProvenance(t *testing.T) {
 	}
 
 	runGit(t, repository, "switch", "--quiet", "--detach")
-	provenance, err = ReadProvenance(repository, map[string]string{})
+	provenance, err = ReadProvenance(context.Background(), repository, map[string]string{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -657,7 +652,7 @@ func TestReadProvenance(t *testing.T) {
 	}
 
 	outside := physicalDirectory(t)
-	provenance, err = ReadProvenance(outside, map[string]string{})
+	provenance, err = ReadProvenance(context.Background(), outside, map[string]string{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -665,7 +660,7 @@ func TestReadProvenance(t *testing.T) {
 		t.Fatalf("outside %+v", provenance)
 	}
 
-	provenance, err = ReadProvenance(outside, map[string]string{
+	provenance, err = ReadProvenance(context.Background(), outside, map[string]string{
 		"CLAUDE_CODE_SESSION_ID": "claude-1",
 		"CODEX_SESSION_ID":       "codex-1",
 	})
@@ -675,7 +670,7 @@ func TestReadProvenance(t *testing.T) {
 	if stringValue(provenance.Session) != "claude-1" {
 		t.Fatalf("session %q", stringValue(provenance.Session))
 	}
-	provenance, err = ReadProvenance(outside, map[string]string{
+	provenance, err = ReadProvenance(context.Background(), outside, map[string]string{
 		"CLAUDE_CODE_SESSION_ID": "  ",
 		"CODEX_SESSION_ID":       "codex-1",
 	})
@@ -685,14 +680,14 @@ func TestReadProvenance(t *testing.T) {
 	if stringValue(provenance.Session) != "codex-1" {
 		t.Fatalf("blank claude session %q", stringValue(provenance.Session))
 	}
-	provenance, err = ReadProvenance(outside, map[string]string{"CLAUDE_CODE_SESSION_ID": "  abc  "})
+	provenance, err = ReadProvenance(context.Background(), outside, map[string]string{"CLAUDE_CODE_SESSION_ID": "  abc  "})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if stringValue(provenance.Session) != "abc" {
 		t.Fatalf("trimmed session %q", stringValue(provenance.Session))
 	}
-	provenance, err = ReadProvenance(outside, map[string]string{"CODEX_SESSION_ID": "\n codex \n"})
+	provenance, err = ReadProvenance(context.Background(), outside, map[string]string{"CODEX_SESSION_ID": "\n codex \n"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -700,9 +695,7 @@ func TestReadProvenance(t *testing.T) {
 		t.Fatalf("newline session %q", stringValue(provenance.Session))
 	}
 
-	t.Setenv("CLAUDE_CODE_SESSION_ID", "from-process")
-	t.Setenv("CODEX_SESSION_ID", "ignored")
-	provenance, err = ReadProvenance(outside, nil)
+	provenance, err = ReadProvenance(context.Background(), outside, map[string]string{"CLAUDE_CODE_SESSION_ID": "from-process", "CODEX_SESSION_ID": "ignored"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -714,7 +707,7 @@ func TestReadProvenance(t *testing.T) {
 func TestLinkedWorktreeUsesTheMainWorkspace(t *testing.T) {
 	mainRoot := physicalDirectory(t)
 	initRepository(t, mainRoot)
-	if _, err := Init(mainRoot); err != nil {
+	if _, err := Init(context.Background(), mainRoot); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(mainRoot, ".yaru", "issues", ".keep"), nil, 0o666); err != nil {
@@ -728,21 +721,21 @@ func TestLinkedWorktreeUsesTheMainWorkspace(t *testing.T) {
 	worktree := filepath.Join(physicalDirectory(t), "feature")
 	runGit(t, mainRoot, "worktree", "add", "--quiet", "-b", "feature", worktree)
 
-	opened, err := Open(worktree)
+	opened, err := Open(context.Background(), worktree)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if opened.Root != mainRoot || opened.Directory != filepath.Join(mainRoot, ".yaru") {
 		t.Fatalf("worktree opened %+v, want root %s", opened, mainRoot)
 	}
-	fromDot, err := FindRoot(filepath.Join(worktree, ".yaru"))
+	fromDot, err := FindRoot(context.Background(), filepath.Join(worktree, ".yaru"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if fromDot != mainRoot {
 		t.Fatalf("FindRoot .yaru %q, want %q", fromDot, mainRoot)
 	}
-	fromMain, err := FindRoot(mainRoot)
+	fromMain, err := FindRoot(context.Background(), mainRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -755,7 +748,7 @@ func TestSubdirectoryWorkspaceMapsToTheSamePlaceInMain(t *testing.T) {
 	mainRoot := physicalDirectory(t)
 	initRepository(t, mainRoot)
 	workspaceRoot := filepath.Join(mainRoot, "packages", "app")
-	if _, err := Init(workspaceRoot); err != nil {
+	if _, err := Init(context.Background(), workspaceRoot); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(workspaceRoot, ".yaru", "issues", ".keep"), nil, 0o666); err != nil {
@@ -772,7 +765,7 @@ func TestSubdirectoryWorkspaceMapsToTheSamePlaceInMain(t *testing.T) {
 	if err := os.MkdirAll(nested, 0o777); err != nil {
 		t.Fatal(err)
 	}
-	found, err := FindRoot(nested)
+	found, err := FindRoot(context.Background(), nested)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -780,7 +773,7 @@ func TestSubdirectoryWorkspaceMapsToTheSamePlaceInMain(t *testing.T) {
 		t.Fatalf("mapped %q, want %q", found, workspaceRoot)
 	}
 	absent := filepath.Join(nested, "missing")
-	found, err = FindRoot(absent)
+	found, err = FindRoot(context.Background(), absent)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -795,10 +788,10 @@ func TestBareWorktreeDoesNotMap(t *testing.T) {
 	runGit(t, parent, "init", "--bare", "--quiet", "--initial-branch", "main", bare)
 	worktree := filepath.Join(parent, "wt")
 	runGit(t, bare, "worktree", "add", "--quiet", "-b", "feature", worktree)
-	if _, err := Init(worktree); err != nil {
+	if _, err := Init(context.Background(), worktree); err != nil {
 		t.Fatal(err)
 	}
-	found, err := FindRoot(worktree)
+	found, err := FindRoot(context.Background(), worktree)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -817,10 +810,10 @@ func TestWorktreeWithoutMainYaruFallsBackToItsOwnCopy(t *testing.T) {
 	runGit(t, mainRoot, "commit", "--quiet", "-m", "init")
 	worktree := filepath.Join(physicalDirectory(t), "feature")
 	runGit(t, mainRoot, "worktree", "add", "--quiet", "-b", "feature", worktree)
-	if _, err := Init(worktree); err != nil {
+	if _, err := Init(context.Background(), worktree); err != nil {
 		t.Fatal(err)
 	}
-	found, err := FindRoot(worktree)
+	found, err := FindRoot(context.Background(), worktree)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -834,7 +827,7 @@ func TestInitInsideALinkedWorktreeSubdirectoryIsHiddenByMain(t *testing.T) {
 	// src/store.ts:121-129 docs/spec/yaru-format.md の「worktree」の未決 11
 	mainRoot := physicalDirectory(t)
 	initRepository(t, mainRoot)
-	if _, err := Init(mainRoot); err != nil {
+	if _, err := Init(context.Background(), mainRoot); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(mainRoot, "README.md"), []byte("x\n"), 0o666); err != nil {
@@ -845,14 +838,14 @@ func TestInitInsideALinkedWorktreeSubdirectoryIsHiddenByMain(t *testing.T) {
 	worktree := filepath.Join(physicalDirectory(t), "feature")
 	runGit(t, mainRoot, "worktree", "add", "--quiet", "-b", "feature", worktree)
 	nested := filepath.Join(worktree, "pkg")
-	created, err := Init(nested)
+	created, err := Init(context.Background(), nested)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if created.Root != nested {
 		t.Fatalf("Init root %q, want %q", created.Root, nested)
 	}
-	opened, err := Open(nested)
+	opened, err := Open(context.Background(), nested)
 	if err != nil {
 		t.Fatal(err)
 	}

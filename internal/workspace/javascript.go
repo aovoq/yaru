@@ -4,45 +4,12 @@ package workspace
 
 import (
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 
 	"github.com/aovoq/yaru/internal/document"
 )
-
-// JavaScript の String.prototype.trim が外す文字。U+0085 は含めない
-// src/store.ts:467 src/config.ts:15 src/provenance.ts:31
-func javascriptTrim(text string) string {
-	start := 0
-	end := len(text)
-	for start < end {
-		character, size := utf8.DecodeRuneInString(text[start:])
-		if !isJavaScriptWhitespace(character) {
-			break
-		}
-		start += size
-	}
-	for end > start {
-		character, size := utf8.DecodeLastRuneInString(text[:end])
-		if !isJavaScriptWhitespace(character) {
-			break
-		}
-		end -= size
-	}
-	return text[start:end]
-}
-
-func isJavaScriptWhitespace(character rune) bool {
-	switch character {
-	case '\u0009', '\u000b', '\u000c', '\u0020', '\u00a0', '\ufeff', '\n', '\r', '\u2028', '\u2029':
-		return true
-	default:
-		return unicode.Is(unicode.Zs, character)
-	}
-}
 
 // Node の readFileSync(path, "utf8") と同じく、壊れた UTF-8 は U+FFFD にする
 // docs/spec/yaru-format.md の未決 13
@@ -57,49 +24,6 @@ func decodeUTF8(data []byte) string {
 		data = data[size:]
 	}
 	return builder.String()
-}
-
-// JSON.stringify の数値。workspaces.json は JSON.parse したあとに JSON.stringify(..., null, 2) で書く
-// src/workspaces.ts:37 docs/spec/yaru-format.md の「workspaces.json」
-func formatJavaScriptNumber(number float64) string {
-	if math.IsNaN(number) || math.IsInf(number, 0) {
-		return "null"
-	}
-	if number == 0 {
-		return "0"
-	}
-	sign := ""
-	if number < 0 {
-		sign = "-"
-		number = -number
-	}
-	scientific := strconv.FormatFloat(number, 'e', -1, 64)
-	mantissa, exponentText, _ := strings.Cut(scientific, "e")
-	exponent, _ := strconv.Atoi(exponentText)
-	digits := strings.ReplaceAll(mantissa, ".", "")
-	digitCount := len(digits)
-	coefficientDigits := exponent + 1
-	if digitCount <= coefficientDigits && coefficientDigits <= 21 {
-		return sign + digits + strings.Repeat("0", coefficientDigits-digitCount)
-	}
-	if 0 < coefficientDigits && coefficientDigits <= 21 {
-		return sign + digits[:coefficientDigits] + "." + digits[coefficientDigits:]
-	}
-	if -6 < coefficientDigits && coefficientDigits <= 0 {
-		return sign + "0." + strings.Repeat("0", -coefficientDigits) + digits
-	}
-	exponentOut := coefficientDigits - 1
-	if digitCount == 1 {
-		return sign + digits + "e" + formatExponent(exponentOut)
-	}
-	return sign + digits[:1] + "." + digits[1:] + "e" + formatExponent(exponentOut)
-}
-
-func formatExponent(exponent int) string {
-	if exponent >= 0 {
-		return "+" + strconv.Itoa(exponent)
-	}
-	return strconv.Itoa(exponent)
 }
 
 const (
@@ -295,7 +219,7 @@ func (parser *jsonParser) parseNumber() (jsonValue, error) {
 	if err != nil {
 		return jsonValue{}, fmt.Errorf("invalid json: number %q", parser.text[start:parser.index])
 	}
-	return jsonValue{kind: jsonNumber, text: formatJavaScriptNumber(number)}, nil
+	return jsonValue{kind: jsonNumber, text: document.FormatJSONNumber(number)}, nil
 }
 
 func (parser *jsonParser) parseString() (string, error) {

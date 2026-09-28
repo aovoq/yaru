@@ -1,10 +1,11 @@
+//declscope:namespace clock
+
 // CLI とサーバーの「今」と、時刻の書き方。TS 版の src/time.ts に当たる
 // 仕様は docs/spec/yaru-format.md の「時刻」
 package clock
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"time"
 
@@ -15,13 +16,16 @@ import (
 // https://www.rfc-editor.org/rfc/rfc3339#section-5.6
 var yaruNowPattern = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$`)
 
-// Now は環境変数 YARU_NOW があればその時刻に固定し、無ければ実行した瞬間を返す。読めない値は error
-// 空文字は未設定と区別し、検査に落ちる (src/time.ts:43-45, docs/spec/yaru-format.md の「時刻」)
+// Now は実行した瞬間を返す。YARU_NOW は読まない。
+// 環境変数を読むのは cmd と cli だけ。固定する文字列は ParseYaruNow に渡す。
+// src/time.ts:43-45 docs/spec/yaru-format.md の「時刻」
 func Now() (time.Time, error) {
-	value, exists := os.LookupEnv("YARU_NOW")
-	if !exists {
-		return time.Now(), nil
-	}
+	return time.Now(), nil
+}
+
+// ParseYaruNow は YARU_NOW の文字列を src/time.ts:7-41 と同じ瞬間にする。
+// 空文字は未設定と区別し、検査に落ちる。
+func ParseYaruNow(value string) (time.Time, error) {
 	return parseYaruNow(value)
 }
 

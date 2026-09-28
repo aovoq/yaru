@@ -1,6 +1,7 @@
 package questions
 
 import (
+	"context"
 	"errors"
 	"os"
 	"os/exec"
@@ -12,60 +13,45 @@ import (
 
 	"github.com/aovoq/yaru/internal/clock"
 	"github.com/aovoq/yaru/internal/document"
-	"github.com/aovoq/yaru/internal/workspace"
+	"github.com/aovoq/yaru/internal/errs"
 )
 
-// テスト中の時刻・JSON・frontmatter は、仕様どおりの代わりに差し替える。
-// 既定の変数は土台の関数のままにしておき、土台の中身が入ったらそのまま使えるようにする。
-// docs/spec/yaru-format.md の「共通の frontmatter」「JSON の escape」「question」
-var (
-	originalFormatDocument    = formatDocument
-	originalParseDocument     = parseDocument
-	originalMarshalJavaScript = marshalJavaScript
-	originalCurrentTime       = currentTime
-	originalISOString         = isoString
-	originalWorkingDirectory  = workingDirectory
-	originalGitName           = gitName
-)
-
+// テストの時刻は Asia/Tokyo。質問パッケージは YARU_NOW を読まない。
+// docs/spec/yaru-format.md の「時刻」「question」
 func init() {
 	location, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
 		panic(err)
 	}
 	time.Local = location
-	// document と clock は取り込み済みなので、テストもその関数を通す。
-	// workspace はまだ panic なので、作業ディレクトリと git の名前だけ差し替える。
-	workingDirectory = func() (string, error) { return "/physical/work", nil }
-	gitName = func(directory string) string {
-		lastGitDirectory = directory
-		return "Spec Author"
+}
+
+func TestDefaultsCallFoundation(t *testing.T) {
+	service := NewService()
+	if reflect.ValueOf(service.formatDocument).Pointer() != reflect.ValueOf(document.Format).Pointer() {
+		t.Fatal("formatDocument must default to document.Format")
+	}
+	if reflect.ValueOf(service.parseDocument).Pointer() != reflect.ValueOf(document.Parse).Pointer() {
+		t.Fatal("parseDocument must default to document.Parse")
+	}
+	if reflect.ValueOf(service.marshalJavaScript).Pointer() != reflect.ValueOf(document.MarshalJavaScript).Pointer() {
+		t.Fatal("marshalJavaScript must default to document.MarshalJavaScript")
+	}
+	if reflect.ValueOf(service.isoString).Pointer() != reflect.ValueOf(clock.ISOString).Pointer() {
+		t.Fatal("isoString must default to clock.ISOString")
 	}
 }
 
-var lastGitDirectory string
-
-func TestDefaultsCallFoundation(t *testing.T) {
-	if reflect.ValueOf(originalFormatDocument).Pointer() != reflect.ValueOf(document.Format).Pointer() {
-		t.Fatal("formatDocument must default to document.Format")
+func TestStatusListsAreCopies(t *testing.T) {
+	stored := StoredQuestionStatuses()
+	stored[0] = "mutated"
+	if StoredQuestionStatuses()[0] != "open" {
+		t.Fatal("stored statuses alias")
 	}
-	if reflect.ValueOf(originalParseDocument).Pointer() != reflect.ValueOf(document.Parse).Pointer() {
-		t.Fatal("parseDocument must default to document.Parse")
-	}
-	if reflect.ValueOf(originalMarshalJavaScript).Pointer() != reflect.ValueOf(document.MarshalJavaScript).Pointer() {
-		t.Fatal("marshalJavaScript must default to document.MarshalJavaScript")
-	}
-	if reflect.ValueOf(originalCurrentTime).Pointer() != reflect.ValueOf(clock.Now).Pointer() {
-		t.Fatal("currentTime must default to clock.Now")
-	}
-	if reflect.ValueOf(originalISOString).Pointer() != reflect.ValueOf(clock.ISOString).Pointer() {
-		t.Fatal("isoString must default to clock.ISOString")
-	}
-	if reflect.ValueOf(originalWorkingDirectory).Pointer() != reflect.ValueOf(workspace.WorkingDirectory).Pointer() {
-		t.Fatal("workingDirectory must default to workspace.WorkingDirectory")
-	}
-	if reflect.ValueOf(originalGitName).Pointer() != reflect.ValueOf(workspace.GitName).Pointer() {
-		t.Fatal("gitName must default to workspace.GitName")
+	statuses := QuestionStatuses()
+	statuses[0] = "mutated"
+	if QuestionStatuses()[0] != "open" {
+		t.Fatal("statuses alias")
 	}
 }
 
@@ -113,9 +99,6 @@ func TestCreateStoresMarkdownAndReadsOpen(t *testing.T) {
 	}
 	if created.Author != "Spec Author" {
 		t.Fatalf("author: %s", created.Author)
-	}
-	if lastGitDirectory != "/physical/work" {
-		t.Fatalf("git directory: %s", lastGitDirectory)
 	}
 	text := readText(t, filepath.Join(directory.Dir, "questions", "1.md"))
 	if !strings.Contains(text, "title: 本番 DB の称号を消すか\n") || !strings.Contains(text, "defaultAction: 消さずに残す\n") {
@@ -376,7 +359,7 @@ func TestSaveCommentErrorLeavesTheAnswer(t *testing.T) {
 	records.commentErr = errors.New("issue not found: 1")
 	mustSave(t, directory, records, SaveInput{Title: str("q"), Issue: str("1"), AnswerBy: str("1h")}, fixedNow)
 	later := time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC)
-	_, err := AnswerQuestion(directory, records, "1", AnswerInput{Body: str("yes")}, &later)
+	_, err := answerQuestion(directory, records, "1", AnswerInput{Body: str("yes")}, later)
 	requireError(t, err, "issue not found: 1")
 	if mustGet(t, directory, "1", later).Status != "answered" {
 		t.Fatal("answer was rolled back")
@@ -390,9 +373,9 @@ func TestCancelReopenAndConflict(t *testing.T) {
 	if canceled.Status != "canceled" || canceled.CanceledAt == nil || *canceled.CanceledAt != "2026-09-25T09:00:00.000Z" {
 		t.Fatalf("%#v", canceled)
 	}
-	_, err := AnswerQuestion(directory, nil, "1", AnswerInput{Body: str("yes"), Force: true}, &fixedNow)
+	_, err := answerQuestion(directory, nil, "1", AnswerInput{Body: str("yes"), Force: true}, fixedNow)
 	var conflict *QuestionConflictError
-	if !errors.As(err, &conflict) || conflict.Error() != "cannot answer question 1: expected status open or expired, actual canceled" {
+	if !errors.As(err, &conflict) || !errors.Is(err, errs.ErrConflict) || conflict.Error() != "cannot answer question 1: expected status open or expired, actual canceled" {
 		t.Fatalf("%v", err)
 	}
 	reopened := mustSave(t, directory, nil, SaveInput{ID: str("1"), Status: str("open")}, fixedNow)
@@ -434,7 +417,7 @@ func TestListFilterAndOrder(t *testing.T) {
 	if ids(mustList(t, directory, QuestionFilter{Status: str("answered")}, fixedNow)) != "3" {
 		t.Fatal("status")
 	}
-	_, err := ListQuestions(directory, QuestionFilter{Status: str("pending")}, &fixedNow)
+	_, err := listQuestions(directory, QuestionFilter{Status: str("pending")}, fixedNow)
 	requireError(t, err, "invalid status: expected open, expired, answered, or canceled, actual pending")
 }
 
@@ -512,13 +495,13 @@ func TestOptions(t *testing.T) {
 	if len(mustSave(t, directory, nil, SaveInput{Title: str("none")}, fixedNow).Options) != 0 {
 		t.Fatal("default")
 	}
-	_, err := SaveQuestion(directory, nil, SaveInput{Title: str("blank"), Options: strs("a", " ")}, &fixedNow)
+	_, err := saveQuestion(directory, nil, SaveInput{Title: str("blank"), Options: strs("a", " ")}, fixedNow)
 	requireError(t, err, `invalid option: expected a non-empty string, actual " "`)
-	_, err = SaveQuestion(directory, nil, SaveInput{Title: str("twice"), Options: strs("a", "a")}, &fixedNow)
+	_, err = saveQuestion(directory, nil, SaveInput{Title: str("twice"), Options: strs("a", "a")}, fixedNow)
 	requireError(t, err, `invalid option: expected each option once, actual "a" twice`)
-	_, err = SaveQuestion(directory, nil, SaveInput{Title: str("collapsed"), Options: strs("a b", "a\nb")}, &fixedNow)
+	_, err = saveQuestion(directory, nil, SaveInput{Title: str("collapsed"), Options: strs("a b", "a\nb")}, fixedNow)
 	requireError(t, err, `invalid option: expected each option once, actual "a b" twice`)
-	_, err = SaveQuestion(directory, nil, SaveInput{Title: str("line"), Options: strs("\u2028")}, &fixedNow)
+	_, err = saveQuestion(directory, nil, SaveInput{Title: str("line"), Options: strs("\u2028")}, fixedNow)
 	requireError(t, err, "invalid option: expected a non-empty string, actual \""+"\u2028"+"\"")
 	special := mustSave(t, directory, nil, SaveInput{Title: str("special"), Options: strs("<", ">", "&", "\u0000", "\b\f\n\r\t", "a\u2028b", "あ", "\"", "\\")}, fixedNow)
 	text := readText(t, filepath.Join(directory.Dir, "questions", special.ID+".md"))
@@ -534,12 +517,12 @@ func TestDuplicateUnlessForced(t *testing.T) {
 	directory := newDirectory(t)
 	records := issueOne()
 	mustSave(t, directory, records, SaveInput{Title: str("消すか"), Issue: str("1")}, fixedNow)
-	_, err := SaveQuestion(directory, records, SaveInput{Title: str(" 消すか "), Issue: str("1")}, &fixedNow)
+	_, err := saveQuestion(directory, records, SaveInput{Title: str(" 消すか "), Issue: str("1")}, fixedNow)
 	requireError(t, err, `duplicate question: expected no open question titled "消すか" on issue 1, actual question 1 is open; force to ask again`)
 	if mustSave(t, directory, records, SaveInput{Title: str("消すか")}, fixedNow).ID != "2" {
 		t.Fatal("other issue")
 	}
-	_, err = SaveQuestion(directory, records, SaveInput{Title: str("消すか")}, &fixedNow)
+	_, err = saveQuestion(directory, records, SaveInput{Title: str("消すか")}, fixedNow)
 	requireError(t, err, `duplicate question: expected no open question titled "消すか" without an issue, actual question 2 is open; force to ask again`)
 	if mustSave(t, directory, records, SaveInput{Title: str("消すか"), Issue: str("1"), Force: true}, fixedNow).ID != "3" {
 		t.Fatal("force")
@@ -560,9 +543,9 @@ func TestAnswerConflict(t *testing.T) {
 	directory := newDirectory(t)
 	mustSave(t, directory, nil, SaveInput{Title: str("q")}, fixedNow)
 	mustAnswer(t, directory, nil, "1", AnswerInput{Body: str("first")}, fixedNow)
-	_, err := AnswerQuestion(directory, nil, "1", AnswerInput{Body: str("stale tab"), ExpectedStatus: str("open")}, &fixedNow)
+	_, err := answerQuestion(directory, nil, "1", AnswerInput{Body: str("stale tab"), ExpectedStatus: str("open")}, fixedNow)
 	var conflict *QuestionConflictError
-	if !errors.As(err, &conflict) {
+	if !errors.As(err, &conflict) || !errors.Is(err, errs.ErrConflict) {
 		t.Fatal(err)
 	}
 	want := "cannot answer question 1: expected status open or expired, actual answered (answered by Spec Author at 2026-09-25T09:00:00.000Z; force to replace the answer)"
@@ -580,9 +563,9 @@ func TestAnswerConflict(t *testing.T) {
 	if mustAnswer(t, directory, nil, "1", AnswerInput{Body: str("forced"), Force: true}, later).Answer == nil {
 		t.Fatal("force")
 	}
-	_, err = AnswerQuestion(directory, nil, "1", AnswerInput{Body: str("x"), ExpectedStatus: str("done")}, &fixedNow)
+	_, err = answerQuestion(directory, nil, "1", AnswerInput{Body: str("x"), ExpectedStatus: str("done")}, fixedNow)
 	requireError(t, err, "invalid expectedStatus: expected open, expired, answered, or canceled, actual done")
-	_, err = AnswerQuestion(directory, nil, "9", AnswerInput{Body: str("x"), ExpectedStatus: str("done")}, &fixedNow)
+	_, err = answerQuestion(directory, nil, "9", AnswerInput{Body: str("x"), ExpectedStatus: str("done")}, fixedNow)
 	requireError(t, err, "question not found: 9")
 }
 
@@ -616,9 +599,9 @@ func TestCancelRules(t *testing.T) {
 		t.Fatal("rewrote a canceled question")
 	}
 	mustAnswer(t, directory, nil, "2", AnswerInput{Body: str("yes")}, fixedNow)
-	_, err := CancelQuestion(directory, "2", &fixedNow)
+	_, err := cancelQuestion(directory, "2", fixedNow)
 	var conflict *QuestionConflictError
-	if !errors.As(err, &conflict) || conflict.Error() != "cannot cancel question 2: expected status open or expired, actual answered" {
+	if !errors.As(err, &conflict) || !errors.Is(err, errs.ErrConflict) || conflict.Error() != "cannot cancel question 2: expected status open or expired, actual answered" {
 		t.Fatalf("%v", err)
 	}
 }
@@ -683,31 +666,31 @@ func TestQuestionsAboutToExpire(t *testing.T) {
 
 func TestValidationErrors(t *testing.T) {
 	directory := newDirectory(t)
-	_, err := SaveQuestion(directory, nil, SaveInput{}, &fixedNow)
+	_, err := saveQuestion(directory, nil, SaveInput{}, fixedNow)
 	requireError(t, err, "title is required when creating a question")
-	_, err = SaveQuestion(directory, nil, SaveInput{Title: str("q"), Issue: str("9")}, &fixedNow)
+	_, err = saveQuestion(directory, nil, SaveInput{Title: str("q"), Issue: str("9")}, fixedNow)
 	requireError(t, err, "issue not found: 9")
-	_, err = SaveQuestion(directory, nil, SaveInput{Title: str("q"), Priority: str("now")}, &fixedNow)
+	_, err = saveQuestion(directory, nil, SaveInput{Title: str("q"), Priority: str("now")}, fixedNow)
 	requireError(t, err, "invalid priority: expected urgent, high, medium, or low, actual now")
-	_, err = SaveQuestion(directory, nil, SaveInput{ID: str("9"), Priority: str("now")}, &fixedNow)
+	_, err = saveQuestion(directory, nil, SaveInput{ID: str("9"), Priority: str("now")}, fixedNow)
 	requireError(t, err, "invalid priority: expected urgent, high, medium, or low, actual now")
-	_, err = SaveQuestion(directory, nil, SaveInput{Title: str("q"), Body: str("a\n" + QuestionAnswerMarker + "\nb")}, &fixedNow)
+	_, err = saveQuestion(directory, nil, SaveInput{Title: str("q"), Body: str("a\n" + QuestionAnswerMarker + "\nb")}, fixedNow)
 	requireError(t, err, "invalid body: must not contain "+QuestionAnswerMarker)
-	_, err = SaveQuestion(directory, nil, SaveInput{ID: str("9"), Title: str("q")}, &fixedNow)
+	_, err = saveQuestion(directory, nil, SaveInput{ID: str("9"), Title: str("q")}, fixedNow)
 	requireError(t, err, "question not found: 9")
-	_, err = SaveQuestion(directory, nil, SaveInput{ID: str("1"), Status: str("answered")}, &fixedNow)
+	_, err = saveQuestion(directory, nil, SaveInput{ID: str("1"), Status: str("answered")}, fixedNow)
 	requireError(t, err, "invalid status: expected open or canceled, actual answered")
 	mustSave(t, directory, nil, SaveInput{Title: str("q")}, fixedNow)
 	before := readText(t, filepath.Join(directory.Dir, "questions", "1.md"))
-	_, err = AnswerQuestion(directory, nil, "1", AnswerInput{Body: str(" ")}, &fixedNow)
+	_, err = answerQuestion(directory, nil, "1", AnswerInput{Body: str(" ")}, fixedNow)
 	requireError(t, err, `invalid answer: expected a non-empty string, actual " "`)
-	_, err = AnswerQuestion(directory, nil, "1", AnswerInput{}, &fixedNow)
+	_, err = answerQuestion(directory, nil, "1", AnswerInput{}, fixedNow)
 	requireError(t, err, `invalid answer: expected a non-empty string, actual ""`)
-	_, err = AnswerQuestion(directory, nil, "1", AnswerInput{Body: str(" \n ")}, &fixedNow)
+	_, err = answerQuestion(directory, nil, "1", AnswerInput{Body: str(" \n ")}, fixedNow)
 	requireError(t, err, `invalid answer: expected a non-empty string, actual " \n "`)
-	_, err = AnswerQuestion(directory, nil, "1", AnswerInput{Body: str("x " + QuestionAnswerMarker)}, &fixedNow)
+	_, err = answerQuestion(directory, nil, "1", AnswerInput{Body: str("x " + QuestionAnswerMarker)}, fixedNow)
 	requireError(t, err, "invalid body: must not contain "+QuestionAnswerMarker)
-	_, err = SaveQuestion(directory, nil, SaveInput{ID: str("1"), Title: str("  \n  ")}, &fixedNow)
+	_, err = saveQuestion(directory, nil, SaveInput{ID: str("1"), Title: str("  \n  ")}, fixedNow)
 	requireError(t, err, `invalid title: expected a non-empty string, actual "  \n  "`)
 	if readText(t, filepath.Join(directory.Dir, "questions", "1.md")) != before {
 		t.Fatal("validation wrote")
@@ -753,7 +736,7 @@ func TestQuestionsGitignore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(output), "questions") {
+	if strings.Contains(string(output), "questions/") || strings.Contains(string(output), ".md") {
 		t.Fatalf("git status:\n%s", output)
 	}
 	if err := os.WriteFile(filepath.Join(directory.Dir, "questions", ".gitignore"), []byte("keep\n"), 0o666); err != nil {
@@ -777,34 +760,34 @@ func TestUndoAnswer(t *testing.T) {
 	}
 	mustAnswer(t, directory, nil, "1", AnswerInput{Body: str("yes")}, fixedNow)
 	justOver := fixedNow.Add(time.Duration(UndoAnswerMilliseconds)*time.Millisecond + time.Millisecond)
-	_, err := UndoAnswer(directory, "1", UndoInput{AnsweredAt: str("2026-09-25T09:00:00.000Z")}, &justOver)
+	_, err := undoAnswer(directory, "1", UndoInput{AnsweredAt: str("2026-09-25T09:00:00.000Z")}, justOver)
 	requireError(t, err, "cannot undo the answer to question 1: expected within 30s of answering, actual 30s")
 	half := fixedNow.Add(30500 * time.Millisecond)
-	_, err = UndoAnswer(directory, "1", UndoInput{AnsweredAt: str("2026-09-25T09:00:00.000Z")}, &half)
+	_, err = undoAnswer(directory, "1", UndoInput{AnsweredAt: str("2026-09-25T09:00:00.000Z")}, half)
 	requireError(t, err, "cannot undo the answer to question 1: expected within 30s of answering, actual 31s")
 	if mustGet(t, directory, "1", fixedNow).Answer == nil || *mustGet(t, directory, "1", fixedNow).Answer != "yes" {
 		t.Fatal("undo wrote")
 	}
 	mustAcknowledge(t, directory, "1", fixedNow.Add(time.Second))
-	_, err = UndoAnswer(directory, "1", UndoInput{AnsweredAt: str("2026-09-25T09:00:00.000Z")}, &within)
+	_, err = undoAnswer(directory, "1", UndoInput{AnsweredAt: str("2026-09-25T09:00:00.000Z")}, within)
 	var conflict *QuestionConflictError
-	if !errors.As(err, &conflict) || conflict.Error() != "cannot undo the answer to question 1: expected the agent not to have picked it up, actual picked up at 2026-09-25T09:00:01.000Z" {
+	if !errors.As(err, &conflict) || !errors.Is(err, errs.ErrConflict) || conflict.Error() != "cannot undo the answer to question 1: expected the agent not to have picked it up, actual picked up at 2026-09-25T09:00:01.000Z" {
 		t.Fatalf("%v", err)
 	}
 	mustSave(t, directory, nil, SaveInput{Title: str("replaced")}, fixedNow)
 	mustAnswer(t, directory, nil, "2", AnswerInput{Body: str("first")}, fixedNow)
 	replacedAt := fixedNow.Add(5 * time.Second)
 	mustAnswer(t, directory, nil, "2", AnswerInput{Body: str("second"), Force: true}, replacedAt)
-	_, err = UndoAnswer(directory, "2", UndoInput{AnsweredAt: str(fixedNow.UTC().Format("2006-01-02T15:04:05.000Z"))}, &within)
+	_, err = undoAnswer(directory, "2", UndoInput{AnsweredAt: str(fixedNow.UTC().Format("2006-01-02T15:04:05.000Z"))}, within)
 	requireError(t, err, "cannot undo the answer to question 2: expected answeredAt 2026-09-25T09:00:00.000Z, actual 2026-09-25T09:00:05.000Z")
 	mustSave(t, directory, nil, SaveInput{Title: str("plain")}, fixedNow)
-	_, err = UndoAnswer(directory, "3", UndoInput{}, &within)
+	_, err = undoAnswer(directory, "3", UndoInput{}, within)
 	requireError(t, err, "cannot undo the answer to question 3: expected status answered, actual open")
-	_, err = UndoAnswer(directory, "9", UndoInput{}, &within)
+	_, err = undoAnswer(directory, "9", UndoInput{}, within)
 	requireError(t, err, "question not found: 9")
 	mustSave(t, directory, records, SaveInput{Title: str("late"), Issue: str("1"), DefaultAction: str("x"), AnswerBy: str("2026-09-25T08:00:00.000Z")}, time.Date(2026, 9, 25, 7, 0, 0, 0, time.UTC))
 	mustAnswer(t, directory, records, "4", AnswerInput{Body: str("late")}, fixedNow)
-	_, err = UndoAnswer(directory, "4", UndoInput{AnsweredAt: str("2026-09-25T09:00:00.000Z")}, &within)
+	_, err = undoAnswer(directory, "4", UndoInput{AnsweredAt: str("2026-09-25T09:00:00.000Z")}, within)
 	requireError(t, err, "cannot undo the answer to question 4: expected an answer before answerBy, actual a late answer already added to issue 1 as a comment")
 }
 
@@ -856,13 +839,13 @@ func TestHandEditedFiles(t *testing.T) {
 	if notes.Status != "open" || notes.Issue != nil || notes.Author != "none" || notes.Session != nil || notes.AnswerBy == nil || *notes.AnswerBy != "not-a-date" || notes.Body != "body" {
 		t.Fatalf("%#v", notes)
 	}
-	_, err := GetQuestion(directory, "bad", &fixedNow)
+	_, err := getQuestion(directory, "bad", fixedNow)
 	requireError(t, err, "invalid issue file")
-	_, err = GetQuestion(directory, "opts", &fixedNow)
+	_, err = getQuestion(directory, "opts", fixedNow)
 	requireError(t, err, "invalid question file")
-	_, err = GetQuestion(directory, "dir", &fixedNow)
+	_, err = getQuestion(directory, "dir", fixedNow)
 	requireError(t, err, "EISDIR: illegal operation on a directory, read")
-	_, err = GetQuestion(directory, "priority", &fixedNow)
+	_, err = getQuestion(directory, "priority", fixedNow)
 	requireError(t, err, "invalid priority: expected urgent, high, medium, or low, actual now")
 	listed := mustList(t, directory, QuestionFilter{}, fixedNow)
 	if ids(listed) != "notes,01" {
@@ -903,33 +886,30 @@ func TestHandEditedFiles(t *testing.T) {
 	}
 }
 
-func TestNilNowUsesCurrentTime(t *testing.T) {
-	t.Setenv("YARU_NOW", "2026-09-28T12:00:00.000Z")
+func TestQuestionsDoNotReadYaruNow(t *testing.T) {
+	t.Setenv("YARU_NOW", "not-a-datetime")
 	directory := newDirectory(t)
-	created, err := SaveQuestion(directory, nil, SaveInput{Title: str("q")}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if created.CreatedAt != "2026-09-28T12:00:00.000Z" {
+	created := mustSave(t, directory, nil, SaveInput{Title: str("q")}, fixedNow)
+	if created.CreatedAt != "2026-09-25T09:00:00.000Z" {
 		t.Fatal(created.CreatedAt)
 	}
 }
 
-func TestCreateRetriesWhenTheFileAppears(t *testing.T) {
+func TestCreateDoesNotReplaceAnExistingFile(t *testing.T) {
 	directory := newDirectory(t)
-	calls := 0
-	previous := createFile
-	t.Cleanup(func() { createFile = previous })
-	createFile = func(path string, text string) error {
-		calls++
-		if calls == 1 {
-			return os.ErrExist
-		}
-		return previous(path, text)
+	questionsDirectory := filepath.Join(directory.Dir, "questions")
+	if err := os.MkdirAll(questionsDirectory, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(questionsDirectory, "1.md"), []byte("kept\n"), 0o666); err != nil {
+		t.Fatal(err)
 	}
 	created := mustSave(t, directory, nil, SaveInput{Title: str("q")}, fixedNow)
-	if created.ID != "1" || calls != 2 {
-		t.Fatalf("id %s calls %d", created.ID, calls)
+	if created.ID != "2" {
+		t.Fatalf("id %s", created.ID)
+	}
+	if readText(t, filepath.Join(questionsDirectory, "1.md")) != "kept\n" {
+		t.Fatal("replaced an existing file")
 	}
 }
 
@@ -938,7 +918,7 @@ func TestMissingQuestionsDirectoryListsNothing(t *testing.T) {
 	if len(mustList(t, directory, QuestionFilter{}, fixedNow)) != 0 {
 		t.Fatal("list")
 	}
-	_, err := GetQuestion(directory, "1", &fixedNow)
+	_, err := getQuestion(directory, "1", fixedNow)
 	requireError(t, err, "question not found: 1")
 }
 
@@ -972,7 +952,7 @@ type fakeIssues struct {
 	commentErr error
 }
 
-func (fake *fakeIssues) GetIssue(directory Directory, id string) error {
+func (fake *fakeIssues) GetIssue(ctx context.Context, directory Directory, id string, now time.Time, author string) error {
 	fake.issues = append(fake.issues, id)
 	if fake.present == nil {
 		return errors.New("issue not found: " + id)
@@ -984,7 +964,7 @@ func (fake *fakeIssues) GetIssue(directory Directory, id string) error {
 	return err
 }
 
-func (fake *fakeIssues) SaveComment(directory Directory, issueID string, body string) error {
+func (fake *fakeIssues) SaveComment(ctx context.Context, directory Directory, issueID string, body string, now time.Time, author string) error {
 	if fake.commentErr != nil {
 		return fake.commentErr
 	}
@@ -1013,9 +993,41 @@ func strs(values ...string) *[]string {
 	return &copied
 }
 
+func saveQuestion(directory Directory, records IssueRecords, input SaveInput, moment time.Time) (Question, error) {
+	return NewService().SaveQuestion(context.Background(), directory, records, input, moment, "Spec Author")
+}
+
+func answerQuestion(directory Directory, records IssueRecords, id string, input AnswerInput, moment time.Time) (Question, error) {
+	return NewService().AnswerQuestion(context.Background(), directory, records, id, input, moment, "Spec Author")
+}
+
+func undoAnswer(directory Directory, id string, input UndoInput, moment time.Time) (Question, error) {
+	return NewService().UndoAnswer(context.Background(), directory, id, input, moment)
+}
+
+func getQuestion(directory Directory, id string, moment time.Time) (Question, error) {
+	return NewService().GetQuestion(context.Background(), directory, id, moment)
+}
+
+func listQuestions(directory Directory, filter QuestionFilter, moment time.Time) ([]Question, error) {
+	return NewService().ListQuestions(context.Background(), directory, filter, moment)
+}
+
+func cancelQuestion(directory Directory, id string, moment time.Time) (Question, error) {
+	return NewService().CancelQuestion(context.Background(), directory, id, moment)
+}
+
+func acknowledgeQuestion(directory Directory, id string, moment time.Time) (Question, error) {
+	return NewService().AcknowledgeQuestion(context.Background(), directory, id, moment)
+}
+
+func markExpiringNotified(directory Directory, id string, moment time.Time) (Question, error) {
+	return NewService().MarkExpiringNotified(context.Background(), directory, id, moment)
+}
+
 func mustSave(t *testing.T, directory Directory, records IssueRecords, input SaveInput, moment time.Time) Question {
 	t.Helper()
-	question, err := SaveQuestion(directory, records, input, &moment)
+	question, err := saveQuestion(directory, records, input, moment)
 	if err != nil {
 		t.Fatalf("save: %v", err)
 	}
@@ -1024,7 +1036,7 @@ func mustSave(t *testing.T, directory Directory, records IssueRecords, input Sav
 
 func mustGet(t *testing.T, directory Directory, id string, moment time.Time) Question {
 	t.Helper()
-	question, err := GetQuestion(directory, id, &moment)
+	question, err := getQuestion(directory, id, moment)
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
@@ -1033,7 +1045,7 @@ func mustGet(t *testing.T, directory Directory, id string, moment time.Time) Que
 
 func mustList(t *testing.T, directory Directory, filter QuestionFilter, moment time.Time) []Question {
 	t.Helper()
-	questions, err := ListQuestions(directory, filter, &moment)
+	questions, err := listQuestions(directory, filter, moment)
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -1042,7 +1054,7 @@ func mustList(t *testing.T, directory Directory, filter QuestionFilter, moment t
 
 func mustAnswer(t *testing.T, directory Directory, records IssueRecords, id string, input AnswerInput, moment time.Time) Question {
 	t.Helper()
-	question, err := AnswerQuestion(directory, records, id, input, &moment)
+	question, err := answerQuestion(directory, records, id, input, moment)
 	if err != nil {
 		t.Fatalf("answer: %v", err)
 	}
@@ -1051,7 +1063,7 @@ func mustAnswer(t *testing.T, directory Directory, records IssueRecords, id stri
 
 func mustCancel(t *testing.T, directory Directory, id string, moment time.Time) Question {
 	t.Helper()
-	question, err := CancelQuestion(directory, id, &moment)
+	question, err := cancelQuestion(directory, id, moment)
 	if err != nil {
 		t.Fatalf("cancel: %v", err)
 	}
@@ -1060,7 +1072,7 @@ func mustCancel(t *testing.T, directory Directory, id string, moment time.Time) 
 
 func mustAcknowledge(t *testing.T, directory Directory, id string, moment time.Time) Question {
 	t.Helper()
-	question, err := AcknowledgeQuestion(directory, id, &moment)
+	question, err := acknowledgeQuestion(directory, id, moment)
 	if err != nil {
 		t.Fatalf("acknowledge: %v", err)
 	}
@@ -1069,7 +1081,7 @@ func mustAcknowledge(t *testing.T, directory Directory, id string, moment time.T
 
 func mustMark(t *testing.T, directory Directory, id string, moment time.Time) Question {
 	t.Helper()
-	question, err := MarkExpiringNotified(directory, id, &moment)
+	question, err := markExpiringNotified(directory, id, moment)
 	if err != nil {
 		t.Fatalf("mark: %v", err)
 	}
@@ -1078,7 +1090,7 @@ func mustMark(t *testing.T, directory Directory, id string, moment time.Time) Qu
 
 func mustUndo(t *testing.T, directory Directory, id string, input UndoInput, moment time.Time) Question {
 	t.Helper()
-	question, err := UndoAnswer(directory, id, input, &moment)
+	question, err := undoAnswer(directory, id, input, moment)
 	if err != nil {
 		t.Fatalf("undo: %v", err)
 	}
@@ -1092,6 +1104,16 @@ func requireError(t *testing.T, err error, message string) {
 	}
 	if err.Error() != message {
 		t.Fatalf("error\n got: %s\nwant: %s", err.Error(), message)
+	}
+	var conflict *QuestionConflictError
+	if errors.As(err, &conflict) {
+		if !errors.Is(err, errs.ErrConflict) {
+			t.Fatalf("conflict does not unwrap to ErrConflict: %v", err)
+		}
+		return
+	}
+	if kind := failureKind(message); kind != nil && !errors.Is(err, kind) {
+		t.Fatalf("kind of %q: not %v", message, kind)
 	}
 }
 

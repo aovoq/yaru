@@ -329,6 +329,11 @@ func snapshotYaru(t *testing.T, root string) map[string]string {
 		if info.IsDir() {
 			return nil
 		}
+		// .lock は flock の副作用で、TS 版の .yaru には無い。
+		// https://pubs.opengroup.org/onlinepubs/9699919799/functions/flock.html
+		if strings.HasSuffix(info.Name(), ".lock") {
+			return nil
+		}
 		relative, relErr := filepath.Rel(directory, path)
 		if relErr != nil {
 			return relErr
@@ -370,7 +375,7 @@ func keysOf(files map[string]string) []string {
 
 func registerWorkspace(t *testing.T, root string, stateDirectory string) string {
 	t.Helper()
-	registered, err := workspace.RegisterIn(root, stateDirectory)
+	registered, err := workspace.RegisterIn(context.Background(), root, stateDirectory)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -776,7 +781,7 @@ func TestUndoAcknowledgeAndLateAnswerMatchTypeScript(t *testing.T) {
 	}
 	webAction(t, typescriptRoot, stateDirectory, map[string]string{"COMPARE_ACTION": "acknowledge", "COMPARE_ID": "1"})
 	opened := mustOpen(t, goRoot)
-	if _, err := questions.AcknowledgeQuestion(questions.Directory{Dir: opened.Directory}, "1", mustFixedNowPointer(t)); err != nil {
+	if _, err := questions.NewService().AcknowledgeQuestion(context.Background(), questions.Directory{Dir: opened.Directory}, "1", mustFixedNow(t)); err != nil {
 		t.Fatal(err)
 	}
 	acknowledgeTypeScript := webAction(t, typescriptRoot, stateDirectory, map[string]string{
@@ -1396,22 +1401,16 @@ func protoQuestionStatus(status yaruv1.QuestionStatus) *yaruv1.QuestionStatus { 
 
 func mustFixedNow(t *testing.T) time.Time {
 	t.Helper()
-	moment, err := clock.Now()
+	moment, _, err := readNow()
 	if err != nil {
 		t.Fatal(err)
 	}
 	return moment
 }
 
-func mustFixedNowPointer(t *testing.T) *time.Time {
-	t.Helper()
-	moment := mustFixedNow(t)
-	return &moment
-}
-
 func mustOpen(t *testing.T, root string) workspace.Workspace {
 	t.Helper()
-	opened, err := workspace.Open(root)
+	opened, err := workspace.Open(context.Background(), root)
 	if err != nil {
 		t.Fatal(err)
 	}

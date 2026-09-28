@@ -4,20 +4,18 @@
 package repository
 
 import (
-	"errors"
+	"context"
 	"fmt"
-	"io"
 	"math"
-	"os"
-	"os/exec"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/aovoq/yaru/internal/document"
+	"github.com/aovoq/yaru/internal/errs"
+	"github.com/aovoq/yaru/internal/workspace"
 )
 
 const (
@@ -53,19 +51,19 @@ var issueIDPattern = regexp.MustCompile(`^[0-9]+$`)
 const commitFormat = "%H" + fieldSeparator + "%h" + fieldSeparator + "%s" + fieldSeparator + "%an" + fieldSeparator + "%cI"
 
 // ReadRepositoryState は root が git の作業ツリーでなければ nil を返す (src/repository.ts:26-69)
-func ReadRepositoryState(root string) (*State, error) {
-	inside, err := gitCommand(root, "rev-parse", "--is-inside-work-tree")
+func ReadRepositoryState(ctx context.Context, root string) (*State, error) {
+	inside, err := gitCommand(ctx, root, "rev-parse", "--is-inside-work-tree")
 	if err != nil {
 		return nil, err
 	}
 	if !inside.ok || inside.text != "true" {
 		return nil, nil
 	}
-	branchOutput, err := gitCommand(root, "symbolic-ref", "--quiet", "--short", "HEAD")
+	branchOutput, err := gitCommand(ctx, root, "symbolic-ref", "--quiet", "--short", "HEAD")
 	if err != nil {
 		return nil, err
 	}
-	upstreamOutput, err := gitCommand(root, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
+	upstreamOutput, err := gitCommand(ctx, root, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +72,7 @@ func ReadRepositoryState(root string) (*State, error) {
 	var behind *int
 	unpushed := map[string]struct{}{}
 	if truthy(upstream) {
-		counts, countErr := gitCommand(root, "rev-list", "--left-right", "--count", "@{upstream}...HEAD")
+		counts, countErr := gitCommand(ctx, root, "rev-list", "--left-right", "--count", "@{upstream}...HEAD")
 		if countErr != nil {
 			return nil, countErr
 		}
@@ -83,7 +81,7 @@ func ReadRepositoryState(root string) (*State, error) {
 			countText = counts.text
 		}
 		behind, ahead = parseAheadBehind(countText)
-		listed, listErr := gitCommand(root, "rev-list", "@{upstream}..HEAD")
+		listed, listErr := gitCommand(ctx, root, "rev-list", "@{upstream}..HEAD")
 		if listErr != nil {
 			return nil, listErr
 		}
@@ -91,7 +89,7 @@ func ReadRepositoryState(root string) (*State, error) {
 			unpushed = hashSet(listed.text)
 		}
 	}
-	status, err := gitCommand(root, "status", "--porcelain")
+	status, err := gitCommand(ctx, root, "status", "--porcelain")
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +97,7 @@ func ReadRepositoryState(root string) (*State, error) {
 	if status.ok {
 		statusText = status.text
 	}
-	logOutput, err := gitCommand(root, "log", "-"+strconv.Itoa(RecentCommitsLimit), "--format="+commitFormat)
+	logOutput, err := gitCommand(ctx, root, "log", "-"+strconv.Itoa(RecentCommitsLimit), "--format="+commitFormat)
 	if err != nil {
 		return nil, err
 	}
@@ -120,15 +118,15 @@ func ReadRepositoryState(root string) (*State, error) {
 // CommitsForIssue は #<id> に触れたコミットと、issue のブランチにあって HEAD にまだ無いコミットを返す (src/repository.ts:81-133)
 // ブランチ名は refs/heads/<name>^{commit} に解決できたときだけ辿る
 // https://git-scm.com/docs/git-rev-parse#Documentation/git-rev-parse.txt---verify
-func CommitsForIssue(root string, id string, branch *string) ([]Commit, error) {
+func CommitsForIssue(ctx context.Context, root string, id string, branch *string) ([]Commit, error) {
 	if !issueIDPattern.MatchString(id) {
-		quoted, quoteErr := javaScriptString(id)
+		quoted, quoteErr := document.Quote(id)
 		if quoteErr != nil {
 			return nil, quoteErr
 		}
-		return nil, fmt.Errorf("invalid issue id: expected digits, actual %s", quoted)
+		return nil, errs.Wrap(fmt.Sprintf("invalid issue id: expected digits, actual %s", quoted), errs.ErrInvalidArgument)
 	}
-	inside, err := gitCommand(root, "rev-parse", "--is-inside-work-tree")
+	inside, err := gitCommand(ctx, root, "rev-parse", "--is-inside-work-tree")
 	if err != nil {
 		return nil, err
 	}
@@ -137,18 +135,18 @@ func CommitsForIssue(root string, id string, branch *string) ([]Commit, error) {
 	}
 	format := "--format=" + commitFormat
 	limit := "-" + strconv.Itoa(IssueCommitsLimit)
-	mentioned, err := gitCommand(root, "log", "--all", limit, "--extended-regexp", "--grep=#"+id+"([^0-9]|$)", format)
+	mentioned, err := gitCommand(ctx, root, "log", "--all", limit, "--extended-regexp", "--grep=#"+id+"([^0-9]|$)", format)
 	if err != nil {
 		return nil, err
 	}
 	onBranch := commandOutput{}
 	if branch != nil && *branch != "" {
-		verified, verifyErr := gitCommand(root, "rev-parse", "--verify", "--quiet", "refs/heads/"+*branch+"^{commit}")
+		verified, verifyErr := gitCommand(ctx, root, "rev-parse", "--verify", "--quiet", "refs/heads/"+*branch+"^{commit}")
 		if verifyErr != nil {
 			return nil, verifyErr
 		}
 		if verified.ok && verified.text != "" {
-			logged, logErr := gitCommand(root, "log", limit, format, verified.text, "--not", "HEAD", "--")
+			logged, logErr := gitCommand(ctx, root, "log", limit, format, verified.text, "--not", "HEAD", "--")
 			if logErr != nil {
 				return nil, logErr
 			}
@@ -182,7 +180,7 @@ func CommitsForIssue(root string, id string, branch *string) ([]Commit, error) {
 	if len(fullHashes) > IssueCommitsLimit {
 		fullHashes = fullHashes[:IssueCommitsLimit]
 	}
-	unpushed, known, err := unpushedCommits(root, fullHashes)
+	unpushed, known, err := unpushedCommits(ctx, root, fullHashes)
 	if err != nil {
 		return nil, err
 	}
@@ -201,8 +199,8 @@ func CommitsForIssue(root string, id string, branch *string) ([]Commit, error) {
 
 // unpushedCommits は HEAD の upstream から辿れないコミット。upstream が無ければ分からない (src/repository.ts:140-148)
 // https://git-scm.com/docs/git-rev-list#Documentation/git-rev-list.txt---not
-func unpushedCommits(root string, fullHashes []string) (map[string]struct{}, bool, error) {
-	upstream, err := gitCommand(root, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
+func unpushedCommits(ctx context.Context, root string, fullHashes []string) (map[string]struct{}, bool, error) {
+	upstream, err := gitCommand(ctx, root, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
 	if err != nil {
 		return nil, false, err
 	}
@@ -214,7 +212,7 @@ func unpushedCommits(root string, fullHashes []string) (map[string]struct{}, boo
 	}
 	args := append([]string{"rev-list"}, fullHashes...)
 	args = append(args, "--not", "@{upstream}", "--")
-	listed, err := gitCommand(root, args...)
+	listed, err := gitCommand(ctx, root, args...)
 	if err != nil {
 		return nil, false, err
 	}
@@ -309,11 +307,8 @@ func parseAheadBehind(text string) (*int, *int) {
 }
 
 func javascriptInteger(text string) (int, bool) {
-	if text == "" {
-		return 0, true
-	}
-	value, err := strconv.ParseFloat(text, 64)
-	if err != nil || math.IsNaN(value) || math.IsInf(value, 0) || value != math.Trunc(value) {
+	value, ok := document.ParseNumber(text)
+	if !ok || math.IsNaN(value) || math.IsInf(value, 0) || value != math.Trunc(value) {
 		return 0, false
 	}
 	return int(value), true
@@ -372,40 +367,13 @@ func fieldAt(parts []string, index int) string {
 	return parts[index]
 }
 
-func gitCommand(root string, args ...string) (commandOutput, error) {
-	command := exec.Command("git", args...)
-	command.Dir = root
-	command.Stderr = io.Discard
-	output, err := command.Output()
+func gitCommand(ctx context.Context, root string, args ...string) (commandOutput, error) {
+	stdout, exitCode, err := workspace.RunGit(ctx, root, args...)
 	if err != nil {
-		var exitError *exec.ExitError
-		if errors.As(err, &exitError) {
-			return commandOutput{}, nil
-		}
-		return commandOutput{}, spawnError(err)
+		return commandOutput{}, err
 	}
-	return commandOutput{text: strings.TrimSpace(string(output)), ok: true}, nil
-}
-
-func spawnError(err error) error {
-	// Bun.spawnSync は cwd が無い・ファイル・権限不足のとき、git を起動する前にこの文言で投げる (src/repository.ts:150-153)
-	if errors.Is(err, exec.ErrNotFound) || os.IsNotExist(err) {
-		return errors.New("ENOENT: no such file or directory, posix_spawn 'git'")
+	if exitCode != 0 {
+		return commandOutput{}, nil
 	}
-	if os.IsPermission(err) {
-		return errors.New("EACCES: permission denied, posix_spawn 'git'")
-	}
-	if errors.Is(err, syscall.ENOTDIR) {
-		return errors.New("ENOTDIR: not a directory, posix_spawn 'git'")
-	}
-	return err
-}
-
-// javaScriptString は TS の JSON.stringify。無効な id の文言に使う (src/repository.ts:83)
-func javaScriptString(value string) (string, error) {
-	encoded, err := document.MarshalJavaScript(value)
-	if err != nil {
-		return "", err
-	}
-	return string(encoded), nil
+	return commandOutput{text: strings.TrimSpace(stdout), ok: true}, nil
 }

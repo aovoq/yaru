@@ -16,7 +16,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/aovoq/yaru/internal/clock"
 	"github.com/aovoq/yaru/internal/document"
 	"github.com/aovoq/yaru/internal/questions"
 	"github.com/aovoq/yaru/internal/store"
@@ -55,7 +54,7 @@ func IssueURL(baseURL string, slug string, id string) string {
 // 子の環境は herdr と同じ許可リストに、知らせの変数だけを足す。
 // docs/spec/security.md の「決定」。
 func Notify(space workspace.Workspace, event Event) (string, error) {
-	command, found := workspace.ReadConfigValue(space, "notify")
+	command, found := workspace.ReadConfigValue(context.Background(), space, "notify")
 	if !found {
 		return "", nil
 	}
@@ -69,15 +68,16 @@ func Notify(space workspace.Workspace, event Event) (string, error) {
 // CheckNotifications は期限が近い質問と、止まった issue を 1 回見回る。
 // 時計は 1 度だけ読む。src/web.tsx:642-652 、src/notify.ts:88-146 。
 func CheckNotifications(stateDirectory string, fallbackBaseURL string) ([]string, error) {
-	moment, err := clock.Now()
+	moment, _, err := readNow()
 	if err != nil {
 		return nil, err
 	}
-	expiring, err := notifyExpiring(stateDirectory, fallbackBaseURL, moment)
+	ctx := context.Background()
+	expiring, err := notifyExpiring(ctx, stateDirectory, fallbackBaseURL, moment)
 	if err != nil {
 		return nil, err
 	}
-	stale, err := notifyStale(stateDirectory, fallbackBaseURL, moment)
+	stale, err := notifyStale(ctx, stateDirectory, fallbackBaseURL, moment)
 	if err != nil {
 		return nil, err
 	}
@@ -132,23 +132,24 @@ func watchNotifications(stateDirectory string, fallbackBaseURL string, writeWarn
 	}
 }
 
-func notifyExpiring(stateDirectory string, fallbackBaseURL string, moment time.Time) ([]string, error) {
+func notifyExpiring(ctx context.Context, stateDirectory string, fallbackBaseURL string, moment time.Time) ([]string, error) {
+	questionService := questions.NewService()
 	warnings := []string{}
-	for _, registered := range workspace.List(stateDirectory) {
-		opened, err := workspace.Open(registered.Root)
+	for _, registered := range workspace.List(ctx, stateDirectory) {
+		opened, err := workspace.Open(ctx, registered.Root)
 		if err != nil {
 			return nil, err
 		}
-		if _, found := workspace.ReadConfigValue(opened, "notify"); !found {
+		if _, found := workspace.ReadConfigValue(ctx, opened, "notify"); !found {
 			continue
 		}
-		baseURL := notifyBaseURL(opened, fallbackBaseURL)
-		listed, err := questions.ListQuestions(questionDirectory(opened), questions.QuestionFilter{}, &moment)
+		baseURL := notifyBaseURL(ctx, opened, fallbackBaseURL)
+		listed, err := questionService.ListQuestions(ctx, questionDirectory(opened), questions.QuestionFilter{}, moment)
 		if err != nil {
 			return nil, err
 		}
 		for _, question := range questions.QuestionsAboutToExpire(listed, moment) {
-			marked, markErr := questions.MarkExpiringNotified(questionDirectory(opened), question.ID, &moment)
+			marked, markErr := questionService.MarkExpiringNotified(ctx, questionDirectory(opened), question.ID, moment)
 			if markErr != nil {
 				return nil, markErr
 			}
@@ -168,20 +169,20 @@ func notifyExpiring(stateDirectory string, fallbackBaseURL string, moment time.T
 	return warnings, nil
 }
 
-func notifyStale(stateDirectory string, fallbackBaseURL string, moment time.Time) ([]string, error) {
+func notifyStale(ctx context.Context, stateDirectory string, fallbackBaseURL string, moment time.Time) ([]string, error) {
 	warnings := []string{}
 	notified := readNotified(stateDirectory)
 	still := []notifyPair{}
-	for _, registered := range workspace.List(stateDirectory) {
-		opened, err := workspace.Open(registered.Root)
+	for _, registered := range workspace.List(ctx, stateDirectory) {
+		opened, err := workspace.Open(ctx, registered.Root)
 		if err != nil {
 			return nil, err
 		}
-		if _, found := workspace.ReadConfigValue(opened, "notify"); !found {
+		if _, found := workspace.ReadConfigValue(ctx, opened, "notify"); !found {
 			continue
 		}
-		baseURL := notifyBaseURL(opened, fallbackBaseURL)
-		issues, err := store.ListIssues(opened, store.Filter{Status: store.Present("in_progress")}, &moment)
+		baseURL := notifyBaseURL(ctx, opened, fallbackBaseURL)
+		issues, err := store.ListIssues(ctx, opened, store.Filter{Status: store.Present("in_progress")}, moment, workspace.GitName(ctx, opened.Root))
 		if err != nil {
 			return nil, err
 		}
@@ -227,8 +228,8 @@ func notifyStale(stateDirectory string, fallbackBaseURL string, moment time.Time
 	return warnings, nil
 }
 
-func notifyBaseURL(space workspace.Workspace, fallback string) string {
-	value, found := workspace.ReadConfigValue(space, "publicUrl")
+func notifyBaseURL(ctx context.Context, space workspace.Workspace, fallback string) string {
+	value, found := workspace.ReadConfigValue(ctx, space, "publicUrl")
 	if !found {
 		return fallback
 	}

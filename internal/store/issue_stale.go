@@ -3,11 +3,12 @@
 package store
 
 import (
-	"os"
-	"path/filepath"
+	"context"
 	"strconv"
 	"time"
 
+	"github.com/aovoq/yaru/internal/clock"
+	"github.com/aovoq/yaru/internal/document"
 	"github.com/aovoq/yaru/internal/workspace"
 )
 
@@ -24,10 +25,10 @@ var issueDurationUnitMilliseconds = map[string]int64{
 // ParseStaleAfter は 30m / 2h / 1d をミリ秒にする。0 と単位の無い値は拒む。
 // src/issue-stale.ts:12-20
 func ParseStaleAfter(value string) (int64, error) {
-	if milliseconds, ok := issueParsePositiveDuration(issueJavascriptTrim(value)); ok {
+	if milliseconds, ok := issueParsePositiveDuration(document.Trim(value)); ok {
 		return milliseconds, nil
 	}
-	quoted, err := issueQuoteJavaScript(value)
+	quoted, err := document.Quote(value)
 	if err != nil {
 		return 0, err
 	}
@@ -37,15 +38,15 @@ func ParseStaleAfter(value string) (int64, error) {
 // ReadStaleAfter は .yaru/config.yml の staleAfter を読む。無ければ 24 時間。
 // 不正な値は一覧の 1 件を省くのではなく、呼び出し全体を失敗させる。
 // src/issue-stale.ts:23-25、docs/spec/yaru-format.md の「config.yml」。
-func ReadStaleAfter(space workspace.Workspace) (int64, error) {
-	value, err := issueReadConfigValue(space, "staleAfter")
-	if err != nil {
+func ReadStaleAfter(ctx context.Context, space workspace.Workspace) (int64, error) {
+	if err := ctx.Err(); err != nil {
 		return 0, err
 	}
-	if value == nil {
+	value, found := workspace.ReadConfigValue(ctx, space, "staleAfter")
+	if !found {
 		return DefaultStaleAfterMilliseconds, nil
 	}
-	return ParseStaleAfter(*value)
+	return ParseStaleAfter(value)
 }
 
 // IsIssueStale は進行中のまま staleAfter より長く更新されていないかを返す。等号では止まっていない。
@@ -54,7 +55,7 @@ func IsIssueStale(status string, updatedAt string, now time.Time, staleAfterMill
 	if status != "in_progress" {
 		return false
 	}
-	parsed, ok := issueJavascriptTime(updatedAt)
+	parsed, ok := clock.ParseJavaScriptTime(updatedAt)
 	if !ok {
 		return false
 	}
@@ -74,8 +75,8 @@ func issueParsePositiveDuration(value string) (int64, bool) {
 	if digits == "" {
 		return 0, false
 	}
-	for _, char := range digits {
-		if char < '0' || char > '9' {
+	for _, character := range digits {
+		if character < '0' || character > '9' {
 			return 0, false
 		}
 	}
@@ -87,28 +88,4 @@ func issueParsePositiveDuration(value string) (int64, bool) {
 		return 0, false
 	}
 	return amount * multiplier, true
-}
-
-// readConfigValue は config.yml の「key: value」の最初の行を読む。YAML の入れ子は見ない。
-// 空の値は null で、次の行は見ない。src/config.ts:9-18
-func issueReadConfigValue(space workspace.Workspace, key string) (*string, error) {
-	content, err := os.ReadFile(filepath.Join(space.Directory, "config.yml"))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	prefix := key + ":"
-	for _, line := range issueSplitLines(string(content)) {
-		if len(line) < len(prefix) || line[:len(prefix)] != prefix {
-			continue
-		}
-		value := issueJavascriptTrim(line[len(prefix):])
-		if value == "" {
-			return nil, nil
-		}
-		return issueStringPointer(value), nil
-	}
-	return nil, nil
 }

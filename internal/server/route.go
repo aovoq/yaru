@@ -152,7 +152,7 @@ func workspacePageSlug(urlPath string) (string, bool) {
 }
 
 func (application *httpApplication) serveWorkspacePage(responseWriter http.ResponseWriter, request *http.Request, slug string) {
-	if _, found := workspace.Find(slug, workspace.StateDirectory()); !found {
+	if _, found := workspace.Find(request.Context(), slug, stateDirectory()); !found {
 		message := "workspace not found: " + showHeaderValue(slug)
 		writeBody(responseWriter, request, http.StatusNotFound, plainTextUTF8, []byte(message))
 		return

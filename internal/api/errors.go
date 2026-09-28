@@ -6,6 +6,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"time"
@@ -70,13 +71,13 @@ func failedPrecondition(message string) bool {
 
 // questionFailure は QuestionConflict の質問を details に載せる。
 // 期限超過と、コメントへ写したあとの取り消しは、エラーに質問が付かないので読み直す。
-func questionFailure(directory questions.Directory, id string, moment *time.Time, err error) error {
+func questionFailure(ctx context.Context, directory questions.Directory, id string, moment time.Time, err error) error {
 	question, convertErr := conflictQuestion(err)
 	if convertErr != nil {
 		return connectStatus(convertErr, nil)
 	}
 	if question == nil && failedPrecondition(err.Error()) {
-		loaded, loadErr := questions.GetQuestion(directory, id, moment)
+		loaded, loadErr := questions.NewService().GetQuestion(ctx, directory, id, moment)
 		if loadErr == nil {
 			converted, convertedErr := questionMessage(loaded)
 			if convertedErr == nil {

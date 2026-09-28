@@ -28,7 +28,7 @@ func (service *workspaceWatchService) WatchWorkspace(
 	stream *connect.ServerStream[v1.WatchWorkspaceResponse],
 ) error {
 	slug := request.Msg.GetWorkspace()
-	registered, found := workspace.Find(slug, workspace.StateDirectory())
+	registered, found := workspace.Find(ctx, slug, stateDirectory())
 	if !found {
 		return connect.NewError(connect.CodeNotFound, workspaceNotFound(slug))
 	}

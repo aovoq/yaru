@@ -1,29 +1,39 @@
-// Package store は .yaru の issue を読み書きする。
-// 形式は docs/spec/yaru-format.md の「issue」と「event」。コメントは別の担当なので置かない。
-// 時刻は internal/clock、JSON は internal/document、作業ディレクトリは internal/workspace を使う。
+// Package store は .yaru の issue と comment を読み書きする。
+// 形式は docs/spec/yaru-format.md の「issue」「comment」「event」。
+// 時刻と作者は引数で受け取る。JSON は internal/document、パスは internal/workspace を使う。
 package store
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"math"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/aovoq/yaru/internal/clock"
 	"github.com/aovoq/yaru/internal/document"
+	"github.com/aovoq/yaru/internal/errs"
+	"github.com/aovoq/yaru/internal/fsutil"
 	"github.com/aovoq/yaru/internal/workspace"
 )
 
-// Priorities と Statuses はファイルに書ける列挙。大文字は受けない。
-// src/store.ts:17、src/store.ts:119
-var Priorities = []string{"urgent", "high", "medium", "low"}
-var Statuses = []string{"backlog", "todo", "in_progress", "done", "canceled"}
+// priorities と statuses はファイルに書ける列挙。大文字は受けない。
+// 公開は写しを返す関数にする。src/store.ts:17、src/store.ts:119
+var issuePriorities = []string{"urgent", "high", "medium", "low"}
+var issueStatuses = []string{"backlog", "todo", "in_progress", "done", "canceled"}
+
+// Priorities は優先度の写しを返す。
+func Priorities() []string {
+	return append([]string{}, issuePriorities...)
+}
+
+// Statuses は状態の写しを返す。
+func Statuses() []string {
+	return append([]string{}, issueStatuses...)
+}
 
 const (
 	ListLimitDefault = 50
@@ -81,10 +91,13 @@ type Provenance struct {
 	Branch   *string
 }
 
-// SaveOptions は保存の出どころと時刻。Now が nil なら clock.Now。src/store.ts:48-51
+// SaveOptions は保存の出どころ、時刻、作者。Now がゼロ値でも clock.Now は呼ばない。
+// 作者は assignee の me と、イベントの by に使う。呼び出し側が git の user.name を解決して渡す。
+// src/store.ts:48-51、src/store.ts:464-468、docs/spec/yaru-format.md の「git の名前」
 type SaveOptions struct {
 	Provenance *Provenance
-	Now        *time.Time
+	Now        time.Time
+	Author     string
 }
 
 // SaveInput は作成と更新の入力。空の ID は作成。src/store.ts:80-96
@@ -154,7 +167,7 @@ func BlankToNull(value Optional[string]) Optional[string] {
 	if value.Value == nil {
 		return Null[string]()
 	}
-	trimmed := issueJavascriptTrim(*value.Value)
+	trimmed := document.Trim(*value.Value)
 	if trimmed == "" || trimmed == "none" {
 		return Null[string]()
 	}
@@ -167,12 +180,12 @@ func ResolvePriority(value Optional[string]) (Optional[string], error) {
 	if !resolved.Set || resolved.Value == nil {
 		return resolved, nil
 	}
-	for _, priority := range Priorities {
+	for _, priority := range Priorities() {
 		if priority == *resolved.Value {
 			return resolved, nil
 		}
 	}
-	return Optional[string]{}, issueErrString("invalid priority: expected " + JoinOr(Priorities) + ", actual " + issueOriginalString(value))
+	return Optional[string]{}, issueErrString("invalid priority: expected " + JoinOr(Priorities()) + ", actual " + issueOriginalString(value))
 }
 
 // JoinOr は 3 つ以上のとき最後の前だけ ", or " にする。src/store.ts:450-453
@@ -190,35 +203,35 @@ func ResolveLimit(value any) (int, error) {
 	}
 	number, ok := issueAsFloat(value)
 	if !ok || math.IsNaN(number) || math.IsInf(number, 0) || number != math.Trunc(number) || number < 1 || number > ListLimitMax {
-		return 0, fmt.Errorf("invalid limit: expected an integer from 1 to %d, actual %s", ListLimitMax, issueFormatLimitActual(value))
+		return 0, issueErrString(fmt.Sprintf("invalid limit: expected an integer from 1 to %d, actual %s", ListLimitMax, issueFormatLimitActual(value)))
 	}
 	return int(number), nil
 }
 
 // ListIssues は issues 直下の .md を読み、壊れたファイルは省く。
 // 並びは updatedAt の降順、同じなら id の文字の降順。src/store.ts:177-211
-func ListIssues(space workspace.Workspace, filter Filter, now *time.Time) ([]Issue, error) {
-	moment, err := issueCurrentMoment(now)
+// assignee が me のファイルは author に置き換える。src/store.ts:408-411
+func ListIssues(ctx context.Context, space workspace.Workspace, filter Filter, now time.Time, author string) ([]Issue, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	resolved, err := issueResolveListFilter(filter, author)
 	if err != nil {
 		return nil, err
 	}
-	resolved, err := issueResolveListFilter(filter)
+	issues, err := loadRawIssues(space, author)
 	if err != nil {
 		return nil, err
 	}
-	issues, err := loadRawIssues(space)
+	staleAfter, err := ReadStaleAfter(ctx, space)
 	if err != nil {
 		return nil, err
 	}
-	staleAfter, err := ReadStaleAfter(space)
-	if err != nil {
-		return nil, err
-	}
-	derived := issueWithDerived(issues, moment, staleAfter)
+	derived := issueWithDerived(issues, now, staleAfter)
 	sortIssuesForList(derived)
 	matched := []Issue{}
 	for _, issue := range derived {
-		if issueMatches(issue, resolved, moment) {
+		if issueMatches(issue, resolved, now) {
 			matched = append(matched, issue)
 		}
 	}
@@ -261,19 +274,19 @@ func PageIssues(issues []Issue, options PageOptions) (IssuePage, error) {
 }
 
 // GetIssue は 1 件を読む。壊れていればエラーにし、一覧のように省かない。src/store.ts:236-246
-func GetIssue(space workspace.Workspace, issueID string, now *time.Time) (Issue, error) {
-	moment, err := issueCurrentMoment(now)
+// assignee が me のファイルは author に置き換える。src/store.ts:408-411
+func GetIssue(ctx context.Context, space workspace.Workspace, issueID string, now time.Time, author string) (Issue, error) {
+	if err := ctx.Err(); err != nil {
+		return Issue{}, err
+	}
+	staleAfter, err := ReadStaleAfter(ctx, space)
 	if err != nil {
 		return Issue{}, err
 	}
-	staleAfter, err := ReadStaleAfter(space)
-	if err != nil {
-		return Issue{}, err
-	}
-	return readDerivedIssue(space, issueID, moment, staleAfter)
+	return readDerivedIssue(space, issueID, now, staleAfter, author)
 }
 
-func readDerivedIssue(space workspace.Workspace, issueID string, now time.Time, staleAfter int64) (Issue, error) {
+func readDerivedIssue(space workspace.Workspace, issueID string, now time.Time, staleAfter int64, author string) (Issue, error) {
 	path := issuePath(space, issueID)
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
@@ -281,11 +294,11 @@ func readDerivedIssue(space workspace.Workspace, issueID string, now time.Time, 
 		}
 		return Issue{}, err
 	}
-	issue, err := readIssue(path, issueID)
+	issue, err := readIssue(path, issueID, author)
 	if err != nil {
 		return Issue{}, err
 	}
-	others, err := loadRawIssues(space)
+	others, err := loadRawIssues(space, author)
 	if err != nil {
 		return Issue{}, err
 	}
@@ -325,9 +338,9 @@ func issueWithDerived(issues []Issue, now time.Time, staleAfter int64) []Issue {
 	return derived
 }
 
-func loadRawIssues(space workspace.Workspace) ([]Issue, error) {
+func loadRawIssues(space workspace.Workspace, author string) ([]Issue, error) {
 	directory := filepath.Join(space.Directory, "issues")
-	names, err := issueReadDirectoryNames(directory)
+	names, err := fsutil.ReadDir(directory)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []Issue{}, nil
@@ -339,7 +352,7 @@ func loadRawIssues(space workspace.Workspace) ([]Issue, error) {
 		if !strings.HasSuffix(name, ".md") {
 			continue
 		}
-		issue, readErr := readIssue(filepath.Join(directory, name), strings.TrimSuffix(name, ".md"))
+		issue, readErr := readIssue(filepath.Join(directory, name), strings.TrimSuffix(name, ".md"), author)
 		if readErr != nil {
 			continue
 		}
@@ -348,12 +361,12 @@ func loadRawIssues(space workspace.Workspace) ([]Issue, error) {
 	return issues, nil
 }
 
-func readIssue(path string, stem string) (Issue, error) {
+func readIssue(path string, stem string, author string) (Issue, error) {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return Issue{}, err
 	}
-	issue, err := parseIssue(string(content))
+	issue, err := parseIssue(string(content), author)
 	if err != nil {
 		return Issue{}, err
 	}
@@ -361,7 +374,7 @@ func readIssue(path string, stem string) (Issue, error) {
 	return issue, nil
 }
 
-func parseIssue(text string) (Issue, error) {
+func parseIssue(text string, author string) (Issue, error) {
 	parsed, err := document.Parse(text)
 	if err != nil {
 		return Issue{}, err
@@ -375,7 +388,7 @@ func parseIssue(text string) (Issue, error) {
 	if err != nil {
 		return Issue{}, err
 	}
-	assignee, err := issueResolveAssigneeString(issueMetaString(meta, "assignee"))
+	assignee, err := issueResolveAssigneeString(issueMetaString(meta, "assignee"), author)
 	if err != nil {
 		return Issue{}, err
 	}
@@ -434,7 +447,7 @@ func formatIssue(issue Issue) string {
 	}, issue.Body)
 }
 
-func issueResolveListFilter(filter Filter) (issueResolvedFilter, error) {
+func issueResolveListFilter(filter Filter, author string) (issueResolvedFilter, error) {
 	resolved := issueResolvedFilter{}
 	if filter.Status.Set {
 		text := ""
@@ -449,7 +462,7 @@ func issueResolveListFilter(filter Filter) (issueResolvedFilter, error) {
 		resolved.statusSet = true
 	}
 	if filter.Assignee.Set {
-		assignee, err := issueResolveAssignee(filter.Assignee)
+		assignee, err := issueResolveAssignee(filter.Assignee, author)
 		if err != nil {
 			return issueResolvedFilter{}, err
 		}
@@ -502,13 +515,13 @@ func issueMatches(issue Issue, filter issueResolvedFilter, now time.Time) bool {
 }
 
 func issueResolveStatus(value string) (string, error) {
-	trimmed := issueJavascriptTrim(value)
-	for _, status := range Statuses {
+	trimmed := document.Trim(value)
+	for _, status := range Statuses() {
 		if status == trimmed {
 			return trimmed, nil
 		}
 	}
-	return "", issueErrString("invalid status: expected " + JoinOr(Statuses) + ", actual " + value)
+	return "", issueErrString("invalid status: expected " + JoinOr(Statuses()) + ", actual " + value)
 }
 
 func issueResolveDueDate(value Optional[string]) (Optional[string], error) {
@@ -522,20 +535,16 @@ func issueResolveDueDate(value Optional[string]) (Optional[string], error) {
 	return resolved, nil
 }
 
-func issueResolveAssignee(value Optional[string]) (Optional[string], error) {
+func issueResolveAssignee(value Optional[string], author string) (Optional[string], error) {
 	resolved := BlankToNull(value)
 	if resolved.Set && resolved.Value != nil && *resolved.Value == "me" {
-		name, err := issueCurrentGitName()
-		if err != nil {
-			return Optional[string]{}, err
-		}
-		return Present(name), nil
+		return Present(author), nil
 	}
 	return resolved, nil
 }
 
-func issueResolveAssigneeString(value string) (*string, error) {
-	resolved, err := issueResolveAssignee(Present(value))
+func issueResolveAssigneeString(value string, author string) (*string, error) {
+	resolved, err := issueResolveAssignee(Present(value), author)
 	if err != nil {
 		return nil, err
 	}
@@ -543,7 +552,7 @@ func issueResolveAssigneeString(value string) (*string, error) {
 }
 
 func nextIssueID(space workspace.Workspace) (string, error) {
-	names, err := issueReadDirectoryNames(filepath.Join(space.Directory, "issues"))
+	names, err := fsutil.ReadDir(filepath.Join(space.Directory, "issues"))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "1", nil
@@ -556,58 +565,25 @@ func nextIssueID(space workspace.Workspace) (string, error) {
 		if matches == nil {
 			continue
 		}
-		number, ok := issueJavascriptNumber(matches[1])
+		number, ok := document.ParseNumber(matches[1])
 		if !ok || number <= maximum {
 			continue
 		}
 		maximum = number
 	}
-	return issueJavascriptIntegerString(maximum + 1), nil
+	return document.FormatNumber(maximum + 1), nil
 }
 
 func issueWriteCreate(path string, text string) error {
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o666)
-	if err != nil {
-		return err
-	}
-	_, writeErr := file.WriteString(text)
-	closeErr := file.Close()
-	if writeErr != nil {
-		return writeErr
-	}
-	return closeErr
+	return fsutil.WriteCreate(path, text)
 }
 
 func issueWriteReplace(path string, text string) error {
-	temporary := path + ".tmp"
-	if err := os.WriteFile(temporary, []byte(text), 0o666); err != nil {
-		return err
-	}
-	return os.Rename(temporary, path)
+	return fsutil.WriteReplace(path, text)
 }
 
 func issuePath(space workspace.Workspace, issueID string) string {
 	return filepath.Join(space.Directory, "issues", issueID+".md")
-}
-
-func issueReadDirectoryNames(directory string) ([]string, error) {
-	file, err := os.Open(directory)
-	if err != nil {
-		return nil, err
-	}
-	entries, readErr := file.ReadDir(-1)
-	closeErr := file.Close()
-	if readErr != nil {
-		return nil, readErr
-	}
-	if closeErr != nil {
-		return nil, closeErr
-	}
-	names := make([]string, 0, len(entries))
-	for _, entry := range entries {
-		names = append(names, entry.Name())
-	}
-	return names, nil
 }
 
 func issueParseLabels(raw string) []string {
@@ -616,7 +592,7 @@ func issueParseLabels(raw string) []string {
 		return labels
 	}
 	for _, part := range strings.Split(raw, ",") {
-		part = issueJavascriptTrim(part)
+		part = document.Trim(part)
 		if part == "" {
 			continue
 		}
@@ -640,87 +616,8 @@ func issueOriginalString(value Optional[string]) string {
 	return *value.Value
 }
 
-func issueCurrentMoment(override *time.Time) (time.Time, error) {
-	if override != nil {
-		return *override, nil
-	}
-	return clock.Now()
-}
-
 func issueIsoTimestamp(moment time.Time) string {
 	return clock.ISOString(moment)
-}
-
-func issueCurrentGitName() (string, error) {
-	workingDirectory, err := workspace.WorkingDirectory()
-	if err != nil {
-		return "", err
-	}
-	return workspace.GitName(workingDirectory), nil
-}
-
-func issueQuoteJavaScript(value string) (string, error) {
-	encoded, err := document.MarshalJavaScript(value)
-	if err != nil {
-		return "", err
-	}
-	return string(encoded), nil
-}
-
-func issueJavascriptTrim(value string) string {
-	return strings.TrimFunc(value, issueIsJavaScriptWhitespace)
-}
-
-func issueIsJavaScriptWhitespace(char rune) bool {
-	switch char {
-	case '\t', '\n', '\v', '\f', '\r', '\ufeff', '\u2028', '\u2029':
-		return true
-	default:
-		return unicode.Is(unicode.Zs, char)
-	}
-}
-
-func issueJavascriptTime(value string) (time.Time, bool) {
-	if value == "" {
-		return time.Time{}, false
-	}
-	parsed, err := time.Parse(time.RFC3339Nano, value)
-	if err != nil {
-		parsed, err = time.Parse(time.RFC3339, value)
-		if err != nil {
-			return time.Time{}, false
-		}
-	}
-	return parsed, true
-}
-
-func issueJavascriptIntegerString(value float64) string {
-	if math.IsNaN(value) || math.IsInf(value, 0) {
-		return issueFormatJavaScriptNumber(value)
-	}
-	if value == math.Trunc(value) && math.Abs(value) < 1e21 {
-		return strconv.FormatFloat(value, 'f', 0, 64)
-	}
-	return issueFormatJavaScriptNumber(value)
-}
-
-func issueFormatJavaScriptNumber(value float64) string {
-	if math.IsNaN(value) {
-		return "NaN"
-	}
-	if math.IsInf(value, 1) {
-		return "Infinity"
-	}
-	if math.IsInf(value, -1) {
-		return "-Infinity"
-	}
-	if value == 0 {
-		return "0"
-	}
-	if math.Abs(value) < 1e21 && value == math.Trunc(value) {
-		return strconv.FormatFloat(value, 'f', 0, 64)
-	}
-	return strconv.FormatFloat(value, 'f', -1, 64)
 }
 
 func issueFormatLimitActual(value any) string {
@@ -728,7 +625,7 @@ func issueFormatLimitActual(value any) string {
 	if !ok {
 		return fmt.Sprint(value)
 	}
-	return issueFormatJavaScriptNumber(number)
+	return document.FormatNumber(number)
 }
 
 func issueAsFloat(value any) (float64, bool) {
@@ -829,12 +726,24 @@ func issueMetaString(meta map[string]string, key string) string {
 	return meta[key]
 }
 
-func issueSplitLines(text string) []string {
-	return strings.Split(text, "\n")
+// issueErrString は Error() の文字列を message のままにし、サーバー向けの種類を付ける。
+// not found を含むものは ErrNotFound。invalid、required、cannot pass、patch is only valid は ErrInvalidArgument。
+// それ以外の cannot で状態が衝突するものは ErrConflict。src/store.ts のエラー文言。
+func issueErrString(message string) error {
+	return errs.Wrap(message, issueErrorKind(message))
 }
 
-func issueErrString(message string) error {
-	return errors.New(message)
+func issueErrorKind(message string) error {
+	if strings.Contains(message, "not found") {
+		return errs.ErrNotFound
+	}
+	if strings.Contains(message, "invalid") || strings.Contains(message, "required") || strings.Contains(message, "cannot pass") || strings.Contains(message, "patch is only valid") {
+		return errs.ErrInvalidArgument
+	}
+	if strings.Contains(message, "cannot ") {
+		return errs.ErrConflict
+	}
+	return errs.ErrInvalidArgument
 }
 
 func issueIsExist(err error) bool {

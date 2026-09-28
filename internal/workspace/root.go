@@ -3,17 +3,20 @@
 package workspace
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/aovoq/yaru/internal/document"
 )
 
 // FindRoot は TS 版の findRoot と同じく、作業ディレクトリから .yaru のあるルートを探す
 // linked worktree では main worktree の同じ相対位置を先に見る
 // src/store.ts:121-159 docs/spec/yaru-format.md の「worktree」
 // https://git-scm.com/docs/git-worktree
-func FindRoot(start string) (string, error) {
-	original, err := originalFolderRoot(start)
+func FindRoot(ctx context.Context, start string) (string, error) {
+	original, err := originalFolderRoot(ctx, start)
 	if err != nil {
 		return "", err
 	}
@@ -35,7 +38,7 @@ func FindRoot(start string) (string, error) {
 
 // originalFolderRoot は linked worktree の位置を main worktree の同じ位置へ写す。写せなければ空
 // src/store.ts:137-159
-func originalFolderRoot(start string) (string, error) {
+func originalFolderRoot(ctx context.Context, start string) (string, error) {
 	// まだ無いディレクトリでは git を起動できないので、上へ探す通常の方法に任せる
 	info, err := os.Stat(start)
 	if err != nil {
@@ -47,14 +50,14 @@ func originalFolderRoot(start string) (string, error) {
 	if !info.IsDir() {
 		return "", errGitNotDirectory
 	}
-	stdout, exitCode, err := executeGit(start, "rev-parse", "--path-format=absolute", "--show-toplevel", "--git-common-dir")
+	stdout, exitCode, err := RunGit(ctx, start, "rev-parse", "--path-format=absolute", "--show-toplevel", "--git-common-dir")
 	if err != nil {
 		return "", err
 	}
 	if exitCode != 0 {
 		return "", nil
 	}
-	lines := strings.Split(javascriptTrim(stdout), "\n")
+	lines := strings.Split(document.Trim(stdout), "\n")
 	worktreeTop := ""
 	commonDirectory := ""
 	if len(lines) > 0 {
@@ -79,7 +82,7 @@ func originalFolderRoot(start string) (string, error) {
 		return "", err
 	}
 	for {
-		inside := nodeRelative(worktreeTop, directory)
+		inside := nodeRelative(ctx, worktreeTop, directory)
 		if strings.HasPrefix(inside, "..") {
 			return "", nil
 		}

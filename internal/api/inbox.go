@@ -8,7 +8,6 @@ import (
 
 	"connectrpc.com/connect"
 	yaruv1 "github.com/aovoq/yaru/gen/yaru/v1"
-	"github.com/aovoq/yaru/internal/clock"
 	"github.com/aovoq/yaru/internal/questions"
 	"github.com/aovoq/yaru/internal/workspace"
 )
@@ -28,18 +27,20 @@ type inboxEntry struct {
 }
 
 func (service *inboxService) GetInbox(ctx context.Context, request *connect.Request[yaruv1.GetInboxRequest]) (*connect.Response[yaruv1.GetInboxResponse], error) {
-	moment, err := clock.Now()
+	_ = request
+	moment, now, err := readNow()
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
+	questionService := questions.NewService()
 	entries := []inboxEntry{}
 	workspaces := []*yaruv1.InboxWorkspace{}
-	for _, registered := range workspace.List(service.stateDirectory) {
-		opened, openErr := workspace.Open(registered.Root)
+	for _, registered := range workspace.List(ctx, service.stateDirectory) {
+		opened, openErr := workspace.Open(ctx, registered.Root)
 		if openErr != nil {
 			return nil, connectStatus(openErr, nil)
 		}
-		listed, listErr := questions.ListQuestions(questionDirectory(opened), questions.QuestionFilter{}, &moment)
+		listed, listErr := questionService.ListQuestions(ctx, questionDirectory(opened), questions.QuestionFilter{}, moment)
 		if listErr != nil {
 			return nil, connectStatus(listErr, nil)
 		}
@@ -96,7 +97,7 @@ func (service *inboxService) GetInbox(ctx context.Context, request *connect.Requ
 			Proceeded:  proceeded,
 		},
 		Workspaces: workspaces,
-		Now:        clock.ISOString(moment),
+		Now:        now,
 	}), nil
 }
 

@@ -2,7 +2,11 @@
 
 package workspace
 
-import "os"
+import (
+	"context"
+
+	"github.com/aovoq/yaru/internal/document"
+)
 
 // Provenance は書き込んだ時点の出どころ。TS 版の src/provenance.ts の Provenance
 // セッションは人が手で叩いたとき nil。worktree と branch は git の外や detached なら nil
@@ -17,18 +21,18 @@ type Provenance struct {
 var sessionEnvironmentVariables = []string{"CLAUDE_CODE_SESSION_ID", "CODEX_SESSION_ID"}
 
 // ReadProvenance は TS 版の readProvenance と同じく、セッションと git の作業ツリーとブランチを読む
-// environment が nil のときはプロセスの環境を使う。linked worktree ではその worktree を返し、main には写さない
+// environment は呼び出し側が渡す。nil は空。linked worktree ではその worktree を返し、main には写さない
 // src/provenance.ts:18-40 docs/spec/yaru-format.md の「出どころ」
 // https://git-scm.com/docs/git-rev-parse#Documentation/git-rev-parse.txt---show-toplevel
-func ReadProvenance(workingDirectory string, environment map[string]string) (Provenance, error) {
+func ReadProvenance(ctx context.Context, workingDirectory string, environment map[string]string) (Provenance, error) {
 	if environment == nil {
-		environment = processEnvironment()
+		environment = map[string]string{}
 	}
-	worktree, err := gitText(workingDirectory, "rev-parse", "--show-toplevel")
+	worktree, err := gitText(ctx, workingDirectory, "rev-parse", "--show-toplevel")
 	if err != nil {
 		return Provenance{}, err
 	}
-	branch, err := gitText(workingDirectory, "symbolic-ref", "--quiet", "--short", "HEAD")
+	branch, err := gitText(ctx, workingDirectory, "symbolic-ref", "--quiet", "--short", "HEAD")
 	if err != nil {
 		return Provenance{}, err
 	}
@@ -45,30 +49,10 @@ func readSession(environment map[string]string) *string {
 		if !found {
 			continue
 		}
-		trimmed := javascriptTrim(value)
+		trimmed := document.Trim(value)
 		if trimmed != "" {
 			return &trimmed
 		}
 	}
 	return nil
-}
-
-func processEnvironment() map[string]string {
-	environment := map[string]string{}
-	for _, entry := range os.Environ() {
-		name, value, found := splitEnvironmentEntry(entry)
-		if found {
-			environment[name] = value
-		}
-	}
-	return environment
-}
-
-func splitEnvironmentEntry(entry string) (string, string, bool) {
-	for index := 0; index < len(entry); index++ {
-		if entry[index] == '=' {
-			return entry[:index], entry[index+1:], true
-		}
-	}
-	return "", "", false
 }

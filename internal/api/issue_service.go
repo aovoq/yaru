@@ -12,17 +12,17 @@ import (
 
 	yaruv1 "github.com/aovoq/yaru/gen/yaru/v1"
 	"github.com/aovoq/yaru/internal/store"
+	"github.com/aovoq/yaru/internal/workspace"
 )
 
 type issueService struct{}
 
 func (issueService) ListIssues(ctx context.Context, request *connect.Request[yaruv1.ListIssuesRequest]) (*connect.Response[yaruv1.ListIssuesResponse], error) {
-	_ = ctx
 	moment, now, err := readNow()
 	if err != nil {
 		return nil, connectError(err)
 	}
-	space, err := openBySlug(request.Msg.GetWorkspace())
+	space, err := openBySlug(ctx, request.Msg.GetWorkspace())
 	if err != nil {
 		return nil, connectError(err)
 	}
@@ -30,7 +30,7 @@ func (issueService) ListIssues(ctx context.Context, request *connect.Request[yar
 	if err != nil {
 		return nil, connectError(err)
 	}
-	issues, err := store.ListIssues(space, filter, &moment)
+	issues, err := store.ListIssues(ctx, space, filter, moment, workspace.GitName(ctx, space.Root))
 	if err != nil {
 		return nil, connectError(err)
 	}
@@ -42,16 +42,15 @@ func (issueService) ListIssues(ctx context.Context, request *connect.Request[yar
 }
 
 func (issueService) GetIssue(ctx context.Context, request *connect.Request[yaruv1.GetIssueRequest]) (*connect.Response[yaruv1.GetIssueResponse], error) {
-	_ = ctx
 	moment, now, err := readNow()
 	if err != nil {
 		return nil, connectError(err)
 	}
-	space, err := openBySlug(request.Msg.GetWorkspace())
+	space, err := openBySlug(ctx, request.Msg.GetWorkspace())
 	if err != nil {
 		return nil, connectError(err)
 	}
-	issue, err := store.GetIssue(space, request.Msg.GetId(), &moment)
+	issue, err := store.GetIssue(ctx, space, request.Msg.GetId(), moment, workspace.GitName(ctx, space.Root))
 	if err != nil {
 		return nil, connectError(err)
 	}
@@ -63,12 +62,11 @@ func (issueService) GetIssue(ctx context.Context, request *connect.Request[yaruv
 }
 
 func (issueService) SaveIssue(ctx context.Context, request *connect.Request[yaruv1.SaveIssueRequest]) (*connect.Response[yaruv1.SaveIssueResponse], error) {
-	_ = ctx
 	moment, now, err := readNow()
 	if err != nil {
 		return nil, connectError(err)
 	}
-	space, err := openBySlug(request.Msg.GetWorkspace())
+	space, err := openBySlug(ctx, request.Msg.GetWorkspace())
 	if err != nil {
 		return nil, connectError(err)
 	}
@@ -76,7 +74,7 @@ func (issueService) SaveIssue(ctx context.Context, request *connect.Request[yaru
 	if err != nil {
 		return nil, connectError(err)
 	}
-	issue, err := store.SaveIssue(space, input, store.SaveOptions{Now: &moment})
+	issue, err := store.SaveIssue(ctx, space, input, store.SaveOptions{Now: moment, Author: workspace.GitName(ctx, space.Root)})
 	if err != nil {
 		return nil, connectError(err)
 	}
@@ -92,7 +90,7 @@ func listFilter(request *yaruv1.ListIssuesRequest) (store.Filter, error) {
 	if request.Status != nil && *request.Status != yaruv1.IssueStatus_ISSUE_STATUS_UNSPECIFIED {
 		name, ok := statusName(*request.Status)
 		if !ok {
-			return store.Filter{}, fmt.Errorf("invalid status: expected %s, actual %s", store.JoinOr(store.Statuses), enumActual(*request.Status))
+			return store.Filter{}, fmt.Errorf("invalid status: expected %s, actual %s", store.JoinOr(store.Statuses()), enumActual(*request.Status))
 		}
 		filter.Status = store.Present(name)
 	}
@@ -121,11 +119,11 @@ func saveInput(request *yaruv1.SaveIssueRequest) (store.SaveInput, error) {
 	}
 	if request.Status != nil {
 		if *request.Status == yaruv1.IssueStatus_ISSUE_STATUS_UNSPECIFIED {
-			return store.SaveInput{}, fmt.Errorf("invalid status: expected %s, actual %s", store.JoinOr(store.Statuses), enumActual(*request.Status))
+			return store.SaveInput{}, fmt.Errorf("invalid status: expected %s, actual %s", store.JoinOr(store.Statuses()), enumActual(*request.Status))
 		}
 		name, ok := statusName(*request.Status)
 		if !ok {
-			return store.SaveInput{}, fmt.Errorf("invalid status: expected %s, actual %s", store.JoinOr(store.Statuses), enumActual(*request.Status))
+			return store.SaveInput{}, fmt.Errorf("invalid status: expected %s, actual %s", store.JoinOr(store.Statuses()), enumActual(*request.Status))
 		}
 		input.Status = store.Present(name)
 	}
@@ -144,7 +142,7 @@ func saveInput(request *yaruv1.SaveIssueRequest) (store.SaveInput, error) {
 		} else {
 			name, ok := priorityName(request.Priority.GetPriority())
 			if !ok {
-				return store.SaveInput{}, fmt.Errorf("invalid priority: expected %s, actual %s", store.JoinOr(store.Priorities), enumActual(request.Priority.GetPriority()))
+				return store.SaveInput{}, fmt.Errorf("invalid priority: expected %s, actual %s", store.JoinOr(store.Priorities()), enumActual(request.Priority.GetPriority()))
 			}
 			input.Priority = store.Present(name)
 		}

@@ -1,4 +1,4 @@
-// コメントの一覧と保存。時刻は store が clock.Now を読む。返事に now は無い。
+// コメントの一覧と保存。時刻は readNow、作者はワークスペースの git の名前。返事に now は無い。
 // src/web.tsx:385-393、src/store.ts:648-704、docs/spec/routes.md の「GET /api/comments」
 //
 //declscope:core
@@ -11,20 +11,24 @@ import (
 
 	yaruv1 "github.com/aovoq/yaru/gen/yaru/v1"
 	"github.com/aovoq/yaru/internal/store"
+	"github.com/aovoq/yaru/internal/workspace"
 )
 
 type commentService struct{}
 
 func (commentService) ListComments(ctx context.Context, request *connect.Request[yaruv1.ListCommentsRequest]) (*connect.Response[yaruv1.ListCommentsResponse], error) {
-	_ = ctx
 	if request.Msg.GetIssue() == "" {
 		return nil, invalidArgument("issue is required when listing comments")
 	}
-	space, err := openBySlug(request.Msg.GetWorkspace())
+	moment, _, err := readNow()
 	if err != nil {
 		return nil, connectError(err)
 	}
-	comments, err := store.ListComments(space.Directory, request.Msg.GetIssue())
+	space, err := openBySlug(ctx, request.Msg.GetWorkspace())
+	if err != nil {
+		return nil, connectError(err)
+	}
+	comments, err := store.ListComments(ctx, space, request.Msg.GetIssue(), moment, workspace.GitName(ctx, space.Root))
 	if err != nil {
 		return nil, connectError(err)
 	}
@@ -32,8 +36,11 @@ func (commentService) ListComments(ctx context.Context, request *connect.Request
 }
 
 func (commentService) SaveComment(ctx context.Context, request *connect.Request[yaruv1.SaveCommentRequest]) (*connect.Response[yaruv1.SaveCommentResponse], error) {
-	_ = ctx
-	space, err := openBySlug(request.Msg.GetWorkspace())
+	moment, _, err := readNow()
+	if err != nil {
+		return nil, connectError(err)
+	}
+	space, err := openBySlug(ctx, request.Msg.GetWorkspace())
 	if err != nil {
 		return nil, connectError(err)
 	}
@@ -50,7 +57,7 @@ func (commentService) SaveComment(ctx context.Context, request *connect.Request[
 	if request.Msg.Body != nil {
 		input.Body = request.Msg.Body
 	}
-	comment, err := store.SaveComment(space.Directory, input)
+	comment, err := store.SaveComment(ctx, space, input, moment, workspace.GitName(ctx, space.Root))
 	if err != nil {
 		return nil, connectError(err)
 	}

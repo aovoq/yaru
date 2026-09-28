@@ -10,8 +10,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"unicode"
 
+	"github.com/aovoq/yaru/internal/document"
 	"github.com/aovoq/yaru/internal/server"
 	"github.com/aovoq/yaru/internal/store"
 )
@@ -198,55 +198,10 @@ func chosenPort(parsed parsedArguments) (int, error) {
 	return server.DefaultPort, nil
 }
 
-// javaScriptNumber は JS の Number。空白を削り、0x 0b 0o と指数を受ける
+// javaScriptNumber は JS の Number。空白を削り、0x 0b 0o と指数を受ける。
+// 実装は document.ParseNumber に 1 つ。src/index.ts:797-801
 func javaScriptNumber(raw string) (float64, bool) {
-	trimmed := strings.TrimFunc(raw, isJavaScriptWhitespace)
-	if trimmed == "" {
-		return 0, true
-	}
-	switch trimmed {
-	case "Infinity", "+Infinity":
-		return math.Inf(1), true
-	case "-Infinity":
-		return math.Inf(-1), true
-	}
-	lower := strings.ToLower(trimmed)
-	if strings.HasPrefix(lower, "0x") || strings.HasPrefix(lower, "0b") || strings.HasPrefix(lower, "0o") {
-		return prefixedInteger(lower)
-	}
-	number, err := strconv.ParseFloat(trimmed, 64)
-	if err != nil {
-		return 0, false
-	}
-	return number, true
-}
-
-func prefixedInteger(lower string) (float64, bool) {
-	base := 16
-	body := lower[2:]
-	switch lower[:2] {
-	case "0b":
-		base = 2
-	case "0o":
-		base = 8
-	}
-	if body == "" {
-		return 0, false
-	}
-	number, err := strconv.ParseUint(body, base, 64)
-	if err != nil {
-		return 0, false
-	}
-	return float64(number), true
-}
-
-func isJavaScriptWhitespace(character rune) bool {
-	switch character {
-	case '\u0009', '\u000B', '\u000C', '\u0020', '\u00A0', '\uFEFF', '\n', '\r', '\u2028', '\u2029':
-		return true
-	default:
-		return unicode.Is(unicode.Zs, character)
-	}
+	return document.ParseNumber(raw)
 }
 
 func definedString(parsed parsedArguments, key string) (*string, bool) {

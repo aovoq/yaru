@@ -14,12 +14,14 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/user"
 	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/aovoq/yaru/gen/yaru/v1/yaruv1connect"
 	"github.com/aovoq/yaru/internal/clock"
+	"github.com/aovoq/yaru/internal/workspace"
 )
 
 // DefaultPort はフラグを省いたときの待ち受けポート (src/web.tsx:46)。
@@ -127,6 +129,26 @@ func listenPort(configuration Configuration) (int, error) {
 	return port, nil
 }
 
+// stateDirectory は登録の slug を探す場所。api と同じ解決で、循環 import を避けるためこちらにも置く。
+// src/workspaces.ts:18-21
+// https://specifications.freedesktop.org/basedir-spec/latest/
+func stateDirectory() string {
+	return workspace.StateDirectory(os.Getenv("YARU_STATE_DIR"), os.Getenv("XDG_STATE_HOME"), homeDirectory())
+}
+
+// homeDirectory は HOME が空でなければそれ、無ければユーザーの home、失敗なら空。
+// https://pubs.opengroup.org/onlinepubs/9699919799/functions/getpwuid.html
+func homeDirectory() string {
+	if home := os.Getenv("HOME"); home != "" {
+		return home
+	}
+	current, err := user.Current()
+	if err != nil {
+		return ""
+	}
+	return current.HomeDir
+}
+
 // New は YARU_NOW と公開 host を検査する。待ち受けはまだしない (src/web.tsx:613-615)。
 func New(configuration Configuration) (*Server, error) {
 	if configuration.LogOutput == nil {
@@ -141,8 +163,10 @@ func New(configuration Configuration) (*Server, error) {
 	if configuration.WatchPoll <= 0 {
 		configuration.WatchPoll = DefaultWatchPoll
 	}
-	if _, err := clock.Now(); err != nil {
-		return nil, err
+	if value, exists := os.LookupEnv("YARU_NOW"); exists {
+		if _, err := clock.ParseYaruNow(value); err != nil {
+			return nil, err
+		}
 	}
 	publicHost, err := resolvePublicHost(configuration)
 	if err != nil {
