@@ -1,6 +1,6 @@
 # ファイル単位の境界を機械で確かめる (declscope)。ファイル名が名前空間になり、別のファイルから使うものは //declscope:package で共有を宣言する
-# qualify は ondemand (必要なときだけ名前に名前空間を付けさせる)。段階 0 の確認でユーザーと決めた
+# qualify は never (名前に名前空間を付けない)。長い名前より短い名前を選んだ (ユーザーと決めた)
 # https://github.com/mpyw/declscope
 rules:
   naming:
-    qualify: ondemand
+    qualify: never
