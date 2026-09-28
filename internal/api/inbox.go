@@ -64,7 +64,7 @@ func (service *inboxService) GetInbox(ctx context.Context, request *connect.Requ
 			entries = append(entries, inboxEntry{
 				Workspace: registered.Slug,
 				BasePath:  basePath,
-				Href:      basePath + "/dashboard#q-" + encodeURIComponent(question.ID),
+				Href:      basePath + "/dashboard#q-" + EncodeURIComponent(question.ID),
 				Anchor:    "q-" + registered.Slug + "-" + question.ID,
 				Question:  question,
 			})
@@ -122,12 +122,13 @@ func protoInboxItems(entries []inboxEntry) ([]*yaruv1.InboxItem, error) {
 // workspaceBasePath は /p/<slug> 。slug は encodeURIComponent する。
 // src/inbox.ts:63-64 。https://url.spec.whatwg.org/#urlencoded-serializing
 func workspaceBasePath(slug string) string {
-	return "/p/" + encodeURIComponent(slug)
+	return "/p/" + EncodeURIComponent(slug)
 }
 
-// encodeURIComponent は TS の encodeURIComponent。残す文字は A-Z a-z 0-9 - _ . ! ~ * ' ( ) 。
+// EncodeURIComponent は TS の encodeURIComponent。残す文字は A-Z a-z 0-9 - _ . ! ~ * ' ( ) 。
+// CLI の hint と QuestionURL が同じ実装を使う。
 // src/inbox.ts:49 、src/notify.ts:41 。https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent
-func encodeURIComponent(value string) string {
+func EncodeURIComponent(value string) string {
 	var builder strings.Builder
 	for _, symbol := range []byte(value) {
 		if isURIUnescaped(symbol) {

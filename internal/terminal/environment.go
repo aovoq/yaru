@@ -11,28 +11,29 @@ import (
 
 // SessionEnvironment は試験用の herdr セッション名を読む環境変数
 // 値は --session 引数にし、子の環境には入れない。リクエストからは読まない
-// docs/spec/security.md の「決定 (2026-09-28)」と herdr.go:207-212
+// docs/spec/security.md の「決定 (2026-09-28)」。APP_HERDR_SESSION は読まない
 const SessionEnvironment = "YARU_HERDR_SESSION"
 
 // ChildEnvironment は herdr の子に渡す環境。親の環境は繋がない
-// docs/spec/security.md の「herdr を起動するとき」。組み立ては herdr.go:219-234
+// docs/spec/security.md の「herdr を起動するとき」。空の LANG も有無で見て、同じキーを 2 つにしない
 // PTY でもそれ以外の起動でも TERM と COLORTERM を足す。docs/spec/security.md の「決定 (2026-09-28)」
 // https://www.rfc-editor.org/rfc/rfc3875 は環境変数の形 KEY=VALUE
 func ChildEnvironment(lookup func(string) (string, bool)) []string {
 	keys := []string{"HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "SSH_AUTH_SOCK", "LANG", "LC_ALL", "LC_CTYPE"}
 	environment := make([]string, 0, len(keys)+4)
+	localePresent := false
 	for _, key := range keys {
 		value, exists := lookup(key)
 		if !exists {
 			continue
 		}
+		if key == "LANG" || key == "LC_ALL" || key == "LC_CTYPE" {
+			// 空文字でもキーがあればロケールは設定済み。知らせコマンドと同じく有無で見る。
+			localePresent = true
+		}
 		environment = append(environment, key+"="+value)
 	}
-	// herdr.go:227-229 は Getenv が空なら LANG を足す。空文字で存在する LANG は上で残り、ここでもう一度足す
-	language, _ := lookup("LANG")
-	localeAll, _ := lookup("LC_ALL")
-	localeCtype, _ := lookup("LC_CTYPE")
-	if language == "" && localeAll == "" && localeCtype == "" {
+	if !localePresent {
 		environment = append(environment, "LANG=en_US.UTF-8")
 	}
 	userName, _ := lookup("USER")
@@ -45,7 +46,7 @@ func ChildEnvironment(lookup func(string) (string, bool)) []string {
 }
 
 // executableSearchPath は親の PATH を使わず、ログインに必要なディレクトリだけを並べる
-// herdr.go:230-234。USER が空のときはユーザごとの 4 つを付けない
+// docs/spec/security.md の「herdr を起動するとき」。USER が空のときはユーザごとの 4 つを付けない
 func executableSearchPath(userName string) string {
 	base := "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 	if userName == "" {
@@ -56,7 +57,7 @@ func executableSearchPath(userName string) string {
 
 // SessionArguments はサーバプロセスの環境だけから --session を作る
 // 空と未設定は引数なし。クライアントのクエリやヘッダは見ない
-// docs/spec/security.md の「決定 (2026-09-28)」。引数の形は herdr.go:207-212
+// docs/spec/security.md の「決定 (2026-09-28)」。名前は YARU_HERDR_SESSION だけ
 func SessionArguments(lookup func(string) (string, bool)) []string {
 	name, exists := lookup(SessionEnvironment)
 	if !exists || name == "" {
@@ -66,7 +67,7 @@ func SessionArguments(lookup func(string) (string, bool)) []string {
 }
 
 // HomeDirectory は子の作業ディレクトリ。HOME の値だけで、プロセスの現在ディレクトリは使わない
-// docs/spec/security.md の「herdr を起動するとき」。herdr.go:53 と terminal.go:38
+// docs/spec/security.md の「herdr を起動するとき」
 func HomeDirectory(lookup func(string) (string, bool)) (string, error) {
 	home, exists := lookup("HOME")
 	if !exists || home == "" {

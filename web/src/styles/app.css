@@ -1,5 +1,7 @@
 @import "tailwindcss" source(none);
 /* クラスは web/src のソースと index.html から拾う。src/css.tsx の見本 HTML は使わない */
+/* マウスで細かく指せる画面だけに当てる。指の画面では hover が無い (https://drafts.csswg.org/mediaqueries-4/#pointer) */
+@custom-variant pointer-fine (@media (hover: hover) and (pointer: fine));
 @source "../**/*.{ts,tsx}";
 @source not "../**/*.test.ts";
 @source not "../**/*.test.tsx";

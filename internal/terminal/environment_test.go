@@ -91,18 +91,19 @@ func TestChildEnvironmentAddsLanguageWhenUnset(t *testing.T) {
 	}
 }
 
-func TestChildEnvironmentKeepsEmptyLanguageAndAddsFallback(t *testing.T) {
-	// herdr.go:220-229 は、LANG が空文字で存在するとき LANG= を残し、Getenv が空なので en_US.UTF-8 も足す
+func TestChildEnvironmentKeepsEmptyLanguageWithoutFallback(t *testing.T) {
+	// 空文字でもキーがあるならロケールは設定済み。知らせコマンドと同じく有無で見て、LANG は 1 つだけ残す。
+	// docs/spec/security.md の「herdr を起動するとき」
 	environment := ChildEnvironment(mapLookup(map[string]string{
 		"LANG":     "",
 		"LC_ALL":   "",
 		"LC_CTYPE": "",
 		"USER":     "example",
 	}))
-	if countEntries(environment, "LANG=") != 2 {
+	if countEntries(environment, "LANG=") != 1 {
 		t.Fatalf("LANG entries = %d, environment %v", countEntries(environment, "LANG="), environment)
 	}
-	if !containsEntry(environment, "LANG=") || !containsEntry(environment, "LANG=en_US.UTF-8") {
+	if !containsEntry(environment, "LANG=") || containsEntry(environment, "LANG=en_US.UTF-8") {
 		t.Fatalf("environment %v", environment)
 	}
 }

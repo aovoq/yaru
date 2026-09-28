@@ -10,6 +10,8 @@ package terminal
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -25,11 +27,10 @@ import (
 // Path は端末の WebSocket。routes.md にはパスが無い。resident-app の Terminal.tsx:83 に合わせる
 const Path = "/ws/terminal"
 
-// Config はサーバが渡す設定。実行ファイルも公開 host も、リクエストからは取らない
+// Config はサーバが渡す設定。実行ファイルはリクエストからは取らない。
+// Host と Origin と CSP は internal/server が検査するので、ここでは持たない。
 type Config struct {
 	HerdrExecutable string
-	ListenPort      int
-	PublicHost      string
 }
 
 type resizeMessage struct {
@@ -42,13 +43,8 @@ type resizeMessage struct {
 // 検査に落ちたリクエストでは herdr を起動しない。docs/spec/security.md の「WebSocket」
 func Handler(config Config) http.Handler {
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
-		setSecurityHeaders(response)
-		normalizedHost, authorizeError := AuthorizeWebSocket(request, config.ListenPort, config.PublicHost)
-		if authorizeError != nil {
-			writeText(response, http.StatusForbidden, authorizeError.Error())
-			logRejection(authorizeError.Error())
-			return
-		}
+		// Host と Origin と CSP は呼ぶ前に internal/server が済ませる。ここでは繰り返さない。
+		// docs/spec/security.md の「WebSocket」
 		home, homeError := HomeDirectory(os.LookupEnv)
 		if homeError != nil {
 			writeText(response, http.StatusInternalServerError, homeError.Error())
@@ -65,10 +61,9 @@ func Handler(config Config) http.Handler {
 			logRejection(executableError.Error())
 			return
 		}
-		// Accept は Origin の host と Host の一致だけを見る (accept.go:239)。末尾のドットは落とさない
-		// 検査を通した正規の Host に差し替えてから Accept する。InsecureSkipVerify と OriginPatterns は使わない
-		// docs/spec/security.md の「WebSocket」
-		request.Host = normalizedHost
+		// Accept は Origin の host と Host の一致だけを見る (accept.go:239)。
+		// server が正規化した Host を渡す。InsecureSkipVerify と OriginPatterns は使わない。
+		// docs/spec/security.md の「WebSocket」。https://www.rfc-editor.org/rfc/rfc6455#section-1.6
 		connection, acceptError := websocket.Accept(response, request, nil)
 		if acceptError != nil {
 			return
@@ -213,4 +208,21 @@ func terminateProcess(command *exec.Cmd) {
 	if groupError != nil {
 		return
 	}
+}
+
+func writeText(response http.ResponseWriter, status int, message string) {
+	response.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	response.WriteHeader(status)
+	_, _ = io.WriteString(response, message)
+}
+
+// rejectionLog は起動できなかった理由だけを書く。端末の入出力と query は書かない。
+// docs/spec/security.md の「ログ」
+var rejectionLog io.Writer = os.Stderr
+
+func logRejection(message string) {
+	if rejectionLog == nil {
+		return
+	}
+	_, _ = fmt.Fprintf(rejectionLog, "%s\n", message)
 }

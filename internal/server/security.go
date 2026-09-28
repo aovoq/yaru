@@ -11,15 +11,18 @@ import (
 	"unicode/utf8"
 )
 
-// すべての応答に付ける。端末ページの style-src だけ未決だったが、決定では端末ページ以外は style-src 'self' のまま。
-// 端末ページはこのパッケージではまだ出さない。docs/spec/security.md の「応答ヘッダー」と「決定」
+// すべての応答に付ける。/terminal の文書だけ style-src に unsafe-inline を足す。script-src には足さない。
+// docs/spec/security.md の「応答ヘッダー」と「決定」。https://www.w3.org/TR/CSP3/#directive-style-src
 const contentSecurityPolicy = "default-src 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' http: https:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
+
+const terminalContentSecurityPolicy = "default-src 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'; img-src 'self' http: https:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
 
 const plainTextUTF8 = "text/plain; charset=utf-8"
 
 type securedResponse struct {
 	http.ResponseWriter
 	stripped bool
+	policy   string
 }
 
 func (response *securedResponse) WriteHeader(status int) {
@@ -48,7 +51,11 @@ func (response *securedResponse) enforce() {
 	}
 	response.stripped = true
 	header := response.Header()
-	header.Set("Content-Security-Policy", contentSecurityPolicy)
+	policy := response.policy
+	if policy == "" {
+		policy = contentSecurityPolicy
+	}
+	header.Set("Content-Security-Policy", policy)
 	header.Set("Referrer-Policy", "no-referrer")
 	header.Set("X-Content-Type-Options", "nosniff")
 	header.Set("X-Frame-Options", "DENY")

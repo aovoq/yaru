@@ -3,11 +3,10 @@
 package server
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 	"os/exec"
-	"strings"
-	"unicode/utf8"
 )
 
 // tailscaleStatusLimit は status --json の読み取り上限。超えた出力は読めなかったものとして公開 host を無しにする。
@@ -49,277 +48,22 @@ func detectTailscaleDNSName() (string, bool) {
 	return name, true
 }
 
+// tailscaleStatus は Self.DNSName だけを読む。Peer などの DNSName は見ない。
+type tailscaleStatus struct {
+	Self struct {
+		DNSName string `json:"DNSName"`
+	} `json:"Self"`
+}
+
 // selfDNSName は最上位の Self.DNSName だけを返す。他のオブジェクトの DNSName は見ない。
-// yaru のファイルではないので document.MarshalJavaScript の対にはせず、必要なフィールドだけ読む。
+// yaru のファイルではないので document.MarshalJavaScript の対にはせず、encoding/json で必要なフィールドだけ読む。
 func selfDNSName(data []byte) (string, bool) {
-	cursor := &jsonCursor{data: data}
-	cursor.skipSpace()
-	if !cursor.consume('{') {
+	var status tailscaleStatus
+	if err := json.Unmarshal(data, &status); err != nil {
 		return "", false
 	}
-	for {
-		cursor.skipSpace()
-		if cursor.consume('}') {
-			return "", false
-		}
-		key, ok := cursor.parseString()
-		if !ok {
-			return "", false
-		}
-		cursor.skipSpace()
-		if !cursor.consume(':') {
-			return "", false
-		}
-		cursor.skipSpace()
-		if key == "Self" {
-			return cursor.dnsNameInObject()
-		}
-		if !cursor.skipValue() {
-			return "", false
-		}
-		cursor.skipSpace()
-		if cursor.consume('}') {
-			return "", false
-		}
-		if !cursor.consume(',') {
-			return "", false
-		}
-	}
-}
-
-func (cursor *jsonCursor) dnsNameInObject() (string, bool) {
-	if !cursor.consume('{') {
+	if status.Self.DNSName == "" {
 		return "", false
 	}
-	var found string
-	var present bool
-	for {
-		cursor.skipSpace()
-		if cursor.consume('}') {
-			return found, present && found != ""
-		}
-		key, ok := cursor.parseString()
-		if !ok {
-			return "", false
-		}
-		cursor.skipSpace()
-		if !cursor.consume(':') {
-			return "", false
-		}
-		cursor.skipSpace()
-		if key == "DNSName" {
-			value, parsed := cursor.parseString()
-			if !parsed {
-				return "", false
-			}
-			found = value
-			present = true
-		} else if !cursor.skipValue() {
-			return "", false
-		}
-		cursor.skipSpace()
-		if cursor.consume('}') {
-			return found, present && found != ""
-		}
-		if !cursor.consume(',') {
-			return "", false
-		}
-	}
-}
-
-type jsonCursor struct {
-	data  []byte
-	index int
-}
-
-func (cursor *jsonCursor) skipSpace() {
-	for cursor.index < len(cursor.data) {
-		switch cursor.data[cursor.index] {
-		case ' ', '\n', '\r', '\t':
-			cursor.index++
-		default:
-			return
-		}
-	}
-}
-
-func (cursor *jsonCursor) consume(character byte) bool {
-	if cursor.index < len(cursor.data) && cursor.data[cursor.index] == character {
-		cursor.index++
-		return true
-	}
-	return false
-}
-
-func (cursor *jsonCursor) skipValue() bool {
-	if cursor.index >= len(cursor.data) {
-		return false
-	}
-	switch cursor.data[cursor.index] {
-	case '{':
-		return cursor.skipObject()
-	case '[':
-		return cursor.skipArray()
-	case '"':
-		_, ok := cursor.parseString()
-		return ok
-	case 't':
-		return cursor.consumeLiteral("true")
-	case 'f':
-		return cursor.consumeLiteral("false")
-	case 'n':
-		return cursor.consumeLiteral("null")
-	default:
-		return cursor.skipNumber()
-	}
-}
-
-func (cursor *jsonCursor) skipObject() bool {
-	if !cursor.consume('{') {
-		return false
-	}
-	cursor.skipSpace()
-	if cursor.consume('}') {
-		return true
-	}
-	for {
-		if _, ok := cursor.parseString(); !ok {
-			return false
-		}
-		cursor.skipSpace()
-		if !cursor.consume(':') {
-			return false
-		}
-		cursor.skipSpace()
-		if !cursor.skipValue() {
-			return false
-		}
-		cursor.skipSpace()
-		if cursor.consume('}') {
-			return true
-		}
-		if !cursor.consume(',') {
-			return false
-		}
-		cursor.skipSpace()
-	}
-}
-
-func (cursor *jsonCursor) skipArray() bool {
-	if !cursor.consume('[') {
-		return false
-	}
-	cursor.skipSpace()
-	if cursor.consume(']') {
-		return true
-	}
-	for {
-		if !cursor.skipValue() {
-			return false
-		}
-		cursor.skipSpace()
-		if cursor.consume(']') {
-			return true
-		}
-		if !cursor.consume(',') {
-			return false
-		}
-		cursor.skipSpace()
-	}
-}
-
-func (cursor *jsonCursor) consumeLiteral(literal string) bool {
-	if cursor.index+len(literal) > len(cursor.data) {
-		return false
-	}
-	if string(cursor.data[cursor.index:cursor.index+len(literal)]) != literal {
-		return false
-	}
-	cursor.index += len(literal)
-	return true
-}
-
-func (cursor *jsonCursor) skipNumber() bool {
-	start := cursor.index
-	for cursor.index < len(cursor.data) {
-		character := cursor.data[cursor.index]
-		if (character >= '0' && character <= '9') || character == '.' || character == 'e' || character == 'E' || character == '+' || character == '-' {
-			cursor.index++
-			continue
-		}
-		break
-	}
-	return cursor.index > start
-}
-
-func (cursor *jsonCursor) parseString() (string, bool) {
-	if !cursor.consume('"') {
-		return "", false
-	}
-	var builder strings.Builder
-	for cursor.index < len(cursor.data) {
-		character := cursor.data[cursor.index]
-		cursor.index++
-		if character == '"' {
-			return builder.String(), true
-		}
-		if character != '\\' {
-			builder.WriteByte(character)
-			continue
-		}
-		if cursor.index >= len(cursor.data) {
-			return "", false
-		}
-		escaped := cursor.data[cursor.index]
-		cursor.index++
-		switch escaped {
-		case '"', '\\', '/':
-			builder.WriteByte(escaped)
-		case 'b':
-			builder.WriteByte('\b')
-		case 'f':
-			builder.WriteByte('\f')
-		case 'n':
-			builder.WriteByte('\n')
-		case 'r':
-			builder.WriteByte('\r')
-		case 't':
-			builder.WriteByte('\t')
-		case 'u':
-			runeValue, ok := cursor.parseHexRune()
-			if !ok {
-				return "", false
-			}
-			builder.WriteRune(runeValue)
-		default:
-			return "", false
-		}
-	}
-	return "", false
-}
-
-func (cursor *jsonCursor) parseHexRune() (rune, bool) {
-	if cursor.index+4 > len(cursor.data) {
-		return 0, false
-	}
-	var value rune
-	for offset := 0; offset < 4; offset++ {
-		digit := cursor.data[cursor.index+offset]
-		value <<= 4
-		switch {
-		case digit >= '0' && digit <= '9':
-			value += rune(digit - '0')
-		case digit >= 'a' && digit <= 'f':
-			value += rune(digit-'a') + 10
-		case digit >= 'A' && digit <= 'F':
-			value += rune(digit-'A') + 10
-		default:
-			return 0, false
-		}
-	}
-	cursor.index += 4
-	if !utf8.ValidRune(value) {
-		return utf8.RuneError, true
-	}
-	return value, true
+	return status.Self.DNSName, true
 }

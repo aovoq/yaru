@@ -6,9 +6,13 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"os"
+	"os/exec"
+	"os/user"
 	"path"
 	"strings"
 
+	"github.com/aovoq/yaru/internal/terminal"
 	"github.com/aovoq/yaru/internal/workspace"
 	webfs "github.com/aovoq/yaru/web"
 )
@@ -82,6 +86,12 @@ func (application *httpApplication) serve(responseWriter http.ResponseWriter, re
 		reject(responseWriter, request, application.configuration.LogOutput, message)
 		return
 	}
+	if isWebSocketUpgrade(request) && request.URL.Path == terminal.Path && application.configuration.WireServices {
+		// Host と Origin は上の authorize が済ませている。端末の中身は internal/terminal。
+		// docs/spec/security.md の「WebSocket」
+		application.serveTerminal(responseWriter, request)
+		return
+	}
 	if isWebSocketUpgrade(request) {
 		application.serveWebSocket(responseWriter, request)
 		return
@@ -99,6 +109,8 @@ func (application *httpApplication) serve(responseWriter http.ResponseWriter, re
 		application.serveSPA(responseWriter, request)
 	case "/inbox":
 		application.serveSPA(responseWriter, request)
+	case "/terminal":
+		application.serveTerminalDocument(responseWriter, request)
 	case "/manifest.webmanifest":
 		application.serveManifest(responseWriter, request)
 	case "/icon.svg":
@@ -123,6 +135,41 @@ func (application *httpApplication) serve(responseWriter http.ResponseWriter, re
 		}
 		writeBody(responseWriter, request, http.StatusNotFound, plainTextUTF8, []byte("not found"))
 	}
+}
+
+func (application *httpApplication) serveTerminal(responseWriter http.ResponseWriter, request *http.Request) {
+	// Accept は Origin の host と Host の文字列比較をする。検査で正規化した Host に差し替える。
+	// docs/spec/security.md の「WebSocket」。https://www.rfc-editor.org/rfc/rfc6455#section-1.6
+	hostName, hostPort, allowed := classifyHost(request.Host, application.port, application.publicHost)
+	if allowed {
+		if hostPort == "" {
+			request.Host = hostName
+		} else {
+			request.Host = hostName + ":" + hostPort
+		}
+	}
+	executable := application.configuration.HerdrExecutable
+	if executable == "" {
+		executable = terminal.ResolveExecutable(os.LookupEnv, exec.LookPath, currentUserName)
+	}
+	terminal.Handler(terminal.Config{HerdrExecutable: executable}).ServeHTTP(responseWriter, request)
+}
+
+func (application *httpApplication) serveTerminalDocument(responseWriter http.ResponseWriter, request *http.Request) {
+	// この path の文書だけ style-src に unsafe-inline を付ける。xterm 6 が style 要素を作るため。
+	// docs/spec/security.md の「応答ヘッダー」。https://www.w3.org/TR/CSP3/#directive-style-src
+	if secured, ok := responseWriter.(*securedResponse); ok {
+		secured.policy = terminalContentSecurityPolicy
+	}
+	application.serveSPA(responseWriter, request)
+}
+
+func currentUserName() (string, error) {
+	current, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	return current.Username, nil
 }
 
 func (application *httpApplication) serveWebSocket(responseWriter http.ResponseWriter, request *http.Request) {
