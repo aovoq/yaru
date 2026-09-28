@@ -1,5 +1,3 @@
-import { execFileSync } from "node:child_process"
-import { fileURLToPath } from "node:url"
 import { describe, expect, test } from "vitest"
 import { renderMarkdown, toggleTask } from "./markdown"
 
@@ -180,30 +178,36 @@ describe("protocol-relative urls and skipped controls", () => {
   })
 })
 
-// いまの src/markdown.ts を bun で動かし、決定で変えていない入力は同じ HTML になることを見る
+// 決定で変えていない入力は、TS 版 (ts-final のタグの src/markdown.ts) と同じ HTML になる。右は TS 版が出した HTML
 test("unchanged markdown matches the TypeScript renderer", () => {
-  const repoRoot = fileURLToPath(new URL("../..", import.meta.url))
-  const samples = [
-    "## 背景\n1 行目\n2 行目\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n`code`",
-    '<script>alert(1)</script>\n\n<img src=x onerror="alert(1)">\n\ntext <b onclick="x">b</b>',
-    "[a](javascript:alert(1)) [b](https://example.com) [c](/p/app/?id=1) [d](mailto:x@example.com) [e](data:text/html,x)",
-    "[a](<jav\tascript:alert(1)>) [b](<\u0001javascript:alert(1)>)",
-    "[c](jav&#x09;ascript:alert(1))",
-    "![x](javascript:alert(1)) ![y](https://example.com/a.png)",
-    "- [ ] first\n- [x] second",
-    "[rel](/p/app/?id=1)",
-    "[mail](mailto:x@example.com)",
-    "#3 を見る",
+  const cases: [string, string][] = [
+    [
+      "## 背景\n1 行目\n2 行目\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n`code`",
+      "<h2>背景</h2>\n<p>1 行目<br>2 行目</p>\n<table>\n<thead>\n<tr>\n<th>a</th>\n<th>b</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>1</td>\n<td>2</td>\n</tr>\n</tbody></table>\n<p><code>code</code></p>\n",
+    ],
+    [
+      '<script>alert(1)</script>\n\n<img src=x onerror="alert(1)">\n\ntext <b onclick="x">b</b>',
+      "&lt;script&gt;alert(1)&lt;/script&gt;&lt;img src=x onerror=&quot;alert(1)&quot;&gt;<p>text &lt;b onclick=&quot;x&quot;&gt;b&lt;/b&gt;</p>\n",
+    ],
+    [
+      "[a](javascript:alert(1)) [b](https://example.com) [c](/p/app/?id=1) [d](mailto:x@example.com) [e](data:text/html,x)",
+      '<p>a <a href="https://example.com" target="_blank" rel="noopener noreferrer">b</a> <a href="/p/app/?id=1">c</a> <a href="mailto:x@example.com">d</a> e</p>\n',
+    ],
+    ["[a](<jav\tascript:alert(1)>) [b](<\u0001javascript:alert(1)>)", "<p>a b</p>\n"],
+    ["[c](jav&#x09;ascript:alert(1))", '<p><a href="jav&amp;#x09;ascript:alert(1)">c</a></p>\n'],
+    [
+      "![x](javascript:alert(1)) ![y](https://example.com/a.png)",
+      '<p>x <img src="https://example.com/a.png" alt="y" loading="lazy"></p>\n',
+    ],
+    [
+      "- [ ] first\n- [x] second",
+      '<ul>\n<li><input type="checkbox" data-task-index="0"> first</li>\n<li><input type="checkbox" data-task-index="1" checked> second</li>\n</ul>\n',
+    ],
+    ["[rel](/p/app/?id=1)", '<p><a href="/p/app/?id=1">rel</a></p>\n'],
+    ["[mail](mailto:x@example.com)", '<p><a href="mailto:x@example.com">mail</a></p>\n'],
+    ["#3 を見る", "<p>#3 を見る</p>\n"],
   ]
-  const script = `
-    import { renderMarkdown } from ${JSON.stringify(`${repoRoot}/src/markdown.ts`)}
-    const samples = ${JSON.stringify(samples)}
-    console.log(JSON.stringify(samples.map((source) => renderMarkdown(source))))
-  `
-  const stdout = execFileSync("bun", ["-e", script], {
-    cwd: repoRoot,
-    encoding: "utf8",
-  })
-  const expected = JSON.parse(stdout) as string[]
-  expect(samples.map((source) => renderMarkdown(source))).toEqual(expected)
+  for (const [source, html] of cases) {
+    expect(renderMarkdown(source)).toBe(html)
+  }
 })
