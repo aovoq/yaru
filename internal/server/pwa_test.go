@@ -115,8 +115,8 @@ func TestSPAPathsAndEmbeddedFiles(t *testing.T) {
 		}
 	}
 	missing := perform(handler, http.MethodGet, loopbackURL+"/p/missing", loopbackHost, "", "", nil)
-	if missing.Code != http.StatusNotFound || missing.Body.String() != "workspace not found: missing" {
-		t.Fatalf("missing slug: %d %s", missing.Code, missing.Body.String())
+	if missing.Code != http.StatusNotFound || missing.Body.String() != indexHTML || missing.Header().Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Fatalf("missing slug: %d %s %s", missing.Code, missing.Header().Get("Content-Type"), missing.Body.String())
 	}
 	script := perform(handler, http.MethodGet, loopbackURL+"/assets/app.js", loopbackHost, "", "", nil)
 	if script.Code != http.StatusOK || script.Header().Get("Content-Type") != "text/javascript; charset=utf-8" || script.Body.String() != "console.log(1)\n" {
@@ -129,6 +129,42 @@ func TestSPAPathsAndEmbeddedFiles(t *testing.T) {
 	connectPath := perform(handler, http.MethodPost, loopbackURL+yaruv1connect.InboxServiceGetInboxProcedure, loopbackHost, loopbackOrigin, "{}", map[string]string{"Content-Type": "application/json"})
 	if connectPath.Code == http.StatusNotFound {
 		t.Fatalf("connect path was treated as a page: %d", connectPath.Code)
+	}
+}
+
+func TestUnknownPagesUseTheDocument(t *testing.T) {
+	// SPA に当たらない path と、登録の無い slug は 404 のまま index.html を返す。画面の 404 が出る。
+	// API と静的ファイルが無いときの 404 は text/plain のまま。src/web.tsx:494-500、src/web.tsx:566-573。
+	// docs/spec/routes.md の「SPA が受け取る path」。https://www.rfc-editor.org/rfc/rfc9110#section-15.5.5
+	stateDirectory := t.TempDir()
+	t.Setenv("YARU_STATE_DIR", stateDirectory)
+	slug, _ := initWorkspace(t, stateDirectory, "board")
+	dist := fstest.MapFS{
+		"index.html": &fstest.MapFile{Data: []byte("<!doctype html><html><body>board</body></html>")},
+	}
+	handler := newTestServer(t, Configuration{Dist: dist}).Handler()
+	indexHTML := string(dist["index.html"].Data)
+	for _, path := range []string{"/missing", "/p/missing", "/p/missing/", "/p/missing/dashboard", "/p/" + slug + "/nope", "/terminal/"} {
+		response := perform(handler, http.MethodGet, loopbackURL+path, loopbackHost, "", "", nil)
+		if response.Code != http.StatusNotFound || response.Body.String() != indexHTML {
+			t.Fatalf("%s: status %d body %s", path, response.Code, response.Body.String())
+		}
+		if response.Header().Get("Content-Type") != "text/html; charset=utf-8" {
+			t.Fatalf("%s: content type %s", path, response.Header().Get("Content-Type"))
+		}
+		if response.Header().Get("Content-Security-Policy") != contentSecurityPolicy {
+			t.Fatalf("%s: csp %s", path, response.Header().Get("Content-Security-Policy"))
+		}
+	}
+	for _, path := range []string{"/assets/fonts/LICENSE.txt", "/sw.js", "/p/" + slug + "/assets/app.js", "/api/inbox"} {
+		response := perform(handler, http.MethodGet, loopbackURL+path, loopbackHost, "", "", nil)
+		if response.Code != http.StatusNotFound || response.Body.String() != "not found" || response.Header().Get("Content-Type") != plainTextUTF8 {
+			t.Fatalf("%s: status %d type %s body %s", path, response.Code, response.Header().Get("Content-Type"), response.Body.String())
+		}
+	}
+	posted := perform(handler, http.MethodPost, loopbackURL+"/missing", loopbackHost, loopbackOrigin, "", nil)
+	if posted.Code != http.StatusNotFound || posted.Body.String() != "not found" {
+		t.Fatalf("post: status %d body %s", posted.Code, posted.Body.String())
 	}
 }
 
