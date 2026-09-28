@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -15,7 +14,6 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/aovoq/yaru/gen/yaru/v1/yaruv1connect"
 	"github.com/aovoq/yaru/internal/workspace"
@@ -48,11 +46,6 @@ func TestWiredServerMatchesTypeScriptServe(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.Chdir(previousDirectory) })
 	typescript := newTypeScriptServeRecord(t, fixture)
-	if recordTypeScriptServe {
-		stopTS := startTypeScriptServe(t, fixture, stateDirectory, home, 47901)
-		t.Cleanup(stopTS)
-		waitHTTP(t, "http://127.0.0.1:47901/manifest.webmanifest")
-	}
 	goServer := startWiredServer(t, 47900)
 	t.Cleanup(func() { _ = goServer.Close() })
 
@@ -101,14 +94,15 @@ func TestWiredServerMatchesTypeScriptServe(t *testing.T) {
 
 	goCopy, tsCopy := duplicateFixture(t, fixture, stateDirectory)
 	goSlug := registeredSlug(t, stateDirectory, goCopy)
-	tsSlug := registeredSlug(t, stateDirectory, tsCopy)
+	if tsSlug := registeredSlug(t, stateDirectory, tsCopy); tsSlug != "ts-copy" {
+		t.Fatalf("ts copy slug: expected ts-copy, actual %s", tsSlug)
+	}
 	postRaw(t, goServer.URL()+yaruv1connect.IssueServiceSaveIssueProcedure, `{"workspace":"`+goSlug+`","title":"Created","body":"from go\n"}`)
 	goFile := readCompareFile(t, filepath.Join(goCopy, ".yaru", "issues", "2.md"))
-	tsFile := typescript.createdIssueFile(t, tsSlug, tsCopy)
+	tsFile := typescript.createdIssueFile(t)
 	if goFile != tsFile {
 		t.Fatalf("created issue file\n--- go\n%s\n--- ts\n%s", goFile, tsFile)
 	}
-	typescript.save(t)
 }
 
 func newCompareFixture(t *testing.T) (string, string, string) {
@@ -181,63 +175,6 @@ func startWiredServer(t *testing.T, port int) *Running {
 	return running
 }
 
-func startTypeScriptServe(t *testing.T, fixture string, stateDirectory string, home string, port int) func() {
-	t.Helper()
-	script := `
-process.chdir(process.env.FIXTURE)
-process.argv = ["bun", "yaru", "serve", "-p", process.env.YARU_PORT]
-await import(process.env.YARU_ENTRY)
-`
-	command := exec.Command("bun", "-e", script)
-	command.Dir = moduleRoot()
-	command.Env = bunEnvironment(fixture, stateDirectory, home, map[string]string{
-		"FIXTURE":    fixture,
-		"YARU_ENTRY": filepath.Join(moduleRoot(), "src", "index.ts"),
-		"YARU_PORT":  fmt.Sprintf("%d", port),
-	})
-	output, err := command.StdoutPipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	command.Stderr = command.Stdout
-	if err := command.Start(); err != nil {
-		t.Fatal(err)
-	}
-	started := make(chan string, 1)
-	go func() {
-		buffer := make([]byte, 4096)
-		collected := ""
-		for {
-			count, readErr := output.Read(buffer)
-			if count > 0 {
-				collected += string(buffer[:count])
-				if strings.Contains(collected, "http://127.0.0.1:") {
-					started <- collected
-					return
-				}
-			}
-			if readErr != nil {
-				started <- collected
-				return
-			}
-		}
-	}()
-	select {
-	case text := <-started:
-		if !strings.Contains(text, fmt.Sprintf("http://127.0.0.1:%d", port)) {
-			_ = command.Process.Kill()
-			t.Fatalf("ts serve did not listen: %s", text)
-		}
-	case <-time.After(20 * time.Second):
-		_ = command.Process.Kill()
-		t.Fatal("ts serve timed out")
-	}
-	return func() {
-		_ = command.Process.Kill()
-		_ = command.Wait()
-	}
-}
-
 // buildYaruCommand は cmd/yaru をビルドする。CLI の出力が TS 版と同じことは golden (testdata/golden) で確かめてある
 func buildYaruCommand(t *testing.T) string {
 	t.Helper()
@@ -269,9 +206,6 @@ func runYaru(t *testing.T, yaruBinary string, fixture string, stateDirectory str
 	}
 }
 
-// YARU_RECORD_TYPESCRIPT=1 のときだけ TS の yaru serve を動かして記録を書く
-var recordTypeScriptServe = os.Getenv("YARU_RECORD_TYPESCRIPT") == "1"
-
 type recordedResponse struct {
 	Status int    `json:"status"`
 	Body   string `json:"body"`
@@ -295,11 +229,6 @@ func newTypeScriptServeRecord(t *testing.T, fixture string) *typeScriptServeReco
 	record := &typeScriptServeRecord{
 		path:         filepath.Join(moduleRoot(), "testdata", "server", t.Name()+".json"),
 		replacements: temporaryReplacements(fixture),
-		Responses:    map[string]recordedResponse{},
-		Files:        map[string]string{},
-	}
-	if recordTypeScriptServe {
-		return record
 	}
 	content, err := os.ReadFile(record.path)
 	if err != nil {
@@ -342,14 +271,9 @@ func temporaryReplacements(fixture string) []pathReplacement {
 
 func (record *typeScriptServeRecord) get(t *testing.T, name string, path string) ([]byte, int) {
 	t.Helper()
-	if recordTypeScriptServe {
-		body, status := getRaw(t, "http://127.0.0.1:47901"+path)
-		record.Responses[name] = recordedResponse{Status: status, Body: string(body)}
-		return body, status
-	}
 	response, found := record.Responses[name]
 	if !found {
-		t.Fatalf("typescript response not recorded: expected %q in %s, actual missing", name, record.path)
+		t.Fatalf("typescript response not recorded: expected %q (GET %s) in %s, actual missing", name, path, record.path)
 	}
 	return []byte(response.Body), response.Status
 }
@@ -367,63 +291,15 @@ func (record *typeScriptServeRecord) json(t *testing.T, name string, path string
 	return parsed
 }
 
-// createdIssueFile は TS の Web で issue を作らせ、書かれた .yaru/issues/2.md を返す
-func (record *typeScriptServeRecord) createdIssueFile(t *testing.T, slug string, root string) string {
+// createdIssueFile は、TS の Web の POST /p/ts-copy/api/issues で issue を作らせたときに書かれた .yaru/issues/2.md
+func (record *typeScriptServeRecord) createdIssueFile(t *testing.T) string {
 	t.Helper()
 	const name = "ts-copy/.yaru/issues/2.md"
-	if recordTypeScriptServe {
-		postRaw(t, "http://127.0.0.1:47901/p/"+slug+"/api/issues", `{"title":"Created","body":"from go\n"}`)
-		content := readCompareFile(t, filepath.Join(root, ".yaru", "issues", "2.md"))
-		record.Files[name] = content
-		return content
-	}
 	content, found := record.Files[name]
 	if !found {
 		t.Fatalf("typescript file not recorded: expected %q in %s, actual missing", name, record.path)
 	}
 	return content
-}
-
-func (record *typeScriptServeRecord) save(t *testing.T) {
-	t.Helper()
-	if !recordTypeScriptServe {
-		return
-	}
-	var buffer bytes.Buffer
-	encoder := json.NewEncoder(&buffer)
-	encoder.SetEscapeHTML(false)
-	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(record); err != nil {
-		t.Fatal(err)
-	}
-	text := buffer.String()
-	for _, replacement := range record.replacements {
-		text = strings.ReplaceAll(text, replacement.actual, replacement.placeholder)
-	}
-	if err := os.MkdirAll(filepath.Dir(record.path), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(record.path, []byte(text), 0o644); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func bunEnvironment(fixture string, stateDirectory string, home string, extra map[string]string) []string {
-	environment := []string{
-		"HOME=" + home,
-		"YARU_STATE_DIR=" + stateDirectory,
-		"YARU_NOW=2026-09-28T12:00:00.000Z",
-		"YARU_PUBLIC_HOST=",
-		"TZ=Asia/Tokyo",
-		"GIT_CONFIG_GLOBAL=/dev/null",
-		"GIT_CONFIG_NOSYSTEM=1",
-		"PATH=" + os.Getenv("PATH"),
-	}
-	for key, value := range extra {
-		environment = append(environment, key+"="+value)
-	}
-	_ = fixture
-	return environment
 }
 
 func gitCommand(t *testing.T, root string, home string, args ...string) {
@@ -482,24 +358,6 @@ func registeredSlug(t *testing.T, stateDirectory string, root string) string {
 	return ""
 }
 
-func waitHTTP(t *testing.T, url string) {
-	t.Helper()
-	deadline := time.Now().Add(15 * time.Second)
-	var last error
-	for time.Now().Before(deadline) {
-		response, err := http.Get(url)
-		if err == nil {
-			_ = response.Body.Close()
-			if response.StatusCode == http.StatusOK || response.StatusCode == http.StatusForbidden {
-				return
-			}
-		}
-		last = err
-		time.Sleep(50 * time.Millisecond)
-	}
-	t.Fatalf("timeout waiting for %s: %v", url, last)
-}
-
 func postJSON(t *testing.T, url string, payload string) map[string]any {
 	t.Helper()
 	body, status := postRaw(t, url, payload)
@@ -511,20 +369,6 @@ func postJSON(t *testing.T, url string, payload string) map[string]any {
 		t.Fatal(err)
 	}
 	return parsed
-}
-
-func getRaw(t *testing.T, url string) ([]byte, int) {
-	t.Helper()
-	response, err := http.Get(url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = response.Body.Close() }()
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return body, response.StatusCode
 }
 
 func postRaw(t *testing.T, url string, payload string) ([]byte, int) {
