@@ -486,7 +486,7 @@ title を `a` から `b\nc` へ更新したとき、ファイルの title は `b
 
 この worktree の `bun` で `JSON.stringify` を呼び、上の表と、`<` `>` `&` と DEL と U+2028 と U+2029 が生であることを確かめた。選択肢の例にある `\"` と `\\` は、この規則の `"` と `\` である。
 
-Go の `encoding/json` で同じバイトにするには、`SetEscapeHTML(false)` に加えて後処理が要る。`SetEscapeHTML(false)` で `<` `>` `&` は生になる。U+2028 と U+2029 は、その設定に関係なく `\u2028` と `\u2029` になるので、書いたあとに生の文字へ戻す。`\b` と `\f` も出さず `\u0008` と `\u000c` にするので、短い形に合わせる。
+Go 1.26 の `encoding/json` で同じバイトにするには、`Encoder.SetEscapeHTML(false)` を付ける。これで `<` `>` `&` は生になり、`\b` と `\f` は短い形で出る。後処理が要るのは U+2028 と U+2029 だけである。この 2 つは `\u2028` と `\u2029` になるので、書いたあとに生の文字へ戻す。`Encoder.Encode` は値のうしろに LF を足す。`JSON.stringify` は足さない。イベント行の LF は呼び出し側が付ける (`src/issue-events.ts:62`)。`options` は frontmatter の 1 行の中なので、この LF を残すと行が分かれる。
 
 ## question
 
