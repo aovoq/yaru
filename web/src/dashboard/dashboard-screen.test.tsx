@@ -216,6 +216,69 @@ test("while a draft is typed, a watch update shows N new instead of replacing th
   expect(container.textContent).toContain("新しい質問")
 })
 
+test("our own answer does not raise the refresh button when the watch echoes it", async () => {
+  let current = response()
+  const client: DashboardClient = { getDashboard: async () => current }
+  let refetch = () => {}
+  const questions: QuestionRpc = {
+    answerQuestion: async () => {
+      const answered = {
+        id: "1",
+        title: "先に答える",
+        status: QuestionStatus.ANSWERED,
+        answer: "残してよい",
+        answeredAt: "2026-09-28T11:59:55.000Z",
+        options: [],
+        author: "agent",
+        createdAt: "2026-09-28T10:00:00.000Z",
+        updatedAt: NOW,
+        body: "本文",
+      }
+      current = response({
+        questions: [answered],
+      })
+      return { now: NOW, question: answered }
+    },
+    undoAnswer: async () => {
+      throw new Error("unused")
+    },
+    cancelQuestion: async () => {
+      throw new Error("unused")
+    },
+  }
+  await mount(
+    <DashboardScreen
+      slug="app"
+      query={query}
+      fragment={null}
+      client={client}
+      questions={questions}
+      watch={(options) => {
+        refetch = options.refetch
+        return Promise.resolve()
+      }}
+    />,
+  )
+  const box = container.querySelector<HTMLTextAreaElement>("textarea")!
+  box.value = "残してよい"
+  box.dispatchEvent(new window.Event("input", { bubbles: true }) as unknown as Event)
+  await settle()
+  container
+    .querySelector("#answer-question-1")!
+    .dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }) as unknown as Event,
+    )
+  await settle()
+  refetch()
+  await settle()
+  refetch()
+  await settle()
+  await settle()
+  const button = container.querySelector<HTMLButtonElement>("#page-refresh")!
+  expect(button.hidden).toBe(true)
+  expect(container.textContent).toContain("Answered Q1")
+})
+
 test("a stored draft is restored into the empty answer box", async () => {
   window.sessionStorage.setItem(
     "yaru.drafts:/p/app/dashboard",
