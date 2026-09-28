@@ -13,85 +13,57 @@ import (
 	"github.com/aovoq/yaru/gen/yaru/v1/yaruv1connect"
 )
 
-const manifestJSON = `{"name":"yaru","short_name":"yaru","description":"Local issues. Markdown in .yaru.","start_url":"/","scope":"/","display":"standalone","background_color":"#010102","theme_color":"#010102","icons":[{"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"},{"src":"/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},{"src":"/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},{"src":"/icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}]}`
-
-func TestManifestIconsAndFontMatchTheTypeScriptBytes(t *testing.T) {
-	handler := newTestServer(t, Configuration{}).Handler()
-	manifest := perform(handler, http.MethodGet, loopbackURL+"/manifest.webmanifest", loopbackHost, "", "", nil)
-	if manifest.Code != http.StatusOK {
-		t.Fatalf("manifest status: expected 200, actual %d", manifest.Code)
-	}
-	if manifest.Header().Get("Content-Type") != "application/manifest+json" {
-		t.Fatalf("manifest type: expected application/manifest+json, actual %s", manifest.Header().Get("Content-Type"))
-	}
-	if manifest.Header().Get("Cache-Control") != "" {
-		t.Fatalf("manifest cache: expected none, actual %s", manifest.Header().Get("Cache-Control"))
-	}
-	if manifest.Body.String() != manifestJSON {
-		t.Fatalf("manifest bytes:\n%s", manifest.Body.String())
-	}
-	assertSecurityHeaders(t, manifest.Header())
-
-	svg := perform(handler, http.MethodGet, loopbackURL+"/icon.svg", loopbackHost, "", "", nil)
-	if svg.Header().Get("Content-Type") != "image/svg+xml" || svg.Body.String() != iconSVG {
-		t.Fatalf("svg: type %s body %s", svg.Header().Get("Content-Type"), svg.Body.String())
-	}
-
-	pngs := []struct {
-		path string
-		file string
-		size string
+// manifest・アイコン・フォントは web/public のファイルで、Vite がそのまま web/dist に写す
+// Go は dist の静的ファイルとして配るだけ。ここでは web/public を dist の代わりに渡す
+func TestManifestIconsAndFontAreServedFromDist(t *testing.T) {
+	publicDirectory := filepath.Join("..", "..", "web", "public")
+	handler := newTestServer(t, Configuration{Dist: os.DirFS(publicDirectory)}).Handler()
+	files := []struct {
+		path        string
+		contentType string
+		pngSize     string
 	}{
-		{path: "/apple-touch-icon.png", file: "apple-touch-icon.png", size: "180x180"},
-		{path: "/icon-192.png", file: "icon-192.png", size: "192x192"},
-		{path: "/icon-512.png", file: "icon-512.png", size: "512x512"},
-		{path: "/icon-maskable-512.png", file: "icon-maskable-512.png", size: "512x512"},
+		{path: "/manifest.webmanifest", contentType: "application/manifest+json"},
+		{path: "/icon.svg", contentType: "image/svg+xml"},
+		{path: "/apple-touch-icon.png", contentType: "image/png", pngSize: "180x180"},
+		{path: "/icon-192.png", contentType: "image/png", pngSize: "192x192"},
+		{path: "/icon-512.png", contentType: "image/png", pngSize: "512x512"},
+		{path: "/icon-maskable-512.png", contentType: "image/png", pngSize: "512x512"},
+		{path: "/fonts/InterVariable.woff2", contentType: "font/woff2"},
 	}
-	for _, image := range pngs {
-		response := perform(handler, http.MethodGet, loopbackURL+image.path, loopbackHost, "", "", nil)
-		if response.Code != http.StatusOK || response.Header().Get("Content-Type") != "image/png" {
-			t.Fatalf("%s: status %d type %s", image.path, response.Code, response.Header().Get("Content-Type"))
+	for _, file := range files {
+		response := perform(handler, http.MethodGet, loopbackURL+file.path, loopbackHost, "", "", nil)
+		if response.Code != http.StatusOK || response.Header().Get("Content-Type") != file.contentType {
+			t.Fatalf("%s: expected 200 %s, actual %d %s", file.path, file.contentType, response.Code, response.Header().Get("Content-Type"))
 		}
-		if response.Header().Get("Cache-Control") != "" {
-			t.Fatalf("%s cache: %s", image.path, response.Header().Get("Cache-Control"))
-		}
-		committed, err := os.ReadFile(filepath.Join("..", "..", "assets", "icons", image.file))
+		committed, err := os.ReadFile(filepath.Join(publicDirectory, filepath.FromSlash(file.path)))
 		if err != nil {
 			t.Fatal(err)
 		}
 		if response.Body.String() != string(committed) {
-			t.Fatalf("%s bytes differ from the committed PNG", image.path)
+			t.Fatalf("%s: bytes differ from web/public%s", file.path, file.path)
 		}
-		if pngSize(response.Body.Bytes()) != image.size {
-			t.Fatalf("%s size: expected %s, actual %s", image.path, image.size, pngSize(response.Body.Bytes()))
+		if file.pngSize != "" && pngSize(response.Body.Bytes()) != file.pngSize {
+			t.Fatalf("%s size: expected %s, actual %s", file.path, file.pngSize, pngSize(response.Body.Bytes()))
+		}
+		assertSecurityHeaders(t, response.Header())
+	}
+	for _, path := range []string{"/sw.js", "/events", "/assets/inter-4.1.woff2"} {
+		response := perform(handler, http.MethodGet, loopbackURL+path, loopbackHost, "", "", nil)
+		if response.Code != http.StatusNotFound {
+			t.Fatalf("%s: expected 404, actual %d", path, response.Code)
 		}
 	}
+}
 
-	font := perform(handler, http.MethodGet, loopbackURL+fontPath, loopbackHost, "", "", nil)
-	if font.Code != http.StatusOK || font.Header().Get("Content-Type") != "font/woff2" {
-		t.Fatalf("font: status %d type %s", font.Code, font.Header().Get("Content-Type"))
-	}
-	if font.Header().Get("Cache-Control") != fontCacheControl {
-		t.Fatalf("font cache: expected %s, actual %s", fontCacheControl, font.Header().Get("Cache-Control"))
-	}
-	committedFont, err := os.ReadFile(filepath.Join("..", "..", "assets", "fonts", "InterVariable.woff2"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if font.Body.String() != string(committedFont) {
-		t.Fatal("font bytes differ from assets/fonts/InterVariable.woff2")
-	}
-	license := perform(handler, http.MethodGet, loopbackURL+"/assets/fonts/LICENSE.txt", loopbackHost, "", "", nil)
-	if license.Code != http.StatusNotFound {
-		t.Fatalf("license: expected 404, actual %d", license.Code)
-	}
-	worker := perform(handler, http.MethodGet, loopbackURL+"/sw.js", loopbackHost, "", "", nil)
-	if worker.Code != http.StatusNotFound {
-		t.Fatalf("service worker: expected 404, actual %d", worker.Code)
-	}
-	events := perform(handler, http.MethodGet, loopbackURL+"/events", loopbackHost, "", "", nil)
-	if events.Code != http.StatusNotFound {
-		t.Fatalf("/events: expected 404, actual %d", events.Code)
+// dist に無ければ、別の場所から探さない
+func TestManifestIconsAndFontComeOnlyFromDist(t *testing.T) {
+	handler := newTestServer(t, Configuration{Dist: fstest.MapFS{}}).Handler()
+	for _, path := range []string{"/manifest.webmanifest", "/icon.svg", "/apple-touch-icon.png", "/icon-192.png", "/fonts/InterVariable.woff2"} {
+		response := perform(handler, http.MethodGet, loopbackURL+path, loopbackHost, "", "", nil)
+		if response.Code != http.StatusNotFound {
+			t.Fatalf("%s: expected 404 without the file in dist, actual %d", path, response.Code)
+		}
 	}
 }
 

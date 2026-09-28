@@ -10,7 +10,7 @@ test("index.html has no inline script and keeps the document shell", () => {
   expect(html).toContain('href="/icon.svg"')
   expect(html).toContain('href="/apple-touch-icon.png"')
   expect(html).toContain('content="#010102"')
-  expect(html).toContain("/assets/inter-4.1.woff2")
+  expect(html).toContain("/fonts/InterVariable.woff2")
   expect(html).not.toMatch(/<style[\s>]/)
   expect(html).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>/)
 })

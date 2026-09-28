@@ -25,7 +25,7 @@ const fallbackIndexHTML = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>yaru</title>
-<link rel="preload" href="/assets/inter-4.1.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -111,20 +111,6 @@ func (application *httpApplication) serve(responseWriter http.ResponseWriter, re
 		application.serveSPA(responseWriter, request, http.StatusOK)
 	case "/terminal":
 		application.serveTerminalDocument(responseWriter, request)
-	case "/manifest.webmanifest":
-		application.serveManifest(responseWriter, request)
-	case "/icon.svg":
-		application.serveIconSVG(responseWriter, request)
-	case "/apple-touch-icon.png":
-		application.servePNG(responseWriter, request, "apple-touch-icon.png")
-	case "/icon-192.png":
-		application.servePNG(responseWriter, request, "icon-192.png")
-	case "/icon-512.png":
-		application.servePNG(responseWriter, request, "icon-512.png")
-	case "/icon-maskable-512.png":
-		application.servePNG(responseWriter, request, "icon-maskable-512.png")
-	case fontPath:
-		application.serveFont(responseWriter, request)
 	default:
 		if slug, ok := workspacePageSlug(request.URL.Path); ok {
 			application.serveWorkspacePage(responseWriter, request, slug)
@@ -283,6 +269,8 @@ func staticContentType(name string) string {
 		return "image/png"
 	case ".woff2":
 		return "font/woff2"
+	case ".webmanifest":
+		return "application/manifest+json"
 	case ".json", ".map":
 		return "application/json"
 	case ".txt":
