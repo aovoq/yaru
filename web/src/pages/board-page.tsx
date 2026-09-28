@@ -1,21 +1,18 @@
+import { BoardScreen } from "../app/board-screen"
+import type { BoardApi } from "../board/board-api"
 import type { BoardQuery } from "../route"
 
-// 板の仮画面。中身は次の担当が GetPage で描く (docs/spec/routes.md の SPA の /p/:slug/)
+// 板。中身は BoardScreen が GetPage で描く (docs/spec/routes.md の SPA の /p/:slug/)
 export function BoardPage({
   slug,
   query,
   fragment,
+  api,
 }: {
   slug: string
   query: BoardQuery
   fragment: string | null
+  api?: BoardApi
 }) {
-  return (
-    <main data-screen="board" data-slug={slug}>
-      <h1 class="text-title">{slug}</h1>
-      {query.id !== null ? <p data-issue={query.id} /> : null}
-      {query.error !== null ? <p data-error={query.error} /> : null}
-      {fragment !== null ? <p data-fragment={fragment} /> : null}
-    </main>
-  )
+  return <BoardScreen slug={slug} query={query} fragment={fragment} api={api} />
 }
