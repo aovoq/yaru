@@ -246,7 +246,9 @@ export function IssueView({
             </div>
             <div class="order-5 lg:order-none lg:col-start-1 lg:row-start-3">
               {isNew ? null : (
-                <div class={`${CONTENT} mt-2 flex flex-col gap-8 pb-24 before:-mb-2 before:block before:border-t before:border-hairline`}>
+                <div
+                  class={`${CONTENT} mt-2 flex flex-col gap-8 pb-24 before:-mb-2 before:block before:border-t before:border-hairline`}
+                >
                   <SubIssues issue={issue} all={all} filters={filters} now={now} />
                   <Relations
                     issue={issue}

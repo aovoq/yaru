@@ -16,12 +16,7 @@ import type { BoardQuery } from "../route"
 import { SaveRejectedError } from "./save-error"
 import type { Issue, Priority } from "../domain/issue"
 import type { Question, QuestionStatus as QuestionStatusName } from "../domain/question"
-import {
-  DEFAULT_COMPLETED,
-  DEFAULT_GROUP,
-  DEFAULT_SORT,
-  DEFAULT_VIEW,
-} from "./filters"
+import { DEFAULT_COMPLETED, DEFAULT_GROUP, DEFAULT_SORT, DEFAULT_VIEW } from "./filters"
 import type { Comment, Commit, IssueEvent, IssueEventValue, IssuePage, SaveInput } from "./model"
 
 // proto の enum と、今の画面が使っている文字列の対応。未知の絞り込みは送らない (RPC は InvalidArgument にする)
@@ -260,7 +255,10 @@ function named(value: number | undefined, names: Record<number, string>, fallbac
   return names[value] ?? fallback
 }
 
-function optionalName(value: number | undefined, names: Record<number, string>): string | undefined {
+function optionalName(
+  value: number | undefined,
+  names: Record<number, string>,
+): string | undefined {
   if (value === undefined) return undefined
   return names[value]
 }

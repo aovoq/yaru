@@ -55,7 +55,10 @@ test("a save that never arrived keeps the draft, and Retry sends every unsaved f
 
 test("a patch the server rejects rejects without a global error, a lost one reports it", async () => {
   const harness = fakeApi()
-  harness.saveQueue.push({ kind: "reject", message: "unknown status: expected one of todo, actual x" })
+  harness.saveQueue.push({
+    kind: "reject",
+    message: "unknown status: expected one of todo, actual x",
+  })
   await mount(page(null), harness.api)
   await expect(controller.patchIssue("1", { status: "x" })).rejects.toThrow("unknown status")
   await settle()
@@ -68,7 +71,10 @@ test("a patch the server rejects rejects without a global error, a lost one repo
 
 test("moving an issue on the board never leaves a rejected promise behind", async () => {
   const harness = fakeApi()
-  harness.saveQueue.push({ kind: "reject", message: "unknown status: expected one of todo, actual x" })
+  harness.saveQueue.push({
+    kind: "reject",
+    message: "unknown status: expected one of todo, actual x",
+  })
   await mount(page(null), harness.api)
   await controller.moveIssue("1", "x")
   await settle()

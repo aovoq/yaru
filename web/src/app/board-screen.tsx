@@ -217,4 +217,3 @@ function known<Choice extends string>(
   if (value !== null && (choices as readonly string[]).includes(value)) return value as Choice
   return undefined
 }
-

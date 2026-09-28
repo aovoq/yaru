@@ -27,16 +27,16 @@
 
 ### 段階 0: 約束を固める
 
-| id | 作業 | 成果物 | 状態 |
-|---|---|---|---|
-| P0-clock | 時刻を外から固定する口 `YARU_NOW` を TS 版に足す (テストから) | `src/` の変更とテスト | 取り込み済み (b03d5c7) |
-| P0-format | `.yaru/` の形式の仕様を書く | `docs/spec/yaru-format.md` | 取り込み済み |
-| P0-golden | CLI の場面を流して出力と `.yaru/` を記録・照合する仕組み (Go 版にも流せる)。データの golden はこれで兼ねる | `spec/golden/` | 取り込み済み |
-| P0-golden-scenarios | 全部のコマンドの場面を書いて記録する | `spec/golden/scenarios/` | 取り込み済み (714 場面) |
-| P0-routes | 全部の入口の一覧と、SPA + Connect への対応 (RPC・server stream・静的) | `docs/spec/routes.md` と `docs/spec/proto-draft/` | 取り込み済み |
-| P0-ui | 全部の状態の画面のシナリオ (1280 と 390) | `spec/ui/` | grok 作業中 |
-| P0-security | 守りの約束 | `docs/spec/security.md` | 取り込み済み |
-| P0-layout | Go のフォルダの作り・go.mod・declscope と depguard の設定 | 司令塔が作る | 取り込み済み (6f9c393) |
+| id                  | 作業                                                                                                       | 成果物                                            | 状態                    |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ----------------------- |
+| P0-clock            | 時刻を外から固定する口 `YARU_NOW` を TS 版に足す (テストから)                                              | `src/` の変更とテスト                             | 取り込み済み (b03d5c7)  |
+| P0-format           | `.yaru/` の形式の仕様を書く                                                                                | `docs/spec/yaru-format.md`                        | 取り込み済み            |
+| P0-golden           | CLI の場面を流して出力と `.yaru/` を記録・照合する仕組み (Go 版にも流せる)。データの golden はこれで兼ねる | `spec/golden/`                                    | 取り込み済み            |
+| P0-golden-scenarios | 全部のコマンドの場面を書いて記録する                                                                       | `spec/golden/scenarios/`                          | 取り込み済み (714 場面) |
+| P0-routes           | 全部の入口の一覧と、SPA + Connect への対応 (RPC・server stream・静的)                                      | `docs/spec/routes.md` と `docs/spec/proto-draft/` | 取り込み済み            |
+| P0-ui               | 全部の状態の画面のシナリオ (1280 と 390)                                                                   | `spec/ui/`                                        | grok 作業中             |
+| P0-security         | 守りの約束                                                                                                 | `docs/spec/security.md`                           | 取り込み済み            |
+| P0-layout           | Go のフォルダの作り・go.mod・declscope と depguard の設定                                                  | 司令塔が作る                                      | 取り込み済み (6f9c393)  |
 
 入口の一覧 (P0-routes) には、JSON の API だけでなく次を全部入れる: フォームの POST と redirect (回答・取り下げ・選択肢)、SSE とライブ更新、PWA の manifest とアイコン、フォントと静的ファイル、Inbox、404。
 
@@ -54,12 +54,12 @@ Nix と launchd の向き先を替える。古い `dist/yaru.js` は戻せるよ
 
 ## 台帳
 
-| 日時 | 出来事 |
-|---|---|
-| 2026-09-28 | `feat/change-go` を main (613a9e0) から作成。AGENTS.md に Go 移行の決まり、`.grok/config.toml` に拒否の決まりを追加 |
-| 2026-09-28 | 試験として grok 1 体で P0-clock。拒否の決まり (push・herdr・司令塔の worktree への書き込み) が効くことを確認。Claude のレビューで要修正 2 点 (待ち時間を単調時計で測る、存在しない日を拒む) を直させて取り込み |
-| 2026-09-28 | P0-format・routes・ui・security・golden を grok 5 体で並列に開始 |
-| 2026-09-28 | P0-golden・format・security・routes を Claude の 2〜3 回のレビューのあとで取り込み。段階 0 の確認でユーザーが推奨どおりを承認し、守りは tailscale で担保する方針に決定 |
-| 2026-09-28 | 段階 1 の第 1 陣 (土台・workspace・store・questions・repository/sessions・CLI) を取り込み。Go 版の CLI で golden の 714 場面が全部通った。proto を proto/yaru/v1 に上げて生成。第 2 陣 (サーバーの芯・API 2 本・画面の土台・端末) を開始 |
+| 日時       | 出来事                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-28 | `feat/change-go` を main (613a9e0) から作成。AGENTS.md に Go 移行の決まり、`.grok/config.toml` に拒否の決まりを追加                                                                                                                                                                                                                                                                                                                           |
+| 2026-09-28 | 試験として grok 1 体で P0-clock。拒否の決まり (push・herdr・司令塔の worktree への書き込み) が効くことを確認。Claude のレビューで要修正 2 点 (待ち時間を単調時計で測る、存在しない日を拒む) を直させて取り込み                                                                                                                                                                                                                                |
+| 2026-09-28 | P0-format・routes・ui・security・golden を grok 5 体で並列に開始                                                                                                                                                                                                                                                                                                                                                                              |
+| 2026-09-28 | P0-golden・format・security・routes を Claude の 2〜3 回のレビューのあとで取り込み。段階 0 の確認でユーザーが推奨どおりを承認し、守りは tailscale で担保する方針に決定                                                                                                                                                                                                                                                                        |
+| 2026-09-28 | 段階 1 の第 1 陣 (土台・workspace・store・questions・repository/sessions・CLI) を取り込み。Go 版の CLI で golden の 714 場面が全部通った。proto を proto/yaru/v1 に上げて生成。第 2 陣 (サーバーの芯・API 2 本・画面の土台・端末) を開始                                                                                                                                                                                                      |
 | 2026-09-28 | 段階 1・2 を完了。データ層・CLI・サーバー・API・端末・画面・Nix のパッケージを取り込み。Go 版の CLI で golden 714 場面が一致、API の主な入口が新旧で一致、画面は板・issue・Dashboard 系を 1280 と 390 で見比べて一致 (違いは全て直した)。守りは Claude のレビューで入口の検査を実際に試して合格。nix build した yaru で golden 714 場面が一致し、本物の herdr (テスト用のセッション) で端末がつながることを確認。切り替えのユーザーの確認待ち |
-| 2026-09-28 | 段階 3: feat/change-go を main に取り込み (d55d708)、dotfiles (2e913c8) で常駐の yaru serve と CLI を Go 版に切り替えた。本物のワークスペースで板・API・公開 host・CLI の出力を確認。~/.bun/bin/yaru (TS 版への bun link) を外した。作業の worktree とブランチは全て片付けた。古い TS 版 (src/ と dist/yaru.js) の削除はユーザーの確認待ち |
+| 2026-09-28 | 段階 3: feat/change-go を main に取り込み (d55d708)、dotfiles (2e913c8) で常駐の yaru serve と CLI を Go 版に切り替えた。本物のワークスペースで板・API・公開 host・CLI の出力を確認。~/.bun/bin/yaru (TS 版への bun link) を外した。作業の worktree とブランチは全て片付けた。古い TS 版 (src/ と dist/yaru.js) の削除はユーザーの確認待ち                                                                                                    |

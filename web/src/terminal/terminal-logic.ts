@@ -198,10 +198,14 @@ export type GestureEnd =
   | { kind: "none" }
 
 // 左へ払うと次のタブ (^B n)、右へ払うと前のタブ (^B p)。縦はスクロールの惰性。Terminal.tsx:187-216
-export function endGesture(gesture: Gesture | undefined, point: GesturePoint | undefined): GestureEnd {
+export function endGesture(
+  gesture: Gesture | undefined,
+  point: GesturePoint | undefined,
+): GestureEnd {
   if (!gesture || !point) return { kind: "none" }
   if (gesture.axis === "y") {
-    if (Math.abs(gesture.velocity) > INERTIA_START) return { kind: "inertia", velocity: gesture.velocity }
+    if (Math.abs(gesture.velocity) > INERTIA_START)
+      return { kind: "inertia", velocity: gesture.velocity }
     return { kind: "none" }
   }
   const deltaX = point.clientX - gesture.originX

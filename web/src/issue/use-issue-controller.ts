@@ -12,7 +12,15 @@ import {
   type ClientAction,
   type ClientState,
 } from "./draft-state"
-import { deleteNewIssueParams, documentTitle, draftsFromQuery, hasReturnedParams, pageFilters, pageHref, withoutReturnedParams } from "./filters"
+import {
+  deleteNewIssueParams,
+  documentTitle,
+  draftsFromQuery,
+  hasReturnedParams,
+  pageFilters,
+  pageHref,
+  withoutReturnedParams,
+} from "./filters"
 import type { Comment, DraftField, SaveInput } from "./model"
 import {
   commentFromProto,
@@ -34,7 +42,9 @@ const SAVED_VISIBLE_MS = 2000
 
 export type IssueClients = {
   page: { getPage(request: GetPageInit): Promise<PageResponse> }
-  issues: { saveIssue(request: SaveIssueInit): Promise<{ issue?: PageResponse["current"]; now: string }> }
+  issues: {
+    saveIssue(request: SaveIssueInit): Promise<{ issue?: PageResponse["current"]; now: string }>
+  }
   comments: {
     saveComment(request: { workspace: string; issue?: string; body?: string }): Promise<{
       comment?: Parameters<typeof commentFromProto>[0]
@@ -130,7 +140,9 @@ export function useIssueController({
   const load = useCallback(
     async (preserveDraft: boolean) => {
       const sequence = ++requestSequence.current
-      const requestQuery = includeReturned.current ? queryRef.current : withoutReturned(queryRef.current)
+      const requestQuery = includeReturned.current
+        ? queryRef.current
+        : withoutReturned(queryRef.current)
       includeReturned.current = false
       try {
         const response = await clientsRef.current.page.getPage(

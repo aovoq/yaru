@@ -70,15 +70,25 @@ test("a new issue is unsaved once it has a title or a description", () => {
   const status = reduceClientState(blank, { type: "draftChanged", field: "status", value: "done" })
   expect(hasUnsavedChanges(status)).toBe(false)
   expect(
-    hasUnsavedChanges(reduceClientState(blank, { type: "draftChanged", field: "title", value: " a " })),
+    hasUnsavedChanges(
+      reduceClientState(blank, { type: "draftChanged", field: "title", value: " a " }),
+    ),
   ).toBe(true)
   expect(
-    hasUnsavedChanges(reduceClientState(blank, { type: "draftChanged", field: "body", value: "b" })),
+    hasUnsavedChanges(
+      reduceClientState(blank, { type: "draftChanged", field: "body", value: "b" }),
+    ),
   ).toBe(true)
 })
 
 test("retry sends only the fields that differ, ignoring title whitespace", () => {
-  const saved = { ...BLANK_ISSUE, id: "1", title: "topic", labels: ["a"], priority: "high" as const }
+  const saved = {
+    ...BLANK_ISSUE,
+    id: "1",
+    title: "topic",
+    labels: ["a"],
+    priority: "high" as const,
+  }
   expect(unsavedChanges(saved, saved)).toEqual({})
   expect(
     unsavedChanges(
@@ -90,7 +100,11 @@ test("retry sends only the fields that differ, ignoring title whitespace", () =>
 
 test("a reload keeps a field that is still being typed and drops it when the server caught up", () => {
   const initial = createClientState(page("topic"), { comment: "hello" })
-  const typing = reduceClientState(initial, { type: "draftChanged", field: "title", value: "typing" })
+  const typing = reduceClientState(initial, {
+    type: "draftChanged",
+    field: "title",
+    value: "typing",
+  })
   const refreshed = reduceClientState(typing, {
     type: "pageLoaded",
     page: page("topic"),

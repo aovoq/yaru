@@ -105,7 +105,11 @@ function page(overrides: Partial<PageResponse> = {}): PageResponse {
   }
 }
 
-function question(id: string, title: string, overrides: Partial<ProtoQuestion> = {}): ProtoQuestion {
+function question(
+  id: string,
+  title: string,
+  overrides: Partial<ProtoQuestion> = {},
+): ProtoQuestion {
   return {
     id,
     title,
@@ -149,7 +153,11 @@ function harness(initial: PageResponse): Harness {
         saves.push(request)
         if (saveError) throw saveError
         if (!request.id && current.current) {
-          const created = { ...current.current, id: "8", title: request.title ?? current.current.title }
+          const created = {
+            ...current.current,
+            id: "8",
+            title: request.title ?? current.current.title,
+          }
           current = { ...current, current: created }
           return { issue: created, now: current.now }
         }
@@ -238,7 +246,13 @@ function byText(root: ParentNode, selector: string, text: string): HTMLElement {
 test("opening an issue reads GetPage and shows the title against the response clock", async () => {
   const api = harness(page())
   const root = await mount(
-    <IssueScreen workspace="demo" issueId="1" query={boardQuery()} clients={api.clients} onNavigate={() => {}} />,
+    <IssueScreen
+      workspace="demo"
+      issueId="1"
+      query={boardQuery()}
+      clients={api.clients}
+      onNavigate={() => {}}
+    />,
   )
   expect(api.pages[0]).toMatchObject({ workspace: "demo", id: "1" })
   const title = root.querySelector<HTMLTextAreaElement>('textarea[name="title"]')!
@@ -273,7 +287,11 @@ test("a new issue focuses the title and creates through SaveIssue without an id"
   click(byText(root, "button", "Create issue"))
   await settle()
   await settle()
-  expect(api.saves[0]).toMatchObject({ workspace: "demo", title: "Hello", status: IssueStatus.TODO })
+  expect(api.saves[0]).toMatchObject({
+    workspace: "demo",
+    title: "Hello",
+    status: IssueStatus.TODO,
+  })
   expect(api.saves[0]?.id).toBeUndefined()
   expect(opened).toEqual(["/p/demo/?id=8"])
 })
@@ -281,16 +299,20 @@ test("a new issue focuses the title and creates through SaveIssue without an id"
 test("choosing a status saves that field once", async () => {
   const api = harness(page())
   const root = await mount(
-    <IssueScreen workspace="demo" issueId="1" query={boardQuery()} clients={api.clients} onNavigate={() => {}} />,
+    <IssueScreen
+      workspace="demo"
+      issueId="1"
+      query={boardQuery()}
+      clients={api.clients}
+      onNavigate={() => {}}
+    />,
   )
   click(root.querySelector('[data-property="status"] button'))
   await settle()
   click(byText(root, '[role="option"]', "In Progress"))
   await settle()
   await settle()
-  expect(api.saves).toEqual([
-    { workspace: "demo", id: "1", status: IssueStatus.IN_PROGRESS },
-  ])
+  expect(api.saves).toEqual([{ workspace: "demo", id: "1", status: IssueStatus.IN_PROGRESS }])
   expect(root.querySelector("[data-popover]")).toBeNull()
 })
 
@@ -303,7 +325,13 @@ test("a rejected property is reverted and the reason sits on that row", async ()
     ),
   )
   const root = await mount(
-    <IssueScreen workspace="demo" issueId="1" query={boardQuery()} clients={api.clients} onNavigate={() => {}} />,
+    <IssueScreen
+      workspace="demo"
+      issueId="1"
+      query={boardQuery()}
+      clients={api.clients}
+      onNavigate={() => {}}
+    />,
   )
   click(root.querySelector('[data-property="priority"] button'))
   await settle()
@@ -321,7 +349,13 @@ test("a failed save keeps the draft and Retry sends it again", async () => {
   const api = harness(page())
   api.failSave(new ConnectError("upstream unavailable", Code.Unavailable))
   const root = await mount(
-    <IssueScreen workspace="demo" issueId="1" query={boardQuery()} clients={api.clients} onNavigate={() => {}} />,
+    <IssueScreen
+      workspace="demo"
+      issueId="1"
+      query={boardQuery()}
+      clients={api.clients}
+      onNavigate={() => {}}
+    />,
   )
   const title = root.querySelector<HTMLTextAreaElement>('textarea[name="title"]')!
   title.value = "retitled"
@@ -401,7 +435,13 @@ test("a live refresh keeps the title that is still being typed", async () => {
 test("checking a task saves the toggled markdown", async () => {
   const api = harness(page())
   const root = await mount(
-    <IssueScreen workspace="demo" issueId="1" query={boardQuery()} clients={api.clients} onNavigate={() => {}} />,
+    <IssueScreen
+      workspace="demo"
+      issueId="1"
+      query={boardQuery()}
+      clients={api.clients}
+      onNavigate={() => {}}
+    />,
   )
   click(root.querySelector('#issue-description-preview input[type="checkbox"]'))
   await settle()
@@ -431,7 +471,13 @@ test("an issue link inside the description asks the board to open it", async () 
 test("marking another issue as blocking this one saves that issue's blocks", async () => {
   const api = harness(page())
   const root = await mount(
-    <IssueScreen workspace="demo" issueId="1" query={boardQuery()} clients={api.clients} onNavigate={() => {}} />,
+    <IssueScreen
+      workspace="demo"
+      issueId="1"
+      query={boardQuery()}
+      clients={api.clients}
+      onNavigate={() => {}}
+    />,
   )
   click(root.querySelector('[data-property="blockedBy"] button'))
   await settle()
@@ -448,10 +494,20 @@ test("marking another issue as blocking this one saves that issue's blocks", asy
 })
 
 test("sub-issues, commits, and activity use the page payload", async () => {
-  const child = protoIssue({ id: "3", title: "child", parent: "1", status: IssueStatus.DONE, body: "" })
+  const child = protoIssue({
+    id: "3",
+    title: "child",
+    parent: "1",
+    status: IssueStatus.DONE,
+    body: "",
+  })
   const api = harness(
     page({
-      all: [protoIssue(), protoIssue({ id: "2", title: "other issue", body: "", blocks: ["9"] }), child],
+      all: [
+        protoIssue(),
+        protoIssue({ id: "2", title: "other issue", body: "", blocks: ["9"] }),
+        child,
+      ],
       events: [
         {
           field: "priority",
@@ -473,7 +529,13 @@ test("sub-issues, commits, and activity use the page payload", async () => {
     }),
   )
   const root = await mount(
-    <IssueScreen workspace="demo" issueId="1" query={boardQuery()} clients={api.clients} onNavigate={() => {}} />,
+    <IssueScreen
+      workspace="demo"
+      issueId="1"
+      query={boardQuery()}
+      clients={api.clients}
+      onNavigate={() => {}}
+    />,
   )
   expect(root.querySelector('a[aria-label="Add sub-issue"]')?.getAttribute("href")).toBe(
     "/p/demo/?id=new&new_parent=1",
@@ -487,7 +549,13 @@ test("sub-issues, commits, and activity use the page payload", async () => {
 test("a comment is posted through SaveComment and appears in the activity", async () => {
   const api = harness(page())
   const root = await mount(
-    <IssueScreen workspace="demo" issueId="1" query={boardQuery()} clients={api.clients} onNavigate={() => {}} />,
+    <IssueScreen
+      workspace="demo"
+      issueId="1"
+      query={boardQuery()}
+      clients={api.clients}
+      onNavigate={() => {}}
+    />,
   )
   const textarea = root.querySelector<HTMLTextAreaElement>('textarea[form="comment-form"]')!
   textarea.value = "looks good"
@@ -507,7 +575,13 @@ test("a comment that fails to post keeps its text and says why", async () => {
     throw new Error("comment body is required")
   }
   const root = await mount(
-    <IssueScreen workspace="demo" issueId="1" query={boardQuery()} clients={api.clients} onNavigate={() => {}} />,
+    <IssueScreen
+      workspace="demo"
+      issueId="1"
+      query={boardQuery()}
+      clients={api.clients}
+      onNavigate={() => {}}
+    />,
   )
   const textarea = root.querySelector<HTMLTextAreaElement>('textarea[form="comment-form"]')!
   textarea.value = "draft"
@@ -517,13 +591,21 @@ test("a comment that fails to post keeps its text and says why", async () => {
   await settle()
   await settle()
   expect(textarea.value).toBe("draft")
-  expect(root.querySelector("[data-comment-error]")?.textContent).toContain("comment body is required")
+  expect(root.querySelector("[data-comment-error]")?.textContent).toContain(
+    "comment body is required",
+  )
 })
 
 test("a waiting question is above the title and answering it calls AnswerQuestion", async () => {
   const api = harness(page({ questions: [question("11", "待っている質問")] }))
   const root = await mount(
-    <IssueScreen workspace="demo" issueId="1" query={boardQuery()} clients={api.clients} onNavigate={() => {}} />,
+    <IssueScreen
+      workspace="demo"
+      issueId="1"
+      query={boardQuery()}
+      clients={api.clients}
+      onNavigate={() => {}}
+    />,
   )
   const card = root.querySelector("#q-11")!
   const title = root.querySelector('textarea[name="title"]')!

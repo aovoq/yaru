@@ -1,12 +1,6 @@
 import type { Issue } from "../domain/issue"
 import { pageFilters } from "./filters"
-import type {
-  DraftField,
-  IssuePage,
-  ReturnedDrafts,
-  SaveInput,
-  SaveState,
-} from "./model"
+import type { DraftField, IssuePage, ReturnedDrafts, SaveInput, SaveState } from "./model"
 
 // issue 画面の下書き。板のまとめて選択は持たない。比べ方は src/client/state.ts と同じ
 
@@ -53,7 +47,10 @@ const EDITABLE_FIELDS: DraftField[] = [
   "body",
 ]
 
-export function createClientState(page: IssuePage, returnedDrafts: ReturnedDrafts = {}): ClientState {
+export function createClientState(
+  page: IssuePage,
+  returnedDrafts: ReturnedDrafts = {},
+): ClientState {
   return {
     current: page.current,
     saved: page.current,

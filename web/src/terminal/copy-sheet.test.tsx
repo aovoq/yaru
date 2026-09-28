@@ -27,7 +27,9 @@ async function settle(): Promise<void> {
 }
 
 function button(label: string): HTMLButtonElement {
-  const found = [...container.querySelectorAll("button")].find((candidate) => candidate.textContent === label)
+  const found = [...container.querySelectorAll("button")].find(
+    (candidate) => candidate.textContent === label,
+  )
   if (!found) throw new Error(`missing button ${label}`)
   return found as HTMLButtonElement
 }

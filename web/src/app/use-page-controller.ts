@@ -46,7 +46,10 @@ export type PageControllerOptions = {
 
 // 板の読み込みと保存。最初の表示は GetPage から取る (docs/spec/routes.md の「SPA が受け取る path」)
 // ライブ更新は WatchWorkspace。最初の ready でも取り直す。その 1 回だけは、URL の誤りを消さない
-export function usePageController(initialPage: PageData, options: PageControllerOptions): PageController {
+export function usePageController(
+  initialPage: PageData,
+  options: PageControllerOptions,
+): PageController {
   const { api, loadOnMount = false } = options
   const [state, dispatch] = useReducer(reduceClientState, initialPage, (page: PageData) =>
     createClientState(page, options.returnedDrafts ?? {}),

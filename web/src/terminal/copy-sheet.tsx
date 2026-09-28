@@ -133,9 +133,7 @@ export function CopySheet({
           {sheetBody(loadError, panes, textLoading, textError, text)}
         </pre>
         <footer class="flex items-center justify-between gap-3 border-t border-hairline px-3 pt-2.5 pb-[calc(env(safe-area-inset-bottom)+10px)]">
-          <span class="text-small text-ink-subtle">
-            {toast || "長押しで範囲を選んでコピー"}
-          </span>
+          <span class="text-small text-ink-subtle">{toast || "長押しで範囲を選んでコピー"}</span>
           <Button variant="primary" size="md" disabled={!text} onClick={() => void copyAll()}>
             全部コピー
           </Button>

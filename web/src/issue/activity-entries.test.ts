@@ -50,9 +50,11 @@ test("recorded status changes replace the lifecycle entries derived from the tim
     "lifecycle",
     "lifecycle",
   ])
-  const withEvents = activityEntries(issue, [], [
-    event({ field: "status", from: "todo", to: "in_progress" }),
-  ])
+  const withEvents = activityEntries(
+    issue,
+    [],
+    [event({ field: "status", from: "todo", to: "in_progress" })],
+  )
   expect(withEvents.map((entry) => entry.kind)).toEqual(["lifecycle", "change"])
 })
 

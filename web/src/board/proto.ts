@@ -214,7 +214,9 @@ export function saveIssueRequest(workspace: string, input: Partial<SaveInput>) {
     input.addBlockedBy !== undefined ||
     input.removeBlockedBy !== undefined
   if (replacesBlocks && changesBlocks) {
-    throw new SaveRejectedError("invalid blocks: expected either blocks or block delta, actual both")
+    throw new SaveRejectedError(
+      "invalid blocks: expected either blocks or block delta, actual both",
+    )
   }
   if (input.body !== undefined && input.patch !== undefined) {
     throw new SaveRejectedError("invalid body: expected either body or patch, actual both")
@@ -403,7 +405,9 @@ function namedSort(sort: IssueSort): SortName {
   if (sort === IssueSort.UNSPECIFIED) return DEFAULT_ISSUE_DISPLAY.sort
   const name = SORT_NAMES.find((candidate) => SORT_ENUM[candidate] === sort)
   if (!name) {
-    throw new Error(`invalid sort: expected ${joinChoices(SORT_NAMES)}, actual ${statusNameOrNumber(sort)}`)
+    throw new Error(
+      `invalid sort: expected ${joinChoices(SORT_NAMES)}, actual ${statusNameOrNumber(sort)}`,
+    )
   }
   return name
 }
@@ -433,7 +437,9 @@ function namedCompleted(completed: CompletedVisibility): CompletedName {
 function viewName(view: IssueView): ViewMode {
   if (view === IssueView.UNSPECIFIED || view === IssueView.LIST) return "list"
   if (view === IssueView.BOARD) return "board"
-  throw new Error(`invalid view: expected ${joinChoices(VIEW_NAMES)}, actual ${statusNameOrNumber(view)}`)
+  throw new Error(
+    `invalid view: expected ${joinChoices(VIEW_NAMES)}, actual ${statusNameOrNumber(view)}`,
+  )
 }
 
 function optionalChoice<Choice extends string>(
@@ -451,7 +457,9 @@ function requiredChoice<Choice extends string>(
   value: string,
 ): Choice {
   if ((choices as readonly string[]).includes(value)) return value as Choice
-  throw new SaveRejectedError(`invalid ${name}: expected ${joinChoices(choices)}, actual ${JSON.stringify(value)}`)
+  throw new SaveRejectedError(
+    `invalid ${name}: expected ${joinChoices(choices)}, actual ${JSON.stringify(value)}`,
+  )
 }
 
 function stringList(values: string[] | undefined) {

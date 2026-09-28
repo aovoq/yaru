@@ -158,7 +158,10 @@ export function useBoardInteractions(
   // 板の外はページを読み直して開く。/terminal は CSP が違うので、入るときも出るときも読み直す。
   const go = (href: string) => {
     const url = new URL(href, window.location.href)
-    if (requiresDocumentReload(window.location.pathname, url.pathname) || url.pathname !== `${basePath}/`) {
+    if (
+      requiresDocumentReload(window.location.pathname, url.pathname) ||
+      url.pathname !== `${basePath}/`
+    ) {
       window.location.assign(url.href)
       return
     }

@@ -70,7 +70,8 @@ export function TerminalView({
       await loadFont()
       if (disposed) return
       const provided = engine
-      const active = provided ?? (await import("./terminal-engine")).createTerminalEngine(fontSizeRef.current)
+      const active =
+        provided ?? (await import("./terminal-engine")).createTerminalEngine(fontSizeRef.current)
       if (disposed) {
         if (!provided) active.dispose()
         return
@@ -267,7 +268,10 @@ export function TerminalView({
         >
           {FONT_SMALLER_LABEL}
         </Button>
-        <span data-font-size={fontSize} class="min-w-5 shrink-0 text-center font-mono text-small text-ink-subtle">
+        <span
+          data-font-size={fontSize}
+          class="min-w-5 shrink-0 text-center font-mono text-small text-ink-subtle"
+        >
           {fontSize}
         </span>
         <Button

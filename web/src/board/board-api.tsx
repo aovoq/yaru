@@ -10,7 +10,14 @@ import type { SaveIssueRequest, SaveIssueResponse } from "../gen/yaru/v1/issue_p
 import type { GetPageRequest, GetPageResponse } from "../gen/yaru/v1/page_pb"
 import type { Issue } from "../domain/issue"
 import type { InboxWorkspace, PageData, SaveInput } from "./page-data"
-import { errorFromLoad, errorFromSave, issueFromSave, pageFromResponse, pageRequestFromHref, saveIssueRequest } from "./proto"
+import {
+  errorFromLoad,
+  errorFromSave,
+  issueFromSave,
+  pageFromResponse,
+  pageRequestFromHref,
+  saveIssueRequest,
+} from "./proto"
 
 // 板が使う Connect の口。テストはここを偽の返事に差し替える (docs/spec/routes.md の GetPage・SaveIssue・GetInbox・WatchWorkspace)
 
@@ -24,7 +31,11 @@ export type BoardApi = {
 export type BoardClients = {
   page: { getPage: (request: GetPageRequest) => Promise<GetPageResponse> }
   issues: { saveIssue: (request: SaveIssueRequest) => Promise<SaveIssueResponse> }
-  inbox: { getInbox: (request: ReturnType<typeof create<typeof GetInboxRequestSchema>>) => Promise<GetInboxResponse> }
+  inbox: {
+    getInbox: (
+      request: ReturnType<typeof create<typeof GetInboxRequestSchema>>,
+    ) => Promise<GetInboxResponse>
+  }
   transport: Transport
 }
 
@@ -80,7 +91,13 @@ const MISSING_BOARD_API: BoardApi = {
   subscribe: async () => {},
 }
 
-export function BoardApiProvider({ api, children }: { api: BoardApi; children?: ComponentChildren }) {
+export function BoardApiProvider({
+  api,
+  children,
+}: {
+  api: BoardApi
+  children?: ComponentChildren
+}) {
   return <BoardApiContext.Provider value={api}>{children}</BoardApiContext.Provider>
 }
 

@@ -19,7 +19,13 @@ const two: Issue = { ...BLANK, id: "2", title: "two", status: "todo" }
 
 test("an open issue makes only the board inert and keeps the issue after the sidebar", () => {
   const html = renderToString(
-    <BoardScreen slug="app" query={query()} fragment={null} api={idleApi()} initialPage={board(one)} />,
+    <BoardScreen
+      slug="app"
+      query={query()}
+      fragment={null}
+      api={idleApi()}
+      initialPage={board(one)}
+    />,
   )
   const root = document.createElement("div")
   root.innerHTML = html
@@ -36,7 +42,13 @@ test("an open issue makes only the board inert and keeps the issue after the sid
 
 test("the board is not inert while no issue is open", () => {
   const html = renderToString(
-    <BoardScreen slug="app" query={query()} fragment={null} api={idleApi()} initialPage={board(null)} />,
+    <BoardScreen
+      slug="app"
+      query={query()}
+      fragment={null}
+      api={idleApi()}
+      initialPage={board(null)}
+    />,
   )
   const root = document.createElement("div")
   root.innerHTML = html
@@ -58,7 +70,9 @@ test("j selects the next row in the order on the board", async () => {
 test("a right click on a row opens the issue menu", async () => {
   const root = await mount(board(null))
   const row = root.querySelector<HTMLElement>('[data-id="1"]')!
-  row.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 8, clientY: 8 }))
+  row.dispatchEvent(
+    new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 8, clientY: 8 }),
+  )
   await settle()
   expect(root.textContent).toContain("Open issue")
 })
@@ -136,7 +150,13 @@ async function mount(initial: PageData): Promise<HTMLElement> {
   container = document.createElement("div")
   document.body.appendChild(container)
   render(
-    <BoardScreen slug="app" query={query()} fragment={null} api={idleApi()} initialPage={initial} />,
+    <BoardScreen
+      slug="app"
+      query={query()}
+      fragment={null}
+      api={idleApi()}
+      initialPage={initial}
+    />,
     container,
   )
   await settle()

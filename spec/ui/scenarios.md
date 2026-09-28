@@ -20,26 +20,26 @@
 
 板 (`src/client/app.tsx:85-156`) と dashboard (`src/ui/page-shell.tsx` のコメント、`src/client/board/sidebar.tsx:50`) に共通する。
 
-| 場所 | 1280 | 390 |
-| --- | --- | --- |
-| サイドバー `#sidebar` | 見える (`md:flex`)。下端に `C` `new`、`/` `search`、`J` `K` `move` (`src/client/board/sidebar.tsx:128-129`) | 出ない (`hidden`)。畳むボタンも出ない |
-| ロゴ | サイドバーの中 | 見出しの帯の左 (`src/client/board/header.tsx:44` の `md:hidden`) |
-| 見出しの題と件数 (`All issues` など) | `sm` 以上で出る (`src/client/board/header.tsx:56`) | 出ない |
-| 検索 | 帯の中の欄。空のとき右に `/` (`src/client/board/search-box.tsx:60`, `104`) | 虫眼鏡 `#search-open` だけ。押すと帯いっぱい (`data-expanded`) |
-| Display | アイコンと `Display` (`lg:inline`, `src/client/board/display-menu.tsx:32`) | アイコンだけ。面は左右 1rem を空けて帯の下 (`max-sm:fixed`, 同 20 行) |
-| New issue | 文字は `New issue` (`src/client/board/header.tsx:107`) | 文字は `New` (同 108 行) |
-| ⌘K | `#command-palette-open` に `⌘K` (`src/client/board/command-palette-button.tsx:25`) | アイコンだけ |
-| 絞り込みの札 | 見出しの帯 (`hidden` … `md:flex`, `src/client/board/header.tsx:67`)。検索語の札は出さない | `#board` の上の帯 (`md:hidden`, `src/client/board/mobile-status-nav.tsx:19`)。検索語も札にする (`includeQuery`) |
-| 状態の切り替え | サイドバーの Status | 横に流れる `All` と 5 状態 (`src/client/board/mobile-status-nav.tsx:27-38`) |
-| dashboard への数 | サイドバーの Dashboard の件数 | 帯の `#mobile-dashboard-link`。数だけ見える (`src/client/board/header.tsx:72-82`) |
-| 一覧の行 | 1 行。`lg` で全部のラベル、`sm` で期日の列 (`src/client/board/issue-row.tsx:71-78`) | 題名の下に期日と、code point で最初のラベル 1 つ (`data-row-meta`, 同 63 行)。担当の丸は残る |
-| 板の列 (`view=board`) | 列幅 272px、snap なし (`src/client/board/board-column.tsx:64`, `src/client/board/board-view.tsx:35`) | 列幅 `85vw`、横スクロールで 1 列ずつ止まる (`snap-x`) |
-| issue 画面 | `lg` で左が本文、右 18rem が属性 (`src/client/issue-view.tsx:170`) | 1 列。順は答え待ち、題名、よく変える属性、説明、残りの属性、子 issue 以降 (同 32 行のコメント) |
-| 属性の見出し `Properties` | 出る (`hidden lg:block`, 同 201 行) | 出ない。上下の線で区切る |
-| issue のパンくずの題名 | `sm` 以上で出る (`src/client/issue/issue-view-header.tsx:52`) | 番号だけ |
-| `⌘⏎` の表記 | Create、Comment、Answer に出る | 出ない (`hidden` … `sm:inline-flex`) |
-| 入力欄の字 | `sm` 以上は本文の 13px | 16px。iOS が拡大しないため (`src/css.tsx:59`, `src/client/board/search-box.tsx:102`) |
-| 画面の高さ | `h-dvh` (`src/client/app.tsx:87-90`) | 同じ。`100vh` は使わない |
+| 場所                                 | 1280                                                                                                        | 390                                                                                                             |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| サイドバー `#sidebar`                | 見える (`md:flex`)。下端に `C` `new`、`/` `search`、`J` `K` `move` (`src/client/board/sidebar.tsx:128-129`) | 出ない (`hidden`)。畳むボタンも出ない                                                                           |
+| ロゴ                                 | サイドバーの中                                                                                              | 見出しの帯の左 (`src/client/board/header.tsx:44` の `md:hidden`)                                                |
+| 見出しの題と件数 (`All issues` など) | `sm` 以上で出る (`src/client/board/header.tsx:56`)                                                          | 出ない                                                                                                          |
+| 検索                                 | 帯の中の欄。空のとき右に `/` (`src/client/board/search-box.tsx:60`, `104`)                                  | 虫眼鏡 `#search-open` だけ。押すと帯いっぱい (`data-expanded`)                                                  |
+| Display                              | アイコンと `Display` (`lg:inline`, `src/client/board/display-menu.tsx:32`)                                  | アイコンだけ。面は左右 1rem を空けて帯の下 (`max-sm:fixed`, 同 20 行)                                           |
+| New issue                            | 文字は `New issue` (`src/client/board/header.tsx:107`)                                                      | 文字は `New` (同 108 行)                                                                                        |
+| ⌘K                                   | `#command-palette-open` に `⌘K` (`src/client/board/command-palette-button.tsx:25`)                          | アイコンだけ                                                                                                    |
+| 絞り込みの札                         | 見出しの帯 (`hidden` … `md:flex`, `src/client/board/header.tsx:67`)。検索語の札は出さない                   | `#board` の上の帯 (`md:hidden`, `src/client/board/mobile-status-nav.tsx:19`)。検索語も札にする (`includeQuery`) |
+| 状態の切り替え                       | サイドバーの Status                                                                                         | 横に流れる `All` と 5 状態 (`src/client/board/mobile-status-nav.tsx:27-38`)                                     |
+| dashboard への数                     | サイドバーの Dashboard の件数                                                                               | 帯の `#mobile-dashboard-link`。数だけ見える (`src/client/board/header.tsx:72-82`)                               |
+| 一覧の行                             | 1 行。`lg` で全部のラベル、`sm` で期日の列 (`src/client/board/issue-row.tsx:71-78`)                         | 題名の下に期日と、code point で最初のラベル 1 つ (`data-row-meta`, 同 63 行)。担当の丸は残る                    |
+| 板の列 (`view=board`)                | 列幅 272px、snap なし (`src/client/board/board-column.tsx:64`, `src/client/board/board-view.tsx:35`)        | 列幅 `85vw`、横スクロールで 1 列ずつ止まる (`snap-x`)                                                           |
+| issue 画面                           | `lg` で左が本文、右 18rem が属性 (`src/client/issue-view.tsx:170`)                                          | 1 列。順は答え待ち、題名、よく変える属性、説明、残りの属性、子 issue 以降 (同 32 行のコメント)                  |
+| 属性の見出し `Properties`            | 出る (`hidden lg:block`, 同 201 行)                                                                         | 出ない。上下の線で区切る                                                                                        |
+| issue のパンくずの題名               | `sm` 以上で出る (`src/client/issue/issue-view-header.tsx:52`)                                               | 番号だけ                                                                                                        |
+| `⌘⏎` の表記                          | Create、Comment、Answer に出る                                                                              | 出ない (`hidden` … `sm:inline-flex`)                                                                            |
+| 入力欄の字                           | `sm` 以上は本文の 13px                                                                                      | 16px。iOS が拡大しないため (`src/css.tsx:59`, `src/client/board/search-box.tsx:102`)                            |
+| 画面の高さ                           | `h-dvh` (`src/client/app.tsx:87-90`)                                                                        | 同じ。`100vh` は使わない                                                                                        |
 
 サイドバーを畳むと `html[data-sidebar="closed"]` になり、768px 以上で `#sidebar-open` が出る (`src/css.tsx:156-162`)。390 では元からサイドバーが無いので、このボタンは出ない。開閉は `localStorage` の `yaru.sidebar.open` (`src/client/use-sidebar-preference.ts:23`)。幅は `yaru.sidebar.width`。初期値は描く前の inline script (`src/ui/document.tsx:13`)。
 
@@ -47,25 +47,25 @@
 
 `spec/ui/fixture/make-fixture.sh` がワークスペースを 3 つ作る。題名と id は `$ROOT/manifest.json`。各ワークスペースには、リポジトリの外で `bun src/index.ts` が JSX を読むための `tsconfig.json` と `node_modules` のリンクがある。これは画面のデータの一部ではなく、`.gitignore` に入れてコミットしない。
 
-| キー | 役割 |
-| --- | --- |
-| `main.issues.ship` | 期限切れの期日、ラベル `bug`、担当 Fixture、本文に Markdown とタスクと `#` のリンク、他の issue を block する |
-| `main.issues.spec` | 進行中、ラベル `docs`、担当 Ada、明日の期日、状態を変えた活動がある |
-| `main.issues.stale` | 進行中のまま更新が古く、Stale |
-| `main.issues.oldDone` | 完了から 7 日より前。既定の一覧では隠れる |
-| `main.issues.recentDone` | 完了から 7 日以内。既定で見える |
-| `main.issues.canceled` | 取りやめから 7 日以内 |
-| `main.issues.backlog` | backlog、ラベル `chore` |
-| `main.issues.child` | `ship` の子 |
-| `main.issues.blocked` | `ship` に止められている |
-| `main.questions.blocking` | 既定も期限も無い open。`spec` に付く |
-| `main.questions.dueSoon` | 既定が選択肢の 1 つ。期限は未来。`ship` に付く |
-| `main.questions.noDeadline` | 既定はあるが期限は無い。`backlog` に付く |
-| `main.questions.expired` | 期限が過去。`stale` に付く |
-| `main.questions.answered` | 答え済み。`ship` に付く |
-| `main.questions.canceled` | 取り下げ。`recentDone` に付く |
-| `done` | issue が 1 件、完了が 7 日より前、ラベル無し、質問無し |
-| `empty` | `yaru init` だけ |
+| キー                        | 役割                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `main.issues.ship`          | 期限切れの期日、ラベル `bug`、担当 Fixture、本文に Markdown とタスクと `#` のリンク、他の issue を block する |
+| `main.issues.spec`          | 進行中、ラベル `docs`、担当 Ada、明日の期日、状態を変えた活動がある                                           |
+| `main.issues.stale`         | 進行中のまま更新が古く、Stale                                                                                 |
+| `main.issues.oldDone`       | 完了から 7 日より前。既定の一覧では隠れる                                                                     |
+| `main.issues.recentDone`    | 完了から 7 日以内。既定で見える                                                                               |
+| `main.issues.canceled`      | 取りやめから 7 日以内                                                                                         |
+| `main.issues.backlog`       | backlog、ラベル `chore`                                                                                       |
+| `main.issues.child`         | `ship` の子                                                                                                   |
+| `main.issues.blocked`       | `ship` に止められている                                                                                       |
+| `main.questions.blocking`   | 既定も期限も無い open。`spec` に付く                                                                          |
+| `main.questions.dueSoon`    | 既定が選択肢の 1 つ。期限は未来。`ship` に付く                                                                |
+| `main.questions.noDeadline` | 既定はあるが期限は無い。`backlog` に付く                                                                      |
+| `main.questions.expired`    | 期限が過去。`stale` に付く                                                                                    |
+| `main.questions.answered`   | 答え済み。`ship` に付く                                                                                       |
+| `main.questions.canceled`   | 取り下げ。`recentDone` に付く                                                                                 |
+| `done`                      | issue が 1 件、完了が 7 日より前、ラベル無し、質問無し                                                        |
+| `empty`                     | `yaru init` だけ                                                                                              |
 
 質問は `.yaru/questions/` にあり、その中の `.gitignore` が `*` なので git には入らない (`src/questions.ts:599-605`)。issue とコメントとイベントは git に入る。
 
@@ -604,7 +604,6 @@ issue 画面は板の上に重なる `role="dialog"` (`src/client/issue-view.tsx
 - 確かめる点: 409 のとき文は衝突の理由。API は JSON で `error` と `question`。
 - 1280 / 390: ErrorView の配置。
 - 撮影しない: フォームの回答、取り下げ、取り消しは失敗しても 303 で理由を戻す (`src/web.tsx:149-156`)。409 の HTML は、捕捉されない `QuestionConflictError` だけ (`src/web.tsx:87-91`)。画面の操作だけではその HTML に着かない。
-
 
 ### notice-copy コピーの知らせ
 

@@ -10,10 +10,7 @@ import { IssueView } from "./issue-view"
 import { handleIssueKey } from "./issue-keyboard"
 import { questionFromProto, questionStatusEnum, serverNow } from "./proto"
 import { errorText } from "./save-error"
-import {
-  useIssueController,
-  type IssueClients,
-} from "./use-issue-controller"
+import { useIssueController, type IssueClients } from "./use-issue-controller"
 
 // 板が issue を開く口。query.id が有るときだけ置く
 // 閉じる・別の issue へ移る・作ったあとの URL は onNavigate で板に返す
@@ -55,9 +52,10 @@ export function IssueScreen({
   })
   const { state } = controller
   const [pendingLeave, setPendingLeave] = useState<(() => void) | null>(null)
-  const [questionError, setQuestionError] = useState<{ questionId: string; message: string } | null>(
-    null,
-  )
+  const [questionError, setQuestionError] = useState<{
+    questionId: string
+    message: string
+  } | null>(null)
   const [toast, setToast] = useState<{ question: Question; now: Date } | null>(null)
   const leave = useRef<(proceed: () => void) => void>(() => {})
 
@@ -232,7 +230,9 @@ export function IssueScreen({
           basePath={state.filters.basePath ?? ""}
           returnTo={pageHref(state.filters, state.current.id)}
           undoUntil={undoDeadline}
-          expiresAt={undoDeadline ?? new Date(toast.now.getTime() + UNDO_ANSWER_MILLISECONDS).toISOString()}
+          expiresAt={
+            undoDeadline ?? new Date(toast.now.getTime() + UNDO_ANSWER_MILLISECONDS).toISOString()
+          }
         />
       ) : null}
     </>

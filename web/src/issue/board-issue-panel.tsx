@@ -6,7 +6,16 @@ import type { Issue } from "../domain/issue"
 import type { Question } from "../domain/question"
 import { answeredNoticeExpiresAt, undoAnswerDeadline } from "../domain/undo-answer"
 import { IssueView } from "./issue-view"
-import type { Comment, Commit, DraftField, IssueEvent, PageFilters, ReturnedDrafts, SaveInput, SaveState } from "./model"
+import type {
+  Comment,
+  Commit,
+  DraftField,
+  IssueEvent,
+  PageFilters,
+  ReturnedDrafts,
+  SaveInput,
+  SaveState,
+} from "./model"
 import { commentFromProto, questionStatusEnum } from "./proto"
 import { errorText } from "./save-error"
 
@@ -58,9 +67,10 @@ export function BoardIssuePanel({
   onNavigate: (href: string) => void
   onOpenMenu?: (issueId: string, anchor: HTMLElement) => void
 }) {
-  const [questionError, setQuestionError] = useState<{ questionId: string; message: string } | null>(
-    null,
-  )
+  const [questionError, setQuestionError] = useState<{
+    questionId: string
+    message: string
+  } | null>(null)
   const [toast, setToast] = useState<Question | null>(null)
 
   useEffect(() => {

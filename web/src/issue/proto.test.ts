@@ -63,15 +63,15 @@ test("an event list and text become the activity values", () => {
 })
 
 test("a cleared priority and a blocks replacement use the proto oneof", () => {
-  expect(
-    saveIssueInit("demo", { id: "1", priority: null, blocks: ["2"], assignee: null }),
-  ).toEqual({
-    workspace: "demo",
-    id: "1",
-    assignee: "",
-    priority: { priority: IssuePriority.UNSPECIFIED },
-    blocksChange: { case: "blocks", value: { values: ["2"] } },
-  })
+  expect(saveIssueInit("demo", { id: "1", priority: null, blocks: ["2"], assignee: null })).toEqual(
+    {
+      workspace: "demo",
+      id: "1",
+      assignee: "",
+      priority: { priority: IssuePriority.UNSPECIFIED },
+      blocksChange: { case: "blocks", value: { values: ["2"] } },
+    },
+  )
 })
 
 test("the page request sends known filters and the open id, and drops an unknown sort", () => {
