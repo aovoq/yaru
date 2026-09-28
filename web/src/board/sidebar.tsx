@@ -13,6 +13,7 @@ import { LabelDot } from "../components/label-dot"
 import { LogoLink } from "../components/logo-link"
 import type { SidebarPreference } from "../app/use-sidebar-preference"
 import { pageHref, statusLabel, type PageFilters } from "./view-model"
+import { TerminalIcon } from "../components/icons/terminal-icon"
 import { NavItem } from "./nav-item"
 import { WorkspaceSwitcher } from "./workspace-switcher"
 
@@ -83,6 +84,7 @@ export function Sidebar({
           label="Dashboard"
           count={awaitingQuestionCount}
         />
+        <NavItem href="/terminal" active={false} icon={<TerminalIcon />} label="Terminal" />
         <GroupLabel class="mt-4 mb-1 px-2">Status</GroupLabel>
         {STATUSES.map((status) => (
           <NavItem

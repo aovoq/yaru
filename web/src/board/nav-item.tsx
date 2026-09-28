@@ -2,6 +2,7 @@ import type { ComponentChildren } from "preact"
 import { FOCUS_RING } from "../components/focus-ring"
 
 // サイドバーの絞り込みの 1 行。アイコン・名前・件数を並べ、いま選んでいる絞り込みだけ面を塗る
+// 件数の無い項目 (端末など) は count を渡さず、件数の欄を出さない
 // 塗りは目でしか分からないので、選んでいるものは aria-current で読み上げにも伝える
 // https://www.w3.org/TR/wai-aria-1.2/#aria-current
 
@@ -16,7 +17,7 @@ export function NavItem({
   active: boolean
   icon: ComponentChildren
   label: string
-  count: number
+  count?: number
 }) {
   return (
     <a
@@ -28,7 +29,9 @@ export function NavItem({
     >
       {icon}
       <span class="text-body min-w-0 flex-1 truncate">{label}</span>
-      <span class="text-micro text-ink-tertiary tabular-nums">{count}</span>
+      {count === undefined ? null : (
+        <span class="text-micro text-ink-tertiary tabular-nums">{count}</span>
+      )}
     </a>
   )
 }

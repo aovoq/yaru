@@ -132,3 +132,11 @@ test("a single workspace has no switcher since there is nothing to switch to", (
   expect(html).toContain(">yaru<")
   expect(html).not.toContain('id="workspace-switcher"')
 })
+
+// herdr の端末はサイドバーから開く。件数は無いので出さない
+test("the sidebar links to the terminal page without a count", () => {
+  const html = sidebar()
+  const link = html.match(/<a href="\/terminal"[^>]*>.*?<\/a>/)?.[0] ?? ""
+  expect(link).toContain("Terminal")
+  expect(link).not.toContain("tabular-nums")
+})
