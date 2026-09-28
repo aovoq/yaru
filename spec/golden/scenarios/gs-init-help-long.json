@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-help-long",
+  "description": "--help は終了コード 0 で全体のヘルプを出す。ワークスペースも登録も作らない",
+  "steps": [
+    {
+      "arguments": ["--help"]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "gs-init-nested-workspace",
+  "description": "親を init したあとにサブディレクトリで init すると、別の .yaru と別の登録ができる",
+  "setup": {
+    "files": [
+      {
+        "path": "pkg/keep",
+        "content": "x\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["init"]
+    },
+    {
+      "arguments": ["init"],
+      "workingDirectory": "pkg"
+    }
+  ]
+}

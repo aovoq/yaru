@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-double-dash-only",
+  "description": "引数が -- だけのときはコマンドが無く、全体のヘルプを終了コード 1 で出す",
+  "steps": [
+    {
+      "arguments": ["--"]
+    }
+  ]
+}

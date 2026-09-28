@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-help-short",
+  "description": "-h は --help と同じ全体のヘルプで、終了コード 0 である",
+  "steps": [
+    {
+      "arguments": ["-h"]
+    }
+  ]
+}

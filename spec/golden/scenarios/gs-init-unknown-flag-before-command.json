@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-unknown-flag-before-command",
+  "description": "init より前にある未知のフラグも、コマンドのあとに書いたときと同じ unknown flag になる",
+  "steps": [
+    {
+      "arguments": ["--foo", "bar", "init"]
+    }
+  ]
+}

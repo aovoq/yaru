@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-subcommand-help-blocked-by-missing-value",
+  "description": "サブコマンドの --help でも、値の無いフラグがあるとヘルプは出さず missing value で終わる",
+  "steps": [
+    {
+      "arguments": ["issue", "list", "--help", "--status"]
+    }
+  ]
+}

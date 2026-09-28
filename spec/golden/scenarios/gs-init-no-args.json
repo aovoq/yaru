@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-no-args",
+  "description": "引数が無いときは全体のヘルプを標準出力へ出し、終了コード 1 で終わる。ファイルは作らない",
+  "steps": [
+    {
+      "arguments": []
+    }
+  ]
+}

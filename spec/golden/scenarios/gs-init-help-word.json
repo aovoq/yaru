@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-help-word",
+  "description": "最初の引数が help のときも全体のヘルプで、終了コード 0 である",
+  "steps": [
+    {
+      "arguments": ["help"]
+    }
+  ]
+}

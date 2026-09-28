@@ -1,0 +1,24 @@
+{
+  "name": "gs-init-from-subdirectory",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": "pkg",
+      "stdout": "initialized <WORKSPACE>/pkg/.yaru\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"pkg\",\n      \"root\": \"<WORKSPACE>/pkg\"\n    }\n  ]\n}\n"
+    }
+  ]
+}
