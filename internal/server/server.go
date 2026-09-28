@@ -19,7 +19,9 @@ import (
 	"time"
 
 	"github.com/aovoq/yaru/gen/yaru/v1/yaruv1connect"
+	"github.com/aovoq/yaru/internal/api"
 	"github.com/aovoq/yaru/internal/clock"
+	"github.com/aovoq/yaru/internal/workspace"
 )
 
 // DefaultPort はフラグを省いたときの待ち受けポート (src/web.tsx:46)。
@@ -75,7 +77,10 @@ type Configuration struct {
 	// WatchPoll が 0 のときは DefaultWatchPoll。
 	WatchPoll time.Duration
 	Handlers  Handlers
-	// WebSocket は Upgrade の検査を通ったあとで呼ぶ。nil のときは 404。端末の中身はここではない。
+	// WireServices が true のとき、internal/api の手続きと /ws/terminal を載せる。
+	// nil の Handlers は未実装のままにするテストと分けている。docs/spec/routes.md の「SPA と Connect への対応」
+	WireServices bool
+	// WebSocket は Upgrade の検査を通ったあとで呼ぶ。nil のときは 404。/ws/terminal は WireServices が受け持つ。
 	WebSocket http.Handler
 	// LogOutput は 403 などのログ。nil のときは標準エラー。query と本文は書かない。
 	LogOutput io.Writer
@@ -97,10 +102,11 @@ type Server struct {
 
 // Running は待ち受け中のサーバ。
 type Running struct {
-	Port       int
-	listener   net.Listener
-	httpServer *http.Server
-	done       chan error
+	Port              int
+	listener          net.Listener
+	httpServer        *http.Server
+	done              chan error
+	stopNotifications func()
 }
 
 // ListenAddress は待ち受けるアドレス。検査に使うポートは、実際に bind したポート (docs/spec/security.md の「待ち受けと公開」)。
@@ -210,13 +216,22 @@ func (server *Server) Start() (*Running, error) {
 		done <- serveErr
 	}()
 	writeLine(server.configuration.StartupOutput, fmt.Sprintf("yaru  http://127.0.0.1:%d", tcpAddress.Port))
-	return &Running{Port: tcpAddress.Port, listener: listener, httpServer: httpServer, done: done}, nil
+	running := &Running{Port: tcpAddress.Port, listener: listener, httpServer: httpServer, done: done}
+	if server.configuration.WireServices {
+		// 期限と止まった issue の見回り。src/web.tsx:640-661 。公開 URL の頭は実際に bind したポート。
+		baseURL := fmt.Sprintf("http://127.0.0.1:%d", tcpAddress.Port)
+		running.stopNotifications = api.WatchNotifications(workspace.StateDirectory(), baseURL, func(line string) {
+			writeLine(server.configuration.LogOutput, line)
+		})
+	}
+	return running, nil
 }
 
-// Serve は CLI の yaru serve が呼ぶ入口。port は 1 から 65535 で、0 は既定の 47800。
+// Serve は CLI の yaru serve が呼ぶ入口。形は func(port int) error のまま。
+// port は 1 から 65535 で、0 は既定の 47800。公開 host はフラグ、YARU_PUBLIC_HOST、tailscale の順 (New)。
 // 使用中なら TS 版と同じくエラーにせず戻る (src/web.tsx:630-632)。起動できたら、プロセスが止まるまで待つ。
 func Serve(port int) error {
-	built, err := New(Configuration{Port: port})
+	built, err := New(Configuration{Port: port, WireServices: true})
 	if err != nil {
 		return err
 	}
@@ -244,8 +259,11 @@ func (running *Running) Addr() net.Addr {
 	return running.listener.Addr()
 }
 
-// Close は待ち受けを止める。
+// Close は待ち受けと、知らせの見回りを止める。
 func (running *Running) Close() error {
+	if running.stopNotifications != nil {
+		running.stopNotifications()
+	}
 	return running.httpServer.Close()
 }
 
