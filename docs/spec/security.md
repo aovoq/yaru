@@ -95,8 +95,8 @@ rejected host: expected 127.0.0.1:47800 or localhost:47800 or the configured pub
 公開 host の出どころは、上から最初に見つかった 1 つ。
 
 1. `yaru serve --public-host HOST` 。今の TS 版の `yaru serve` にこのフラグは無い (`src/index.ts:46`)。 Go 版で足す。これは CLI の引数を TS 版と揃える、という移行の決まりの例外で、レビューが公開 host の出どころに指定したため。
-2. 環境変数 `YARU_PUBLIC_HOST` 。常駐では `yaru.nix` の `EnvironmentVariables` に書く (`yaru.nix:22-26` が環境変数の置き場)。
-3. `tailscale status --json` の `Self.DNSName` 。フラグも環境変数も無いときだけ読む。読めなければ公開 host は無しで、ループバックだけを許す。起動は失敗させない。
+2. 環境変数 `YARU_PUBLIC_HOST` 。未設定と空文字は区別する (`os.Getenv` では区別できないので、設定されているかを見る)。空文字のときは公開 host は無しで、次の自動検出はしない。値が hostname ならそれを使う。常駐では `yaru.nix` の `EnvironmentVariables` に書く (`yaru.nix:22-26` が環境変数の置き場)。
+3. `tailscale status --json` の `Self.DNSName` 。フラグが無く、 `YARU_PUBLIC_HOST` も未設定のときだけ実行する。実行ファイルは、 `YARU_TAILSCALE_BIN` が設定されていればそのパス、未設定なら `PATH` 上の `tailscale` 。引数は `status` と `--json` だけ。読めない、終了コードが 0 でない、 `Self.DNSName` が空、なら公開 host は無しで、ループバックだけを許す。起動は失敗させない。テストは `YARU_TAILSCALE_BIN` を一時ディレクトリの偽の実行ファイルに向け、マシンに入っている `tailscale` を呼ばない。
 
 `HOST` は hostname 、または hostname とポート `443` だけ。 URL 、 userinfo 、空、 `443` 以外のポートは起動時に拒否する (終了コードは 0 以外、標準エラーに期待と実際を書く)。 `443` は捨て、比較に使う公開 host はポート無しの hostname だけにする。ブラウザは `https` の `443` を `Host` に付けない。
 
@@ -156,7 +156,10 @@ Connect の GET は使わない。プロトコルは、 `idempotency_level = NO_
 
 - `application/proto`
 - `application/json`
-- `application/connect+` で始まるもの (ストリームの `application/connect+proto` と `application/connect+json`)
+- `application/connect+proto`
+- `application/connect+json`
+
+`application/connect+` で始まる他のメディアタイプ (例: `application/connect+xml`) は受けない。
 
 それ以外は `415` 。 gRPC の `application/grpc` と gRPC-Web の `application/grpc-web` も `415` である。 connect-go の既定は 3 プロトコルを受けるので、そのままマウントしない (<https://connectrpc.com/docs/protocol> の Content-Type の説明)。 `application/json; charset=utf-8` はメディアタイプが `application/json` なので通す。
 
@@ -236,7 +239,11 @@ xterm の `<style>` をどう通すかは、次の 2 つで未決。合格条件
 
 `403` のログに `Host` と `Origin` を出すときは、応答の本文と同じく、制御文字を除き、改行を残さず、 128 バイトで切る。ログ注入と、巨大な header の記録を避ける。
 
-ログファイルは `~/Library/Logs/yaru-serve.log` 。常駐は標準出力と標準エラーをこのパスへ書く (`~/dotfiles/home/modules/yaru.nix:4`, `yaru.nix:32-33`)。起動時に、このファイルを新しく作るときも、既にあるときも、モードを `0600` にする。他の OS ユーザーから読めないようにする。この作業では、実在のログファイルを変更しない。
+常駐は標準出力と標準エラーを `~/Library/Logs/yaru-serve.log` へ書く (`~/dotfiles/home/modules/yaru.nix:4`, `yaru.nix:32-33`)。 yaru はそのパスを決め打ちで触らない。テストがサーバを起動しても、本物のログのモードは変えない。
+
+起動のあと、プロセスの標準出力と標準エラーが通常ファイルなら、その開いているファイルのモードを `0600` にする。パスの文字列ではなく、開いているファイル記述子に対して行う。パイプ、ソケット、端末のときは変えない。失敗してもサーバは落とさない (ログに出せないので、標準エラーが端末のときだけ理由を書く)。
+
+launchd は yaru の処理が始まる前に、 `StandardOutPath` のファイルを作る。その時点ではモードが `0600` でない。今の `yaru.nix` はパスを渡すだけで、モードを指定しない (`yaru.nix:32-33`)。配り方の作業で、 launchd が開く前にそのファイルを `0600` で作る。この文書は `yaru.nix` を変えない。 yaru が開いているファイルを `0600` にするのは、起動したあとの窓を閉じるためで、起動前の窓は nix 側の案が閉じる。
 
 ## herdr を起動するとき
 
@@ -273,7 +280,8 @@ PTY で herdr の画面を繋ぐときだけ、上の環境に `TERM=xterm-256co
 さらに:
 
 - 実行ファイルのパス、引数、環境、作業ディレクトリを、 HTTP と Connect と WebSocket のクライアントが指定できない。
-- リクエストの header やフィールドを、子の環境へ写さない。 `APP_HERDR_SESSION` 、 `YARU_STATE_DIR` 、 `YARU_NOW` 、トークン、 `AWS_*` 、 `SSH_AUTH_SOCK` 以外のソケットを子へ足さない。 `SSH_AUTH_SOCK` は上の一覧にあるので、親にあれば残る。
+- リクエストの header やフィールドを、子の環境へ写さない。
+- 子に残す名前は、上の許可リストだけである。 `APP_HERDR_SESSION` 、 `YARU_STATE_DIR` 、 `YARU_NOW` 、トークン、 `AWS_*` 、 `HERDR_*` 、 `TMUX` で始まる名前は、親にあっても子へ残さない。ソケットのパスも、許可リストにある `SSH_AUTH_SOCK` 以外は残さない。
 - resident-app は `APP_HERDR_SESSION` を子の環境ではなく `--session` 引数にする (`herdr.go:207-212`)。 yaru が同じ引数を持つかは未決。持つとしても、値はサーバプロセスの環境からだけ読み、クライアントからは受け取らず、子の環境には入れない。
 - 検査に落ちたリクエストではプロセスを起動しない。
 - 既に動いている herdr サーバの環境は、あとから繋いだクライアントでは置き換わらない。絞った環境が効くのは、 yaru の起動がサーバを起こすとき。それでも毎回絞る。既に動いているサーバを、環境を揃える目的で止めて再起動しない。
@@ -332,7 +340,7 @@ Go 版で塞ぐ。 TS 版のテストが「拒否しない」ことを正しさ�
 | Funnel                                                     | コードでは見ていない。運用で使わない (`yaru.nix:11`)                                                                                                                | `Tailscale-Funnel-Request` を拒否する                                                                                                                            |
 | `Host`                                                     | 見ていない                                                                                                                                                          | 許可リスト以外を拒否する                                                                                                                                         |
 | リクエストの `Origin`                                      | 見ていない                                                                                                                                                          | その `Host` に対応する 1 つとだけ比べる。 `formReturnPath` の `http://yaru.invalid` は戻り先の検査であり、リクエストの `Origin` ではない (`src/web.tsx:676-689`) |
-| 公開 host                                                  | 見ていない。 `publicUrl` は知らせのリンクだけ (`src/notify.ts:49-51`)                                                                                               | サーバーのフラグ、 `YARU_PUBLIC_HOST` 、または `tailscale status --json` の `Self.DNSName` 。 `config.yml` は使わない                                            |
+| 公開 host                                                  | 見ていない。 `publicUrl` は知らせのリンクだけ (`src/notify.ts:49-51`)                                                                                               | フラグ、 `YARU_PUBLIC_HOST` (空なら検出しない)、または `YARU_TAILSCALE_BIN` で差し替えた `tailscale status --json` の `Self.DNSName` 。 `config.yml` は使わない  |
 | Cookie / CSRF トークン                                     | 無い                                                                                                                                                                | Cookie と CSRF トークンは置かない。起動ごとの秘密は未決                                                                                                          |
 | CSP 、 `X-Frame-Options` 、 `Referrer-Policy` 、 `nosniff` | 応答に無い。インラインスクリプトがある (`src/ui/document.tsx:53-62`)                                                                                                | 上のヘッダーを全応答に付ける                                                                                                                                     |
 | CORS                                                       | `Access-Control-Allow-Origin` を返していない                                                                                                                        | 返さないことを維持する                                                                                                                                           |
@@ -347,7 +355,7 @@ Go 版で塞ぐ。 TS 版のテストが「拒否しない」ことを正しさ�
 
 ## テスト
 
-テストは一時ディレクトリの `YARU_STATE_DIR` と、プロジェクトの外に作ったワークスペースだけで行う。本物の `.yaru` と `~/.local/state/yaru` は使わない。 herdr の実体は起動しない。子プロセスは、環境と作業ディレクトリを印字して終了する偽の実行ファイルにする。
+テストは一時ディレクトリの `YARU_STATE_DIR` と、プロジェクトの外に作ったワークスペースだけで行う。本物の `.yaru` と `~/.local/state/yaru` は使わない。 herdr の実体は起動しない。子プロセスは、環境と作業ディレクトリを印字して終了する偽の実行ファイルにする。公開 host の検出を試すテスト以外は `YARU_PUBLIC_HOST` を空にし、マシンの `tailscale` を呼ばない。検出を試すテストは `YARU_TAILSCALE_BIN` を偽の実行ファイルにする。
 
 待ち受け:
 
@@ -364,7 +372,8 @@ Go 版で塞ぐ。 TS 版のテストが「拒否しない」ことを正しさ�
 - 公開 host を `mac.example.ts.net` にしたとき、 `Host: mac.example.ts.net` かつ `Origin: https://mac.example.ts.net` は通る。 `Host: Mac.Example.Ts.Net.` も同じ `Origin` で通る。同じ `Host` で `Origin: https://evil.example` は `403` 。 `Host: mac.example.ts.net:443` は `403` 。
 - `Host: 127.0.0.1:<port>` かつ `Origin: https://mac.example.ts.net` は、公開 host が `mac.example.ts.net` でも `403` 。 `Host` に対応する 1 つ以外とは合わせない。
 - ワークスペースの `config.yml` に `publicUrl: https://evil.example` を書いても、公開 host を別にしている (または公開 host が無い) とき、 `Host: evil.example` は `403` 。ファイルは変わらない。
-- `--public-host` も `YARU_PUBLIC_HOST` も無いときは、 `config.yml` の `publicUrl` だけでは公開 host にならない。 `tailscale status --json` を読めないテストでは、ループバック以外の `Host` が `403` 。
+- `YARU_PUBLIC_HOST` を空で渡し、 `YARU_TAILSCALE_BIN` を、起動されたら失敗する印の実行ファイルにする。その印は起動せず、ループバック以外の `Host` は `403` である。 `config.yml` の `publicUrl` だけでは公開 host にならない。マシンの `tailscale` は呼ばない。
+- `YARU_PUBLIC_HOST` を未設定にし、 `YARU_TAILSCALE_BIN` を、 `{"Self":{"DNSName":"mac.example.ts.net."}}` を出して終了する偽の実行ファイルにする。公開 host は `mac.example.ts.net` になり、マシンの `tailscale` は呼ばない。
 - GET で `Origin` が無く、 `Host` がループバックなら通る (CLI の `hintBoard` と同じ形)。
 - POST で `Origin` が無く `Sec-Fetch-Site: cross-site` なら `403` 。 POST で両方無ければ通る。
 - GET で `Origin` が無く `Sec-Fetch-Site: cross-site` なら通る (知らせのリンク)。ファイルは変わらない。
@@ -396,12 +405,13 @@ Markdown:
 Connect:
 
 - 許可された `Host` と、その `Host` に対応する `Origin` で、 Connect のパスへ GET すると `405` 。手続きは呼ばれず、ファイルは変わらない。
-- 同じ経路への POST で、 `Content-Type` が `text/plain` や `application/grpc` のときは `415` 。 `application/json` と `application/proto` と `application/connect+json` は、この検査では拒否しない。
+- 同じ経路への POST で、 `Content-Type` が `text/plain` 、 `application/grpc` 、 `application/connect+xml` のときは `415` 。 `application/json` 、 `application/proto` 、 `application/connect+json` 、 `application/connect+proto` は、この検査では拒否しない。
 
 ログと 403 の本文:
 
 - `Host` に改行と、 128 バイトを超える値を付けた `403` の本文とログに、改行が無く、写した host が 128 バイト以内である。
 - 回答本文、 issue 本文、端末の入出力、 query 、子の環境を含む操作をしても、ログにそれらが出ない。
+- 標準出力を一時ディレクトリの通常ファイルに向けて起動すると、そのファイルのモードが `0600` になる。 `~/Library/Logs/yaru-serve.log` はテストの対象にしない。標準出力がパイプのときは、モードを変えずに起動が続く。
 
 ブラウザ:
 
