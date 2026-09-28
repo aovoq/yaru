@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package yaru.v1;
+
+import "yaru/v1/common.proto";
+
+// dashboard の HTML が埋め込むデータ (src/web.tsx:423-445、src/dashboard.tsx:35-52)。
+// 同じ JSON を返す入口は今無い。?q= ?error= ?answer= ?answered= は SPA の URL が読む。
+service DashboardService {
+  rpc GetDashboard(GetDashboardRequest) returns (Dashboard);
+}
+
+message GetDashboardRequest {
+  string workspace = 1;
+}
+
+message Dashboard {
+  // フィルタなし。status は読んだ時刻で決まる (src/web.tsx:436)。
+  repeated Question questions = 1;
+  // フィルタなし。並びは updatedAt の新しい順 (src/web.tsx:437、src/store.ts:208)。
+  repeated Issue issues = 2;
+  SessionHealth session_health = 3;
+  // git でなければ未設定。JSON では null (src/repository.ts:26-27)。
+  optional RepositoryState repository = 4;
+}
+
+// Claude Code のセッションの数。本文は読まない (src/sessions.ts:9-48)。
+// int64 を proto JSON で文字列にするかは未決 (routes.md)。
+message SessionHealth {
+  optional string directory = 1;
+  int32 window_days = 2;
+  repeated SessionSummary sessions = 3;
+  SessionTotals totals = 4;
+}
+
+message SessionSummary {
+  string id = 1;
+  optional string worktree = 2;
+  optional string title = 3;
+  optional string started_at = 4;
+  optional string last_activity_at = 5;
+  repeated string models = 6;
+  int64 assistant_messages = 7;
+  int64 input_tokens = 8;
+  int64 cache_creation_tokens = 9;
+  int64 cache_read_tokens = 10;
+  int64 output_tokens = 11;
+  double cost_usd = 12;
+  int64 unpriced_messages = 13;
+  int64 tool_uses = 14;
+  int64 tool_results = 15;
+  int64 tool_errors = 16;
+  int64 interruptions = 17;
+  int64 subagents = 18;
+}
+
+message SessionTotals {
+  int64 sessions = 1;
+  double cost_usd = 2;
+  int64 unpriced_messages = 3;
+  int64 assistant_messages = 4;
+  optional double cache_read_ratio = 5;
+  int64 tool_results = 6;
+  int64 tool_errors = 7;
+  optional double tool_error_ratio = 8;
+  int64 interruptions = 9;
+}
+
+// dashboard の git (src/repository.ts:13-20)。最近のコミットは 10 件 (src/repository.ts:22)。
+message RepositoryState {
+  optional string branch = 1;
+  optional string upstream = 2;
+  optional int32 ahead = 3;
+  optional int32 behind = 4;
+  int32 uncommitted_files = 5;
+  repeated RepositoryCommit commits = 6;
+}

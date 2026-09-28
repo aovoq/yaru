@@ -1,0 +1,129 @@
+syntax = "proto3";
+
+package yaru.v1;
+
+// yaru serve の JSON を Connect RPC に写す下書き。生成先の proto/ ではない。
+// 読み方と未決は docs/spec/routes.md。go_package は P0-layout が決めるまで付けない。
+// JSON の null と、キーが無いことは区別していない (routes.md の未決)。時刻は今の JSON と同じ ISO 8601 の文字列。
+
+// issue 1 件。GET /api/issues/:id の本文そのもの (src/web.tsx:375)。
+// フィールドの意味は src/store.ts:19-43。
+message Issue {
+  string id = 1;
+  string title = 2;
+  // backlog, todo, in_progress, done, canceled (src/store.ts:118)。
+  // 読み書きとも resolveStatus がこの 5 つ以外を拒む (src/store.ts:431-436、src/store.ts:811)。
+  // 壊れたファイルは一覧から省く (src/store.ts:182-186)。
+  string status = 3;
+  optional string assignee = 4;
+  repeated string labels = 5;
+  optional string due_date = 6;
+  optional string priority = 7;
+  optional string parent = 8;
+  repeated string blocks = 9;
+  repeated string blocked_by = 10;
+  repeated string children = 11;
+  optional string started_at = 12;
+  optional string completed_at = 13;
+  optional string canceled_at = 14;
+  string created_at = 15;
+  string updated_at = 16;
+  optional string session = 17;
+  optional string worktree = 18;
+  optional string branch = 19;
+  // 読むたびに決め、ファイルには書かない (src/store.ts:40)。
+  bool stale = 20;
+  // 生の Markdown。画面が描く (docs/migration/PLAN.md)。
+  string body = 21;
+}
+
+// 属性の変更 1 件。GET /api/page の events (src/page.ts:74、src/issue-events.ts:26-35)。
+// from と to は文字列、文字列の配列、または null (src/issue-events.ts:24)。
+// proto にその共用体が無いので、下書きは oneof にする。両方未設定が JSON の null。空の配列は list をセットして values を空にする。
+// この分け方自体は未決 (docs/spec/routes.md)。
+message IssueEvent {
+  string field = 1;
+  oneof from_value {
+    string from_text = 2;
+    IssueEventList from_list = 3;
+  }
+  oneof to_value {
+    string to_text = 4;
+    IssueEventList to_list = 5;
+  }
+  string by = 6;
+  optional string session = 7;
+  string at = 8;
+}
+
+message IssueEventList {
+  repeated string values = 1;
+}
+
+// コメント 1 件。POST /api/comments の本文そのもの (src/web.tsx:390、src/store.ts:52-60)。
+message Comment {
+  string id = 1;
+  string issue = 2;
+  optional string parent = 3;
+  string author = 4;
+  string created_at = 5;
+  string updated_at = 6;
+  string body = 7;
+}
+
+// 質問 1 件。GET /api/questions/:id の本文そのもの (src/web.tsx:229、src/questions.ts:31-57)。
+// status はファイルに書かず、読む時刻で決める (src/questions.ts:22)。
+message Question {
+  string id = 1;
+  string title = 2;
+  // open, expired, answered, canceled (src/questions.ts:25)。
+  string status = 3;
+  optional string issue = 4;
+  optional string priority = 5;
+  optional string default_action = 6;
+  optional string answer_by = 7;
+  repeated string options = 8;
+  string author = 9;
+  optional string session = 10;
+  optional string worktree = 11;
+  optional string branch = 12;
+  optional string answer = 13;
+  optional string answered_by = 14;
+  optional string answered_at = 15;
+  optional string acknowledged_at = 16;
+  optional string notified_expiring_at = 17;
+  optional string canceled_at = 18;
+  string created_at = 19;
+  string updated_at = 20;
+  string body = 21;
+}
+
+// 衝突のとき JSON API が返す形 (src/web.tsx:89)。Connect のコードへの写し方は未決。
+message QuestionConflict {
+  string error = 1;
+  Question question = 2;
+}
+
+// 本文の patch 1 件。POST /api/issues の patch (src/store.ts:71-77)。
+// JSON 名が snake_case のままかどうかは未決。下書きは json_name を付けない。
+message PatchOperation {
+  // replace, insert_before, insert_after, prepend, append, replace_range (src/store.ts:869-876)。
+  string op = 1;
+  optional string old_string = 2;
+  optional string new_string = 3;
+  optional bool replace_all = 4;
+  optional string anchor = 5;
+  optional string text = 6;
+  optional string from = 7;
+  optional string to = 8;
+}
+
+// git のコミット。dashboard の commits と、issue 画面の commits が同じ形 (src/repository.ts:4-11、src/repository.ts:73)。
+message RepositoryCommit {
+  string hash = 1;
+  string subject = 2;
+  string author = 3;
+  string committed_at = 4;
+  // upstream が無いときは未設定。JSON では null (src/repository.ts:9-10)。
+  optional bool pushed = 5;
+}

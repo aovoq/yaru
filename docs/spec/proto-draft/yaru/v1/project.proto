@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package yaru.v1;
+
+import "yaru/v1/common.proto";
+
+// プロジェクト一覧。GET / の HTML が読んでいるもの (src/web.tsx:592-608)。JSON の入口は今無い。
+// 30 秒ごとの location.reload (src/projects.tsx:45) は、クライアントがこの RPC を同じ間隔で呼ぶ。
+service ProjectService {
+  rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
+}
+
+message ListProjectsRequest {}
+
+message ListProjectsResponse {
+  // 登録順。config.yml が無いワークスペースは除く (src/workspaces.ts:43-46)。
+  repeated Project projects = 1;
+}
+
+message Project {
+  string slug = 1;
+  // フォルダの絶対 path。画面が 1 行で出している (src/projects/project-card.tsx:35-36)。外に見せるかは P0-security。
+  string root = 2;
+  // open と expired。並びは compareQuestions (src/web.tsx:599-601、src/projects.tsx:14)。
+  repeated Question awaiting = 3;
+  // status が in_progress の件数 (src/web.tsx:602)。
+  int32 in_progress = 4;
+}

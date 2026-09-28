@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package yaru.v1;
+
+import "yaru/v1/common.proto";
+
+// issue の読み書き。元の入口は /p/<slug>/api/issues と、スクリプト無しの POST /issues。
+// workspace は今の path の slug (src/web.tsx:563)。フィールドにするかヘッダにするかは未決。
+service IssueService {
+  // GET /api/issues (src/web.tsx:357)。200 は Issue の配列を裸で返している。ここは message に入れる。
+  rpc ListIssues(ListIssuesRequest) returns (ListIssuesResponse);
+  // GET /api/issues/:id (src/web.tsx:375)。CLI の hintBoard が呼ぶ (src/index.ts:734)。
+  rpc GetIssue(GetIssueRequest) returns (Issue);
+  // POST /api/issues (src/web.tsx:379)。画面の保存はここ。
+  // POST /issues (src/web.tsx:252) は同じ saveIssue を、フォームのキーが有るフィールドだけで呼ぶ。
+  rpc SaveIssue(SaveIssueRequest) returns (Issue);
+}
+
+// query は src/web.tsx:359-365。parent と limit は HTTP が渡していないので入れない。
+message ListIssuesRequest {
+  string workspace = 1;
+  optional string status = 2;
+  optional string assignee = 3;
+  optional string label = 4;
+  optional string query = 5;
+  // overdue のときだけ絞る。他の値は無視する (src/web.tsx:364)。下書きは bool にせず、今の文字列のままにする。
+  optional string due = 6;
+}
+
+message ListIssuesResponse {
+  // 並びは updatedAt の新しい順 (src/store.ts:208)。板の sort ではない。
+  repeated Issue issues = 1;
+}
+
+message GetIssueRequest {
+  string workspace = 1;
+  string id = 2;
+}
+
+// 未設定のフィールドは変えない (src/store.ts:266-289)。空文字を送ることと、未設定は違う。
+// フォームの labels と blocks はカンマ区切りの 1 文字列だが (src/web.tsx:788-798)、この RPC は JSON API の配列に合わせる。
+message SaveIssueRequest {
+  string workspace = 1;
+  optional string id = 2;
+  optional string title = 3;
+  optional string status = 4;
+  optional string assignee = 5;
+  repeated string labels = 6;
+  // labels を送ったか。repeated は空と未設定が区別しにくいので、今の「キーが有る」を明示する。
+  bool labels_set = 7;
+  optional string due_date = 8;
+  optional string priority = 9;
+  optional string parent = 10;
+  repeated string blocks = 11;
+  bool blocks_set = 12;
+  repeated string add_blocks = 13;
+  bool add_blocks_set = 14;
+  repeated string remove_blocks = 15;
+  bool remove_blocks_set = 16;
+  repeated string add_blocked_by = 17;
+  bool add_blocked_by_set = 18;
+  repeated string remove_blocked_by = 19;
+  bool remove_blocked_by_set = 20;
+  optional string body = 21;
+  repeated PatchOperation patch = 22;
+  bool patch_set = 23;
+  // blocks と、addBlocks か removeBlocks か addBlockedBy か removeBlockedBy は同時に渡せない
+  // (src/store.ts:541-544)。
+}
+

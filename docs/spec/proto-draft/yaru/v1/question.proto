@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package yaru.v1;
+
+import "yaru/v1/common.proto";
+
+// 質問への回答と取り下げ。作成と acknowledge の HTTP は無いので、ここにも置かない。
+service QuestionService {
+  // GET /api/questions (src/web.tsx:220)。
+  rpc ListQuestions(ListQuestionsRequest) returns (ListQuestionsResponse);
+  // GET /api/questions/:id (src/web.tsx:229)。
+  rpc GetQuestion(GetQuestionRequest) returns (Question);
+  // POST /api/questions/:id/answer (src/web.tsx:233)。
+  // フォームの POST /questions/:id/answer (src/web.tsx:132) も同じ answerQuestion を呼ぶ。
+  // フォームだけの useDefault、returnTo、next は入れない。useDefault の展開は呼び出し側 (routes.md の未決)。
+  rpc AnswerQuestion(AnswerQuestionRequest) returns (Question);
+  // フォームの POST /questions/:id/undo (src/web.tsx:173)。JSON の対は無い。
+  rpc UndoAnswer(UndoAnswerRequest) returns (Question);
+  // POST /api/questions/:id/cancel (src/web.tsx:244)。body は見ない。
+  // フォーム (src/web.tsx:196) の expectedStatus もサーバーは読まない。
+  rpc CancelQuestion(CancelQuestionRequest) returns (Question);
+}
+
+message ListQuestionsRequest {
+  string workspace = 1;
+  // open, expired, answered, canceled。空なら絞らない (src/web.tsx:223、src/questions.ts:494)。
+  optional string status = 2;
+  optional string issue = 3;
+}
+
+message ListQuestionsResponse {
+  // 並びは compareQuestions (src/questions.ts:389)。
+  repeated Question questions = 1;
+}
+
+message GetQuestionRequest {
+  string workspace = 1;
+  string id = 2;
+}
+
+message AnswerQuestionRequest {
+  string workspace = 1;
+  string id = 2;
+  // 空や空白だけは今は 400 (src/questions.ts:215-218)。
+  optional string body = 3;
+  // 描いたときの status。answered なら置き換え (src/questions.ts:198-204)。
+  optional string expected_status = 4;
+  // JSON は true のときだけ (src/web.tsx:239)。フォームの "1" は JSON では true にならない。
+  optional bool force = 5;
+}
+
+message UndoAnswerRequest {
+  string workspace = 1;
+  string id = 2;
+  // 取り消したい答えの answeredAt。空なら比較しない (src/web.tsx:183、src/questions.ts:276)。
+  optional string answered_at = 3;
+}
+
+message CancelQuestionRequest {
+  string workspace = 1;
+  string id = 2;
+}
