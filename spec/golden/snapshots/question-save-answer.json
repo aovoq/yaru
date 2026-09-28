@@ -3,6 +3,12 @@
   "steps": [
     {
       "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
       "stdout": "initialized <WORKSPACE>/.yaru\n",
       "stderr": "",
       "exitCode": 0
@@ -26,24 +32,48 @@
         "--body",
         "The latch sticks in the cold."
       ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
       "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"Ship the latch?\",\n  \"issue\": null,\n  \"priority\": \"high\",\n  \"defaultAction\": \"Ship it\",\n  \"answerBy\": \"2026-09-28T14:00:00.000Z\",\n  \"options\": [\n    \"Ship it\",\n    \"Hold it\"\n  ],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:00:00.000Z\",\n  \"body\": \"The latch sticks in the cold.\",\n  \"status\": \"open\"\n}\n",
       "stderr": "",
       "exitCode": 0
     },
     {
       "arguments": ["question", "list"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
       "stdout": "{\n  \"questions\": [\n    {\n      \"id\": \"1\",\n      \"title\": \"Ship the latch?\",\n      \"issue\": null,\n      \"priority\": \"high\",\n      \"defaultAction\": \"Ship it\",\n      \"answerBy\": \"2026-09-28T14:00:00.000Z\",\n      \"options\": [\n        \"Ship it\",\n        \"Hold it\"\n      ],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": null,\n      \"answeredBy\": null,\n      \"answeredAt\": null,\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n      \"updatedAt\": \"2026-09-28T12:00:00.000Z\",\n      \"body\": \"The latch sticks in the cold.\",\n      \"status\": \"open\"\n    }\n  ]\n}\n",
       "stderr": "",
       "exitCode": 0
     },
     {
       "arguments": ["question", "answer", "1", "--body", "-"],
+      "stdin": "Hold it\n",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:30:00.000Z",
+      "workingDirectory": ".",
       "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"Ship the latch?\",\n  \"issue\": null,\n  \"priority\": \"high\",\n  \"defaultAction\": \"Ship it\",\n  \"answerBy\": \"2026-09-28T14:00:00.000Z\",\n  \"options\": [\n    \"Ship it\",\n    \"Hold it\"\n  ],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": \"Hold it\\n\",\n  \"answeredBy\": \"golden\",\n  \"answeredAt\": \"2026-09-28T12:30:00.000Z\",\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:30:00.000Z\",\n  \"body\": \"The latch sticks in the cold.\",\n  \"status\": \"answered\"\n}\n",
       "stderr": "",
       "exitCode": 0
     },
     {
       "arguments": ["question", "get", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:40:00.000Z",
+      "workingDirectory": ".",
       "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"Ship the latch?\",\n  \"issue\": null,\n  \"priority\": \"high\",\n  \"defaultAction\": \"Ship it\",\n  \"answerBy\": \"2026-09-28T14:00:00.000Z\",\n  \"options\": [\n    \"Ship it\",\n    \"Hold it\"\n  ],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": \"Hold it\\n\",\n  \"answeredBy\": \"golden\",\n  \"answeredAt\": \"2026-09-28T12:30:00.000Z\",\n  \"acknowledgedAt\": \"2026-09-28T12:40:00.000Z\",\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:30:00.000Z\",\n  \"body\": \"The latch sticks in the cold.\",\n  \"status\": \"answered\"\n}\n",
       "stderr": "",
       "exitCode": 0
@@ -51,8 +81,18 @@
   ],
   "yaru": [
     {
+      "path": "comments",
+      "content": "",
+      "directory": true
+    },
+    {
       "path": "config.yml",
       "content": ""
+    },
+    {
+      "path": "issues",
+      "content": "",
+      "directory": true
     },
     {
       "path": "questions/.gitignore",

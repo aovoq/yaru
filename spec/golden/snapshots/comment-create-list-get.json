@@ -3,36 +3,72 @@
   "steps": [
     {
       "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
       "stdout": "initialized <WORKSPACE>/.yaru\n",
       "stderr": "",
       "exitCode": 0
     },
     {
       "arguments": ["issue", "save", "--title", "Review the latch"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
       "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"Review the latch\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
       "stderr": "",
       "exitCode": 0
     },
     {
       "arguments": ["comment", "save", "--issue", "1", "--body", "Looks fine."],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:05:00.000Z",
+      "workingDirectory": ".",
       "stdout": "{\n  \"id\": \"1\",\n  \"issue\": \"1\",\n  \"parent\": null,\n  \"author\": \"golden\",\n  \"createdAt\": \"2026-09-28T12:05:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:05:00.000Z\",\n  \"body\": \"Looks fine.\"\n}\n",
       "stderr": "",
       "exitCode": 0
     },
     {
       "arguments": ["comment", "save", "--issue", "1", "--body", "-"],
+      "stdin": "line one\nline two\n",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:06:00.000Z",
+      "workingDirectory": ".",
       "stdout": "{\n  \"id\": \"2\",\n  \"issue\": \"1\",\n  \"parent\": null,\n  \"author\": \"golden\",\n  \"createdAt\": \"2026-09-28T12:06:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:06:00.000Z\",\n  \"body\": \"line one\\nline two\\n\"\n}\n",
       "stderr": "",
       "exitCode": 0
     },
     {
       "arguments": ["comment", "list", "--issue", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:06:00.000Z",
+      "workingDirectory": ".",
       "stdout": "{\n  \"comments\": [\n    {\n      \"id\": \"1\",\n      \"issue\": \"1\",\n      \"parent\": null,\n      \"author\": \"golden\",\n      \"createdAt\": \"2026-09-28T12:05:00.000Z\",\n      \"updatedAt\": \"2026-09-28T12:05:00.000Z\",\n      \"body\": \"Looks fine.\"\n    },\n    {\n      \"id\": \"2\",\n      \"issue\": \"1\",\n      \"parent\": null,\n      \"author\": \"golden\",\n      \"createdAt\": \"2026-09-28T12:06:00.000Z\",\n      \"updatedAt\": \"2026-09-28T12:06:00.000Z\",\n      \"body\": \"line one\\nline two\\n\"\n    }\n  ]\n}\n",
       "stderr": "",
       "exitCode": 0
     },
     {
       "arguments": ["comment", "get", "2"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:06:00.000Z",
+      "workingDirectory": ".",
       "stdout": "{\n  \"id\": \"2\",\n  \"issue\": \"1\",\n  \"parent\": null,\n  \"author\": \"golden\",\n  \"createdAt\": \"2026-09-28T12:06:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:06:00.000Z\",\n  \"body\": \"line one\\nline two\\n\"\n}\n",
       "stderr": "",
       "exitCode": 0

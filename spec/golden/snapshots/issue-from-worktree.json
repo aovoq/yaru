@@ -3,30 +3,59 @@
   "steps": [
     {
       "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
       "stdout": "initialized <WORKSPACE>/.yaru\n",
       "stderr": "",
       "exitCode": 0
     },
     {
       "arguments": ["issue", "save", "--title", "From the main worktree"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
       "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"From the main worktree\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
       "stderr": "",
       "exitCode": 0
     },
     {
       "arguments": ["issue", "save", "--title", "From the linked worktree"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:05:00.000Z",
+      "workingDirectory": "worktree:feature",
       "stdout": "{\n  \"id\": \"2\",\n  \"title\": \"From the linked worktree\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:05:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:05:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKTREE:feature>\",\n  \"branch\": \"feat/add-thing\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
       "stderr": "",
       "exitCode": 0
     },
     {
       "arguments": ["issue", "get", "2"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:05:00.000Z",
+      "workingDirectory": "worktree:feature",
       "stdout": "{\n  \"id\": \"2\",\n  \"title\": \"From the linked worktree\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:05:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:05:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKTREE:feature>\",\n  \"branch\": \"feat/add-thing\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
       "stderr": "",
       "exitCode": 0
     }
   ],
   "yaru": [
+    {
+      "path": "comments",
+      "content": "",
+      "directory": true
+    },
     {
       "path": "config.yml",
       "content": ""

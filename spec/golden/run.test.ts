@@ -1,8 +1,9 @@
 import { expect, test } from "bun:test"
-import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs"
+import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
 import {
+  assertIsolated,
   cliCommand,
   compareSnapshots,
   execute,
@@ -87,9 +88,90 @@ test("differences name the scenario, the step, and which field changed", () => {
   expect(report).toContain("exit code")
   expect(report).toContain("expected 0, actual 1")
   expect(report).toContain(".yaru/issues/1.md")
+  expect(report).toContain("missing in actual")
   expect(report).toContain(".yaru/issues/2.md")
+  expect(report).toContain("unexpected file")
   expect(report).toContain("state/workspaces.json")
   expect(compareSnapshots(expected, expected)).toEqual([])
+})
+
+test("unified diff keeps an inserted line from shifting the lines after it", () => {
+  const expected: Snapshot = {
+    name: "issue-create",
+    steps: [
+      {
+        arguments: ["issue", "list"],
+        stdout: "alpha\nbeta\ngamma\n",
+        stderr: "",
+        exitCode: 0,
+      },
+    ],
+    yaru: [],
+    state: [],
+  }
+  const actual: Snapshot = {
+    name: "issue-create",
+    steps: [
+      {
+        arguments: ["issue", "list"],
+        stdout: "alpha\ninserted\nbeta\ngamma\n",
+        stderr: "",
+        exitCode: 0,
+      },
+    ],
+    yaru: [],
+    state: [],
+  }
+  const report = formatDifferences(compareSnapshots(expected, actual))
+  expect(report).toContain("@@")
+  expect(report).toContain("+inserted")
+  expect(report).not.toContain("-beta")
+  expect(report).not.toContain("-gamma")
+})
+
+test("trailing space and carriage return are shown as JSON strings", () => {
+  const expected: Snapshot = {
+    name: "issue-create",
+    steps: [{ arguments: ["issue", "get", "1"], stdout: "keep\nvalue\n", stderr: "", exitCode: 0 }],
+    yaru: [],
+    state: [],
+  }
+  const actual: Snapshot = {
+    name: "issue-create",
+    steps: [
+      { arguments: ["issue", "get", "1"], stdout: "keep\nvalue \r\n", stderr: "", exitCode: 0 },
+    ],
+    yaru: [],
+    state: [],
+  }
+  const report = formatDifferences(compareSnapshots(expected, actual))
+  expect(report).toContain(JSON.stringify("value"))
+  expect(report).toContain(JSON.stringify("value \r"))
+})
+
+test("commit hashes become numbered placeholders", () => {
+  const first = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  const second = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  const text = `${first}\n${first.slice(0, 7)} ${second.slice(0, 7)}\n${second}\n`
+  const normalized = normalizeText(text, {
+    workspaceDirectory: "/workspace",
+    stateDirectory: "/state",
+    worktrees: [],
+    commits: [
+      { full: first, short: first.slice(0, 7) },
+      { full: second, short: second.slice(0, 7) },
+    ],
+  })
+  expect(normalized).toBe("<COMMIT:1>\n<COMMIT:1> <COMMIT:2>\n<COMMIT:2>\n")
+  const unrelated = `aaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb`
+  expect(
+    normalizeText(unrelated, {
+      workspaceDirectory: "/workspace",
+      stateDirectory: "/state",
+      worktrees: [],
+      commits: [{ full: first, short: first.slice(0, 7) }],
+    }),
+  ).toBe(unrelated)
 })
 
 test("without YARU_BIN the CLI is bun running this repository", () => {
@@ -223,6 +305,252 @@ test("check exits 1 and names the scenario, step, and stream", async () => {
     if (previousBin === undefined) delete process.env.YARU_BIN
     else process.env.YARU_BIN = previousBin
     rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("omitted now and timezone use a fixed clock and Asia/Tokyo", async () => {
+  const root = mkdtempSync(join(tmpdir(), "yaru-golden-clock-"))
+  const fakeBin = join(root, "fake-yaru.sh")
+  writeFileSync(
+    fakeBin,
+    [
+      "#!/bin/sh",
+      "printf 'now:%s\\n' \"${YARU_NOW-}\"",
+      "printf 'tz:%s\\n' \"${TZ-}\"",
+      "printf 'home:%s\\n' \"${HOME-}\"",
+      "printf 'gitconfig:%s\\n' \"${GIT_CONFIG_GLOBAL-}\"",
+      "printf 'gitsystem:%s\\n' \"${GIT_CONFIG_NOSYSTEM-}\"",
+      "global_name=$(git config --global user.name || true)",
+      "printf 'global-name:%s\\n' \"$global_name\"",
+      "printf 'local-name:%s\\n' \"$(git config user.name || true)\"",
+      'mkdir -p "$PWD/.yaru/empty"',
+      "",
+    ].join("\n"),
+    { mode: 0o755 },
+  )
+  const previous = {
+    bin: process.env.YARU_BIN,
+    state: process.env.YARU_STATE_DIR,
+    now: process.env.YARU_NOW,
+    session: process.env.CLAUDE_CODE_SESSION_ID,
+  }
+  process.env.YARU_BIN = fakeBin
+  process.env.YARU_NOW = "1999-01-01T00:00:00.000Z"
+  try {
+    const snapshot = await runScenario({
+      name: "fixed-clock",
+      description: "clock and timezone",
+      steps: [
+        { arguments: ["init"] },
+        {
+          arguments: ["issue", "list"],
+          environment: { TZ: "America/Los_Angeles" },
+          stdin: "note\n",
+          workingDirectory: ".",
+        },
+      ],
+    })
+    expect(snapshot.steps[0]?.stdout).toContain("now:2026-09-28T00:00:00.000Z")
+    expect(snapshot.steps[0]?.stdout).toContain("tz:Asia/Tokyo")
+    expect(snapshot.steps[0]?.stdout).toContain("home:<HOME>")
+    expect(snapshot.steps[0]?.stdout).toContain("gitconfig:/dev/null")
+    expect(snapshot.steps[0]?.stdout).toContain("gitsystem:1")
+    expect(snapshot.steps[0]?.stdout).toContain("global-name:\n")
+    expect(snapshot.steps[0]?.stdout).toContain("local-name:golden")
+    expect(snapshot.steps[0]?.stdout).not.toContain(homedir())
+    expect(snapshot.steps[1]?.stdout).toContain("tz:America/Los_Angeles")
+    expect(snapshot.steps[1]).toMatchObject({
+      stdin: "note\n",
+      now: "2026-09-28T00:00:00.000Z",
+      workingDirectory: ".",
+      environment: { TZ: "America/Los_Angeles" },
+    })
+    expect(snapshot.yaru).toContainEqual({ path: "empty", content: "", directory: true })
+  } finally {
+    restoreEnvironment(previous)
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("a path that leaves the workspace is rejected", async () => {
+  const name = `yaru-golden-outside-${process.pid}.txt`
+  const outside = join(tmpdir(), name)
+  rmSync(outside, { force: true })
+  await expect(
+    runScenario({
+      name: "escape",
+      description: "path traversal",
+      setup: { files: [{ path: join("..", "..", name), content: "no\n" }] },
+      steps: [{ arguments: ["init"] }],
+    }),
+  ).rejects.toThrow(/invalid path: expected a path inside the workspace/)
+  expect(existsSync(outside)).toBe(false)
+})
+
+test("a step cannot point YARU_STATE_DIR at another directory", async () => {
+  await expect(
+    runScenario({
+      name: "state-dir",
+      description: "reject state override",
+      steps: [{ arguments: ["init"], environment: { YARU_STATE_DIR: "/tmp/yaru-not-the-temp" } }],
+    }),
+  ).rejects.toThrow(/YARU_STATE_DIR/)
+})
+
+test("an unknown scenario key is rejected with the scenario name", async () => {
+  const root = mkdtempSync(join(tmpdir(), "yaru-golden-schema-"))
+  const scenariosDirectory = join(root, "scenarios")
+  const snapshotsDirectory = join(root, "snapshots")
+  mkdirSync(scenariosDirectory)
+  mkdirSync(snapshotsDirectory)
+  writeFileSync(
+    join(scenariosDirectory, "issue-create.json"),
+    `${JSON.stringify({
+      name: "issue-create",
+      description: "create",
+      extra: true,
+      steps: [{ arguments: ["init"] }],
+    })}\n`,
+  )
+  try {
+    const result = await execute([
+      "--check",
+      "--scenarios",
+      scenariosDirectory,
+      "--snapshots",
+      snapshotsDirectory,
+    ])
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain("issue-create")
+    expect(result.stderr).toContain("unknown key")
+    expect(result.stderr).toContain("extra")
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("an unknown setup key is rejected", async () => {
+  const root = mkdtempSync(join(tmpdir(), "yaru-golden-schema-"))
+  const scenariosDirectory = join(root, "scenarios")
+  mkdirSync(scenariosDirectory)
+  mkdirSync(join(root, "snapshots"))
+  writeFileSync(
+    join(scenariosDirectory, "issue-create.json"),
+    `${JSON.stringify({
+      name: "issue-create",
+      description: "create",
+      setup: { extra: true },
+      steps: [{ arguments: ["init"] }],
+    })}\n`,
+  )
+  try {
+    const result = await execute([
+      "--check",
+      "--scenarios",
+      scenariosDirectory,
+      "--snapshots",
+      join(root, "snapshots"),
+    ])
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain("issue-create")
+    expect(result.stderr).toContain("unknown setup key")
+    expect(result.stderr).toContain("extra")
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("a missing working directory names the scenario", async () => {
+  await expect(
+    runScenario({
+      name: "missing-dir",
+      description: "missing working directory",
+      steps: [{ arguments: ["init"], workingDirectory: "no/such" }],
+    }),
+  ).rejects.toThrow(/missing-dir: workingDirectory not found: expected .*no\/such, actual missing/)
+})
+
+test("an extra snapshot is reported", async () => {
+  const root = mkdtempSync(join(tmpdir(), "yaru-golden-extra-"))
+  const scenariosDirectory = join(root, "scenarios")
+  const snapshotsDirectory = join(root, "snapshots")
+  mkdirSync(scenariosDirectory)
+  mkdirSync(snapshotsDirectory)
+  const fakeBin = join(root, "fake-yaru.sh")
+  writeFileSync(fakeBin, "#!/bin/sh\nprintf 'ok\\n'\n", { mode: 0o755 })
+  writeFileSync(
+    join(scenariosDirectory, "issue-create.json"),
+    `${JSON.stringify({
+      name: "issue-create",
+      description: "create",
+      steps: [{ arguments: ["init"] }],
+    })}\n`,
+  )
+  writeFileSync(
+    join(snapshotsDirectory, "issue-create.json"),
+    `${JSON.stringify({
+      name: "issue-create",
+      steps: [
+        {
+          arguments: ["init"],
+          stdin: "",
+          environment: { TZ: "Asia/Tokyo" },
+          now: "2026-09-28T00:00:00.000Z",
+          workingDirectory: ".",
+          stdout: "ok\n",
+          stderr: "",
+          exitCode: 0,
+        },
+      ],
+      yaru: [],
+      state: [],
+    })}\n`,
+  )
+  writeFileSync(join(snapshotsDirectory, "leftover.json"), "{}\n")
+  const previousBin = process.env.YARU_BIN
+  process.env.YARU_BIN = fakeBin
+  try {
+    const result = await execute([
+      "--check",
+      "--scenarios",
+      scenariosDirectory,
+      "--snapshots",
+      snapshotsDirectory,
+    ])
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain("leftover")
+    expect(result.stderr).toContain("unexpected snapshot")
+  } finally {
+    if (previousBin === undefined) delete process.env.YARU_BIN
+    else process.env.YARU_BIN = previousBin
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("a worktree name must be lowercase words", async () => {
+  await expect(
+    runScenario({
+      name: "bad-worktree",
+      description: "bad worktree name",
+      setup: {
+        files: [{ path: "README.md", content: "a\n" }],
+        commits: [{ message: "initial", paths: ["README.md"] }],
+        worktrees: [{ name: "Feature", branch: "feat/x" }],
+      },
+      steps: [{ arguments: ["init"] }],
+    }),
+  ).rejects.toThrow(/invalid worktree name/)
+})
+
+test("the main worktree is refused", () => {
+  const mainWorktree = "/Users/voq/ghq/github.com/aovoq/yaru"
+  expect(existsSync(mainWorktree)).toBe(true)
+  expect(() => assertIsolated(mainWorktree)).toThrow(/main worktree/)
+  const temporary = mkdtempSync(join(tmpdir(), "yaru-golden-isolated-"))
+  try {
+    expect(() => assertIsolated(temporary)).not.toThrow()
+  } finally {
+    rmSync(temporary, { recursive: true, force: true })
   }
 })
 

@@ -1,0 +1,24 @@
+{
+  "name": "issue-due-timezone",
+  "description": "2026-09-28T20:00Z のとき、dueDate 2026-09-28 が Asia/Tokyo では期限切れになり America/Los_Angeles ではならない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T20:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Due today", "--dueDate", "2026-09-28"],
+      "now": "2026-09-28T20:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--due", "overdue"],
+      "now": "2026-09-28T20:00:00.000Z",
+      "environment": { "TZ": "Asia/Tokyo" }
+    },
+    {
+      "arguments": ["issue", "list", "--due", "overdue"],
+      "now": "2026-09-28T20:00:00.000Z",
+      "environment": { "TZ": "America/Los_Angeles" }
+    }
+  ]
+}
