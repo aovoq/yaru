@@ -1,5 +1,18 @@
-// yaru の CLI と常駐のサーバーの入口。Go 移行の段階 1 で、今の TS 版 (src/index.ts) と同じコマンドを持つ
-// 移行の計画は docs/migration/PLAN.md
+// yaru の CLI の入口。振り分けは internal/cli。常駐のサーバーは yaru serve から server.Serve を呼ぶ
+// TS 版は src/index.ts
 package main
 
-func main() {}
+import (
+	"os"
+
+	"github.com/aovoq/yaru/internal/cli"
+)
+
+func main() {
+	os.Exit(cli.Run(cli.Invocation{
+		Arguments: os.Args[1:],
+		Stdin:     os.Stdin,
+		Stdout:    os.Stdout,
+		Stderr:    os.Stderr,
+	}))
+}
