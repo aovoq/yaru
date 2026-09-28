@@ -106,3 +106,34 @@
 - Markdown の描画結果にはクラスを付けられないので、見た目は `src/css.tsx` の `.markdown` に書く
 - 本文は必ず `renderMarkdown` を通して描くこと。生の HTML を通さず、リンクと画像は安全なスキームだけに限っている。本文はエージェントが外から取ってきた文章を含み、画面から質問に答えられるため
 - 属性は変えたとき、文字の欄は離れたときに、その項目だけを自動保存する。読み直すときは手元で変えた項目だけを残す (`src/client/state.ts`)
+
+## Go 移行 (feat/change-go ブランチの決まり)
+
+このブランチでは、yaru を Go (API・データ・CLI・端末) と Vite + Preact の SPA (画面) に移す。計画と進み具合は `docs/migration/PLAN.md` にあり、司令塔 (Claude) だけが書き換える。作業するエージェントは、渡された作業の範囲だけを変えること。
+
+### 変えてはいけないもの (上の「後方互換性は考慮しない」の例外)
+
+- `.yaru/` のファイルの形式 (issue・コメント・イベント・質問の Markdown と frontmatter) は、今の TS 版とバイト単位で同じにすること
+- CLI (`yaru`) のコマンド名・引数・標準出力・標準エラー・終了コードは、今の TS 版と同じにすること
+- 形式や出力を「よくする」変更はしないこと。気になる点は報告にだけ書くこと
+
+### 触ってはいけないもの
+
+- 本物の `.yaru` (このリポジトリの main worktree の `.yaru` を含む) と、`~/.local/state/yaru` を読み書きしないこと
+  - git の worktree の中で `yaru` や `bun src/index.ts` を動かすと、main worktree の `.yaru` に書き込む。golden を取るときは、プロジェクトの外に `git init` した一時ディレクトリで動かすこと
+  - `YARU_STATE_DIR` は必ず一時ディレクトリに向けること
+- 常駐の `yaru serve` (`launchctl kickstart` を含む)、`herdr`、`tailscale` を操作しないこと
+- `git push`・`git merge`・`git rebase`・`git worktree` をしないこと。取り込みは司令塔が行う
+- `go.mod`・`proto/`・生成したコード・`docs/migration/`・`AGENTS.md`・`.grok/` を変えないこと。変えたいときは報告に書く
+
+### Go のコード
+
+- 変更の前にテストを書き、落ちることを確かめてから実装すること
+- `gofmt`・`go vet`・`go test ./...` を全て通すこと。declscope と depguard の設定が入ったら、それも通すこと
+- コメント・エラーメッセージの決まりは、上の yaru の決まりと同じ (コメントは日本語、エラーメッセージは英語で小文字始まり・末尾にピリオドなし・期待値と実際の値を含める)
+- 変数名を省略しないこと
+
+### 報告
+
+- 作業が終わったら、作業した worktree の `REPORT.md` に、変えたこと・確かめたこと・残した課題・判断に迷った点を書くこと
+- コミットは作業ブランチに、触ったファイルだけを path 指定で `git add` して行うこと。`REPORT.md` はコミットしないこと
