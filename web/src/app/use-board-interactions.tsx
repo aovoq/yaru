@@ -24,6 +24,7 @@ import { hasUnsavedChanges, type DraftField } from "../board/state"
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts"
 import type { PageController } from "./use-page-controller"
 import { deleteNewIssueParams, newIssueHref, pageHref, type PageFilters } from "../board/view-model"
+import { requiresDocumentReload } from "../route"
 
 // 板と issue 画面の上に重ねて開くもの (右クリックのメニュー・属性の選択・コマンドパレット・変更を捨てる確認・まとめて変える帯・知らせ) と、
 // それを開くキーボードとマウスの操作をまとめる。板の組み立て役 (app.tsx) は、返したものを置くだけにする
@@ -154,10 +155,10 @@ export function useBoardInteractions(
     return current.id ? id !== current.id : id !== "new"
   }
 
-  // 板の外 (dashboard・inbox・別のワークスペース) はページを読み直して開く。板の中はページを読み直さずに移る
+  // 板の外はページを読み直して開く。/terminal は CSP が違うので、入るときも出るときも読み直す。
   const go = (href: string) => {
     const url = new URL(href, window.location.href)
-    if (url.pathname !== `${basePath}/`) {
+    if (requiresDocumentReload(window.location.pathname, url.pathname) || url.pathname !== `${basePath}/`) {
       window.location.assign(url.href)
       return
     }

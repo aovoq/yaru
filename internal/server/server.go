@@ -38,17 +38,6 @@ const DefaultWatchPoll = 100 * time.Millisecond
 // 標準出力には TS 版と同じ「already running」を書いてある (src/web.tsx:630-632)。終了コードを 0 にするかは呼び出し側が決める。
 var ErrAlreadyRunning = errors.New("yaru already running")
 
-// HerdrLaunchKind は herdr を起こす経路。決定ではどの経路でも TERM を同じにする。
-// docs/spec/security.md の「決定」
-type HerdrLaunchKind int
-
-const (
-	// HerdrLaunchPTY は端末の PTY から herdr を起こす経路。
-	HerdrLaunchPTY HerdrLaunchKind = iota
-	// HerdrLaunchCLI は CLI から herdr を起こす経路。
-	HerdrLaunchCLI
-)
-
 // Handlers は Connect のサービス実装。nil のサービスは Unimplemented を返す。
 // Watch が nil のときは、このパッケージのファイル監視を使う。
 type Handlers struct {
@@ -90,7 +79,6 @@ type Configuration struct {
 	Dist fs.FS
 	// HerdrExecutable は herdr の実行ファイル。リクエストからは受け取らない。
 	HerdrExecutable string
-	HerdrArguments  []string
 }
 
 // Server は検査と配信の設定を持つ。Start するまでポートは開かない。
@@ -201,9 +189,11 @@ func (server *Server) Start() (*Running, error) {
 	}
 	server.boundPort = tcpAddress.Port
 	httpServer := &http.Server{
-		Handler:           server.build(tcpAddress.Port),
-		ReadTimeout:       0,
-		ReadHeaderTimeout: 0,
+		Handler:     server.build(tcpAddress.Port),
+		ReadTimeout: 0,
+		// ヘッダを読み続けて待ち受けを塞がない。本文の ReadTimeout は 0 のまま。
+		// docs/spec/security.md の「決定」。https://www.rfc-editor.org/rfc/rfc7230#section-3.2
+		ReadHeaderTimeout: 10 * time.Second,
 		WriteTimeout:      0,
 		IdleTimeout:       0,
 	}

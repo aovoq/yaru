@@ -97,7 +97,7 @@ func TestRelayPassesBytesSizeAndSession(t *testing.T) {
 	rejectionLog = &logBuffer
 	t.Cleanup(func() { rejectionLog = previousLog })
 
-	started := startTerminal(t, "")
+	started := startTerminal(t)
 	query := "?cols=100&rows=40&token=secret&session=production&dir=" + otherDirectory + "&bin=/evil/herdr"
 	connection := dialTerminal(t, started, query, started.loopbackOrigin(), "same-origin", "")
 	processID := waitForClient(t, started.recordDirectory, nil)
@@ -199,7 +199,7 @@ func TestDisconnectOfOneClientLeavesTheOther(t *testing.T) {
 	if err := os.Unsetenv(SessionEnvironment); err != nil {
 		t.Fatal(err)
 	}
-	started := startTerminal(t, "")
+	started := startTerminal(t)
 	first := dialTerminal(t, started, "?cols=80&rows=24", started.loopbackOrigin(), "", "")
 	firstProcessID := waitForClient(t, started.recordDirectory, nil)
 	t.Cleanup(func() { killProcessGroup(firstProcessID) })
@@ -226,10 +226,11 @@ func TestDisconnectOfOneClientLeavesTheOther(t *testing.T) {
 }
 
 func TestNormalizedHostAllowsWebSocket(t *testing.T) {
+	// 大小文字と末尾のドットは server が正規化する。ハンドラは正規化済みの Host を受け取る。
 	homeDirectory := physicalDirectory(t, t.TempDir())
 	t.Setenv("HOME", homeDirectory)
-	started := startTerminal(t, "Mac.Example.Ts.Net.:443")
-	connection := dialTerminal(t, started, "?cols=80&rows=24", "https://mac.example.ts.net", "same-origin", "Mac.Example.Ts.Net.")
+	started := startTerminal(t)
+	connection := dialTerminal(t, started, "?cols=80&rows=24", "https://mac.example.ts.net", "same-origin", "mac.example.ts.net")
 	processID := waitForClient(t, started.recordDirectory, nil)
 	t.Cleanup(func() { killProcessGroup(processID) })
 	environmentText := readTrimmed(t, started.clientPath(processID, "env"))
@@ -241,7 +242,7 @@ func TestNormalizedHostAllowsWebSocket(t *testing.T) {
 	}
 	waitUntilDead(t, processID)
 
-	local := dialTerminal(t, started, "", "http://localhost:"+strconv.Itoa(started.port), "same-origin", "localhost.:"+strconv.Itoa(started.port))
+	local := dialTerminal(t, started, "", "http://localhost:"+strconv.Itoa(started.port), "same-origin", "localhost:"+strconv.Itoa(started.port))
 	localProcessID := waitForClient(t, started.recordDirectory, map[int]bool{processID: true})
 	t.Cleanup(func() { killProcessGroup(localProcessID) })
 	if err := local.Close(websocket.StatusNormalClosure, ""); err != nil {
@@ -253,7 +254,7 @@ func TestNormalizedHostAllowsWebSocket(t *testing.T) {
 func TestInvalidColumnsUseDefaultSize(t *testing.T) {
 	homeDirectory := physicalDirectory(t, t.TempDir())
 	t.Setenv("HOME", homeDirectory)
-	started := startTerminal(t, "")
+	started := startTerminal(t)
 	connection := dialTerminal(t, started, "?cols=0&rows=0", started.loopbackOrigin(), "", "")
 	processID := waitForClient(t, started.recordDirectory, nil)
 	t.Cleanup(func() { killProcessGroup(processID) })
@@ -284,7 +285,7 @@ func TestPreconditionsFailBeforeStartingHerdr(t *testing.T) {
 			if err := os.WriteFile(fakeHerdrExecutable+".record", []byte(recordDirectory), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			handler := Handler(Config{HerdrExecutable: testCase.executable, ListenPort: 47800})
+			handler := Handler(Config{HerdrExecutable: testCase.executable})
 			request := httptest.NewRequest(http.MethodGet, "/ws/terminal", nil)
 			request.Host = "127.0.0.1:47800"
 			request.Header.Set("Origin", "http://127.0.0.1:47800")
@@ -298,7 +299,6 @@ func TestPreconditionsFailBeforeStartingHerdr(t *testing.T) {
 			if recorder.Body.String() != testCase.want {
 				t.Fatalf("body = %q", recorder.Body.String())
 			}
-			assertSecurityHeaders(t, recorder.Header())
 			assertHerdrNotStarted(t, recordDirectory)
 		})
 	}
@@ -311,7 +311,7 @@ func TestMissingHomeDirectoryDoesNotStartHerdr(t *testing.T) {
 	if err := os.WriteFile(fakeHerdrExecutable+".record", []byte(recordDirectory), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	handler := Handler(Config{HerdrExecutable: fakeHerdrExecutable, ListenPort: 47800})
+	handler := Handler(Config{HerdrExecutable: fakeHerdrExecutable})
 	request := httptest.NewRequest(http.MethodGet, "/ws/terminal", nil)
 	request.Host = "127.0.0.1:47800"
 	request.Header.Set("Origin", "http://127.0.0.1:47800")
@@ -341,7 +341,7 @@ func (started startedTerminal) clientPath(processID int, suffix string) string {
 	return filepath.Join(started.recordDirectory, fmt.Sprintf("%d.%s", processID, suffix))
 }
 
-func startTerminal(t *testing.T, publicHost string) startedTerminal {
+func startTerminal(t *testing.T) startedTerminal {
 	t.Helper()
 	recordDirectory := t.TempDir()
 	if err := os.WriteFile(fakeHerdrExecutable+".record", []byte(recordDirectory), 0o644); err != nil {
@@ -355,11 +355,7 @@ func startTerminal(t *testing.T, publicHost string) startedTerminal {
 	if !ok {
 		t.Fatalf("listener address = %T", listener.Addr())
 	}
-	handler := Handler(Config{
-		HerdrExecutable: fakeHerdrExecutable,
-		ListenPort:      tcpAddress.Port,
-		PublicHost:      publicHost,
-	})
+	handler := Handler(Config{HerdrExecutable: fakeHerdrExecutable})
 	server := httptest.NewUnstartedServer(handler)
 	server.Listener = listener
 	server.Start()
@@ -405,8 +401,18 @@ func dialTerminal(t *testing.T, started startedTerminal, query string, origin st
 	if response.StatusCode != http.StatusSwitchingProtocols {
 		t.Fatalf("status = %d", response.StatusCode)
 	}
-	assertSecurityHeaders(t, response.Header)
 	return connection
+}
+
+func assertHerdrNotStarted(t *testing.T, recordDirectory string) {
+	t.Helper()
+	matches, err := filepath.Glob(filepath.Join(recordDirectory, "*.pid"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 0 {
+		t.Fatalf("herdr started: %v", matches)
+	}
 }
 
 func waitForClient(t *testing.T, recordDirectory string, already map[int]bool) int {

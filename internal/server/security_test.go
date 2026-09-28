@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+	"unicode/utf8"
 
 	connect "connectrpc.com/connect"
 	v1 "github.com/aovoq/yaru/gen/yaru/v1"
@@ -654,6 +656,72 @@ type projectStub struct{}
 
 func (projectStub) ListProjects(context.Context, *connect.Request[v1.ListProjectsRequest]) (*connect.Response[v1.ListProjectsResponse], error) {
 	return connect.NewResponse(&v1.ListProjectsResponse{Projects: []*v1.Project{{Slug: "demo"}}}), nil
+}
+
+func TestTerminalDocumentAllowsInlineStyle(t *testing.T) {
+	// /terminal の文書だけ style-src に unsafe-inline を足す。他の文書と 403 は足さない。
+	// docs/spec/security.md の「応答ヘッダー」。https://www.w3.org/TR/CSP3/#directive-style-src
+	handler := newTestServer(t, Configuration{}).Handler()
+	document := perform(handler, http.MethodGet, loopbackURL+"/terminal", loopbackHost, "", "", nil)
+	if document.Code != http.StatusOK || !strings.Contains(document.Body.String(), "<html") {
+		t.Fatalf("terminal document: status %d body %s", document.Code, document.Body.String())
+	}
+	policy := document.Header().Get("Content-Security-Policy")
+	if policy != terminalContentSecurityPolicy {
+		t.Fatalf("terminal csp: expected %s, actual %s", terminalContentSecurityPolicy, policy)
+	}
+	if strings.Contains(policy, "script-src 'self' 'unsafe-inline'") || strings.Contains(policy, "unsafe-eval") {
+		t.Fatalf("terminal csp allows script inline or eval: %s", policy)
+	}
+	home := perform(handler, http.MethodGet, loopbackURL+"/", loopbackHost, "", "", nil)
+	assertSecurityHeaders(t, home.Header())
+	if strings.Contains(home.Header().Get("Content-Security-Policy"), "style-src 'self' 'unsafe-inline'") {
+		t.Fatalf("home csp allows inline style: %s", home.Header().Get("Content-Security-Policy"))
+	}
+	trailing := perform(handler, http.MethodGet, loopbackURL+"/terminal/", loopbackHost, "", "", nil)
+	if trailing.Code != http.StatusNotFound {
+		t.Fatalf("trailing slash: expected 404, actual %d", trailing.Code)
+	}
+	rejected := perform(handler, http.MethodGet, loopbackURL+"/terminal", "evil.example", "", "", nil)
+	if rejected.Code != http.StatusForbidden {
+		t.Fatalf("evil host: expected 403, actual %d", rejected.Code)
+	}
+	assertSecurityHeaders(t, rejected.Header())
+}
+
+func TestReadHeaderTimeoutIsTenSeconds(t *testing.T) {
+	built := newTestServer(t, Configuration{Ephemeral: true})
+	running, err := built.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = running.Close() })
+	if running.httpServer.ReadHeaderTimeout != 10*time.Second {
+		t.Fatalf("read header timeout: expected 10s, actual %s", running.httpServer.ReadHeaderTimeout)
+	}
+	if running.httpServer.ReadTimeout != 0 || running.httpServer.WriteTimeout != 0 || running.httpServer.IdleTimeout != 0 {
+		t.Fatalf("timeouts: read %s write %s idle %s", running.httpServer.ReadTimeout, running.httpServer.WriteTimeout, running.httpServer.IdleTimeout)
+	}
+}
+
+func TestRejectionCutsOnARuneBoundary(t *testing.T) {
+	var logBuffer bytes.Buffer
+	handler := newTestServer(t, Configuration{LogOutput: &logBuffer}).Handler()
+	request := httptest.NewRequest(http.MethodGet, loopbackURL+"/", nil)
+	request.Host = strings.Repeat("あ", 80)
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusForbidden {
+		t.Fatalf("status: expected 403, actual %d", recorder.Code)
+	}
+	prefix := "rejected host: expected 127.0.0.1:47811 or localhost:47811 or the configured public host, actual "
+	actual := strings.TrimPrefix(strings.TrimSuffix(recorder.Body.String(), "\n"), prefix)
+	if !utf8.ValidString(actual) || len(actual) > 128 || len(actual)%len("あ") != 0 {
+		t.Fatalf("cut host: %q (%d bytes)", actual, len(actual))
+	}
+	if !utf8.ValidString(strings.TrimPrefix(strings.TrimSuffix(logBuffer.String(), "\n"), prefix)) {
+		t.Fatalf("log cut inside a rune: %q", logBuffer.String())
+	}
 }
 
 func TestTerminalPageIsNotMarkedPassing(t *testing.T) {

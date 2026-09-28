@@ -105,7 +105,7 @@ func TestSPAPathsAndEmbeddedFiles(t *testing.T) {
 	}
 	handler := newTestServer(t, Configuration{Dist: dist}).Handler()
 	indexHTML := string(dist["index.html"].Data)
-	for _, path := range []string{"/", "/inbox", "/p/" + slug, "/p/" + slug + "/", "/p/" + slug + "/dashboard"} {
+	for _, path := range []string{"/", "/inbox", "/terminal", "/p/" + slug, "/p/" + slug + "/", "/p/" + slug + "/dashboard"} {
 		response := perform(handler, http.MethodGet, loopbackURL+path, loopbackHost, "", "", nil)
 		if response.Code != http.StatusOK || response.Body.String() != indexHTML {
 			t.Fatalf("%s: status %d body %s", path, response.Code, response.Body.String())

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aovoq/yaru/internal/api"
 	"github.com/aovoq/yaru/internal/clock"
-	"github.com/aovoq/yaru/internal/notify"
 	"github.com/aovoq/yaru/internal/questions"
 	"github.com/aovoq/yaru/internal/server"
 	"github.com/aovoq/yaru/internal/store"
@@ -138,13 +138,13 @@ func (active services) withDefaults() services {
 		active.readProvenance = readWorkspaceProvenance
 	}
 	if active.baseURL == nil {
-		active.baseURL = notify.BaseURL
+		active.baseURL = notifyBaseURL
 	}
 	if active.questionURL == nil {
-		active.questionURL = notify.QuestionURL
+		active.questionURL = api.QuestionURL
 	}
 	if active.notifyQuestionCreated == nil {
-		active.notifyQuestionCreated = notify.QuestionCreated
+		active.notifyQuestionCreated = notifyQuestionCreated
 	}
 	if active.serve == nil {
 		active.serve = server.Serve
@@ -191,6 +191,20 @@ func fetchIssueOK(url string) (bool, error) {
 		return false, err
 	}
 	return response.StatusCode >= 200 && response.StatusCode < 300, nil
+}
+
+func notifyBaseURL(opened workspace.Workspace, fallback string) (string, error) {
+	return api.BaseURL(opened, fallback), nil
+}
+
+func notifyQuestionCreated(opened workspace.Workspace, url string, question questions.Question) (string, error) {
+	// 子の環境は api.Notify の許可リスト。親の環境は渡さない。
+	// docs/spec/security.md の「知らせコマンド」と「決定」
+	return api.Notify(opened, api.Event{
+		Name:     "question.created",
+		URL:      url,
+		Question: &question,
+	})
 }
 
 func ensureQuestionsDirectory(opened workspace.Workspace) error {

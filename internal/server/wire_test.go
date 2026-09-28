@@ -84,3 +84,25 @@ func TestWiredTerminalUsesServerHostCheck(t *testing.T) {
 		t.Fatalf("same-origin terminal: expected the terminal handler, actual %d %s", reached.Code, reached.Body.String())
 	}
 }
+
+func TestNormalizedPublicHostReachesTerminal(t *testing.T) {
+	// 大小文字と末尾のドットは server が Host を正規化してから端末へ渡す。端末は検査を繰り返さない。
+	// docs/spec/security.md の「許可する Host」と「WebSocket」
+	script := filepath.Join(t.TempDir(), "herdr")
+	if err := os.WriteFile(script, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	handler := newTestServer(t, Configuration{
+		WireServices:    true,
+		HerdrExecutable: script,
+		PublicHost:      "mac.example.ts.net",
+		PublicHostSet:   true,
+	}).Handler()
+	response := perform(handler, http.MethodGet, "https://mac.example.ts.net"+terminal.Path, "Mac.Example.Ts.Net.", "https://mac.example.ts.net", "", map[string]string{
+		"Upgrade":        "websocket",
+		"Sec-Fetch-Site": "same-origin",
+	})
+	if response.Code == http.StatusForbidden || response.Code == http.StatusNotFound {
+		t.Fatalf("normalized host: expected the terminal handler, actual %d %s", response.Code, response.Body.String())
+	}
+}
