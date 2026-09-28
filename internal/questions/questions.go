@@ -709,7 +709,15 @@ func ResolveAnswerBy(value *string, now time.Time) (resolved *string, provided b
 		if now.UnixMilli() > 0 && milliseconds > math.MaxInt64-now.UnixMilli() {
 			return nil, true, invalidAnswerBy(*value)
 		}
-		text := isoString(time.UnixMilli(now.UnixMilli() + milliseconds).UTC())
+		// Date の範囲の外は toISOString が RangeError になり、message は Invalid Date のまま
+		// https://tc39.es/ecma262/#sec-time-values-and-time-range
+		// https://tc39.es/ecma262/#sec-date.prototype.toisostring
+		instant := now.UnixMilli() + milliseconds
+		if instant > 8_640_000_000_000_000 || instant < -8_640_000_000_000_000 {
+			//nolint:staticcheck // TS の message は大文字で始まる
+			return nil, true, errors.New("Invalid Date")
+		}
+		text := isoString(time.UnixMilli(instant).UTC())
 		return &text, true, nil
 	}
 	if parsed, ok := parseAnswerByInput(*trimmed); ok {
