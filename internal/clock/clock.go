@@ -47,13 +47,45 @@ func ISOString(moment time.Time) string {
 }
 
 // RelativeTime は TS 版の relativeTime と同じ文字列を返す
+// 30 秒未満は now。48 時間未満は時間、それ以上は日で、最短の日は 2d (src/time.ts:49-63)
 func RelativeTime(moment time.Time, now time.Time) string {
-	panic("not implemented: clock.RelativeTime")
+	differenceMilliseconds := moment.UnixMilli() - now.UnixMilli()
+	absoluteMilliseconds := differenceMilliseconds
+	if absoluteMilliseconds < 0 {
+		absoluteMilliseconds = -absoluteMilliseconds
+	}
+	// Math.round。30 秒 (0.5 分) は 1 分に切り上げる (src/time.ts:53)
+	roundedMinutes := (absoluteMilliseconds + 30_000) / 60_000
+	if roundedMinutes < 1 {
+		return "now"
+	}
+	span := relativeSpan(roundedMinutes)
+	if differenceMilliseconds >= 0 {
+		return "in " + span
+	}
+	return span + " ago"
+}
+
+func relativeSpan(roundedMinutes int64) string {
+	if roundedMinutes < 60 {
+		return fmt.Sprintf("%dm", roundedMinutes)
+	}
+	// 48 時間ちょうどは日になる。24 時間は 1d ではなく 24h (src/time.ts:59-61)
+	if roundedMinutes < 60*48 {
+		hours := roundedMinutes / 60
+		remainderMinutes := roundedMinutes % 60
+		if remainderMinutes == 0 {
+			return fmt.Sprintf("%dh", hours)
+		}
+		return fmt.Sprintf("%dh %dm", hours, remainderMinutes)
+	}
+	return fmt.Sprintf("%dd", roundedMinutes/(60*24))
 }
 
 // LocalDateTime は TS 版の localDateTime と同じ MM-DD HH:mm を、プロセスの時間帯 (TZ) で返す
+// 秒は分に繰り上げない。getMinutes と同じ (src/time.ts:67-73)
 func LocalDateTime(moment time.Time) string {
-	panic("not implemented: clock.LocalDateTime")
+	return moment.In(time.Local).Format("01-02 15:04")
 }
 
 // parseYaruNow は YARU_NOW を src/time.ts:7-41 と同じ瞬間にする
