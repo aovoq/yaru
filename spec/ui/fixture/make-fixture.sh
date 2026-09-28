@@ -2,7 +2,7 @@
 # 画面の確認用ワークスペースを、リポジトリの外に作る。
 # issue、コメント、質問、コミットは、この worktree の yaru (src/index.ts) で書く。
 # 質問の期限と、止まった issue、7 日より前に終わった issue は、作ったあとに frontmatter の時刻だけをずらす。
-# YARU_NOW が無くても動く。時計の口が入ったあとは、fixture.env の YARU_NOW を serve に渡すと、作ったときの時計になる。
+# ずらす前の createdAt も、ずらした時刻も、同じ YARU_NOW から数える。既定は 2026-09-28T12:00:00.000Z。
 # 使い方: spec/ui/fixture/make-fixture.sh [出力先] [--state-dir 登録先] [--force]
 # 登録先の既定は <出力先>/state。できた fixture.env の YARU_STATE_DIR を serve に渡す。
 # 実行中の環境変数 YARU_STATE_DIR は使わない。本物の登録を上書きしないため。
@@ -92,15 +92,8 @@ if [ "$STATE_DIR" = "$REAL_STATE" ] || [ "$STATE_DIR" = "$HOME/.local/state/yaru
   echo "refusing to write the real state directory: $STATE_DIR" >&2
   exit 1
 fi
-CLOCK=$(bun -e '
-  const raw = process.env.YARU_NOW
-  const clock = raw ? new Date(raw) : new Date()
-  if (Number.isNaN(clock.getTime())) {
-    console.error("invalid YARU_NOW: expected an ISO 8601 datetime, actual " + JSON.stringify(raw))
-    process.exit(1)
-  }
-  process.stdout.write(clock.toISOString())
-')
+# 環境の YARU_NOW は使わない。シナリオの確認は、この固定した時刻で行う。
+CLOCK=2026-09-28T12:00:00.000Z
 
 iso_shift() {
   bun -e '
@@ -146,19 +139,33 @@ set_field() {
   ' "$1" "$2" "$3"
 }
 
+# セッションの環境変数を渡すと、質問と issue の session に実行環境の値が入る。外す。
+# worktree は git の最上位なので、一時ディレクトリのパスが入る。比べるときは正規化する。
 in_ws() {
   workspace=$1
   shift
   (
     cd "$workspace"
-    env YARU_STATE_DIR="$STATE_DIR" YARU_NOW="$CLOCK" bun "$YARU_BIN" "$@"
+    env -u CLAUDE_CODE_SESSION_ID -u CODEX_SESSION_ID \
+      YARU_STATE_DIR="$STATE_DIR" YARU_NOW="$CLOCK" \
+      bun "$YARU_BIN" "$@"
   )
 }
 
 id_of() {
   workspace=$1
   shift
-  out=$(in_ws "$workspace" "$@")
+  err=$(mktemp)
+  out=$(in_ws "$workspace" "$@" 2>"$err") || {
+    cat "$err" >&2
+    exit 1
+  }
+  if [ -s "$err" ]; then
+    cat "$err" >&2
+    echo "yaru wrote an unexpected warning" >&2
+    exit 1
+  fi
+  rm -f "$err"
   printf '%s' "$out" | bun -e '
     let text = ""
     process.stdin.on("data", (chunk) => { text += chunk })
@@ -225,13 +232,34 @@ BLOCKED=$(id_of "$MAIN" issue save --title "Blocked note" --status todo)
 in_ws "$MAIN" issue save --id "$SHIP" --block "$BLOCKED" >/dev/null
 printf '%s\n' "See #$SPEC." "" "- [ ] write the notes" "- [x] pick the layout" | in_ws "$MAIN" issue save --id "$SHIP" --body - >/dev/null
 
-BLOCKING=$(id_of "$MAIN" question save --title "Which API shape?" --issue "$SPEC" --body "The agent is waiting.")
+# 既定も期限も無い質問は、エージェントが止まることを警告する。Blocking はこの警告が出るのが正しい。
+blocking_err=$(mktemp)
+BLOCKING=$(
+  out=$(in_ws "$MAIN" question save --title "Which API shape?" --issue "$SPEC" --body "The agent is waiting." 2>"$blocking_err") || {
+    cat "$blocking_err" >&2
+    exit 1
+  }
+  if ! grep -q "no --default and no --answerBy" "$blocking_err"; then
+    echo "expected the blocking question to warn that it has no default and no answerBy" >&2
+    cat "$blocking_err" >&2
+    exit 1
+  fi
+  printf '%s' "$out" | bun -e '
+    let text = ""
+    process.stdin.on("data", (chunk) => { text += chunk })
+    process.stdin.on("end", () => {
+      const value = JSON.parse(text)
+      process.stdout.write(String(value.id))
+    })
+  '
+)
+rm -f "$blocking_err"
 DUE=$(id_of "$MAIN" question save --title "Keep server rendering?" --issue "$SHIP" --default "Drop SSR" --answerBy "$DUE_SOON" --option "Keep SSR" --option "Drop SSR")
 NO_DEADLINE=$(id_of "$MAIN" question save --title "Proceed with the draft?" --issue "$BACKLOG" --default "Proceed with the draft")
 EXPIRED_Q=$(id_of "$MAIN" question save --title "Ship the fallback?" --issue "$STALE" --default "Ship the fallback" --answerBy "$EXPIRED")
-ANSWERED=$(id_of "$MAIN" question save --title "Already decided" --issue "$SHIP" --body "Context for the decision.")
+ANSWERED=$(id_of "$MAIN" question save --title "Already decided" --issue "$SHIP" --default "Noted" --body "Context for the decision.")
 in_ws "$MAIN" question answer "$ANSWERED" --body "Use the board." >/dev/null
-CANCELED_Q=$(id_of "$MAIN" question save --title "Withdrawn question" --issue "$RECENT_DONE")
+CANCELED_Q=$(id_of "$MAIN" question save --title "Withdrawn question" --issue "$RECENT_DONE" --default "Noted")
 in_ws "$MAIN" question save --id "$CANCELED_Q" --status canceled >/dev/null
 
 COMMENT=$(id_of "$MAIN" comment save --issue "$SHIP" --body "First note")

@@ -69,7 +69,11 @@
 
 質問は `.yaru/questions/` にあり、その中の `.gitignore` が `*` なので git には入らない (`src/questions.ts:599-605`)。issue とコメントとイベントは git に入る。
 
-`YARU_NOW` は、このブランチの `src/` にはまだ無い。スクリプトは時計が無くても、期限と更新時刻をファイルの値で再現する。`fixture.env` の `YARU_NOW` は作ったときの時計で、時計の口が入ったあとに同じ値を渡すと「今」をその時刻に固定できる。
+時計は `YARU_NOW=2026-09-28T12:00:00.000Z` に固定する (`src/time.ts:7-20`)。CLI と `yaru serve` の「今」はこの値になる。issue の `createdAt` も、止まった issue の `updatedAt` も、期限切れの `answerBy` も、この同じ時刻から数える。serve には `fixture.env` の `YARU_NOW` を渡す。
+
+`session` は空にする。作るときに `CLAUDE_CODE_SESSION_ID` と `CODEX_SESSION_ID` を外す (`src/provenance.ts:16-34`)。`worktree` には一時ディレクトリの絶対パスが入る (`src/provenance.ts:24`)。バイト列を比べるときは、この `worktree` の値を正規化する。
+
+既定も期限も無い Blocking の質問を作ると、stderr に `warning: question <id> has no --default and no --answerBy` が出る (`src/index.ts:608-612`)。止まる質問なので、この警告は期待どおり。それ以外の質問は `--default` を付け、警告を出さない。
 
 ## 板
 
@@ -224,7 +228,7 @@
 
 ### board-bulk まとめて選ぶ
 
-- 行き方: 行のチェック (`Select #<id>`) を押す、または `x`。範囲は Shift を押しながら行を押す (`src/client/use-board-interactions.tsx:132-143`)。
+- 行き方: 板を開き直してから、`button[aria-label="Select #<ship>"]` を押す。または `x`。範囲は Shift を押しながら行を押す (`src/client/use-board-interactions.tsx:132-143`)。メニューを開いたあとの選択に頼らない。
 - 確かめる点:
   - 下に `N selected` の帯。ボタンは Status、Priority、Assignee、Labels。Esc か `Clear selection (Esc)` で外れる (`src/client/bulk/bulk-bar.tsx:30-59`)。
   - 帯の読み上げは `1 issue selected` か `N issues selected`。
@@ -238,7 +242,7 @@
 
 ### board-context-menu 右クリックのメニュー
 
-- 行き方: 行を右クリック。または行に focus して Shift+F10 か Menu キー (`src/client/use-keyboard-shortcuts.ts:76-81`)。入力欄の中の右クリックはメニューにしない (`src/client/use-board-interactions.tsx:125`)。
+- 行き方: 板を開き、`a[data-id=<ship>]` に focus して Shift+F10 (`src/client/use-keyboard-shortcuts.ts:76-81`)。agent-browser では `agent-browser focus "a[data-id=<ship>]"` のあと `agent-browser press Shift+F10`。`click` に右ボタンは無い。入力欄の中の右クリックはメニューにしない (`src/client/use-board-interactions.tsx:125`)。
 - 確かめる点:
   - 項目は Status、Priority、Assignee、Labels、Due date、区切り、`Open issue` (ヒント `↵`)、`Create sub-issue`、区切り、`Copy ID`、`Copy link`、`Copy title`、`Copy as Markdown` (`src/client/issue-menu.ts:211-248`)。
   - Status の子は Backlog、Todo、In Progress、Done、Canceled。今の値が選ばれている。
@@ -323,7 +327,7 @@ issue 画面は板の上に重なる `role="dialog"` (`src/client/issue-view.tsx
   - 回答欄の `aria-label` は `Answer to Q<id>`。`⌘⏎` で送る。
   - 送ったあとの戻り先は、次の答え待ちのカード。板には取り消しの知らせを出さない (`src/web.tsx:159-160`)。
 - 1280: カードは開いている。Answer に `⌘⏎`。ボタンは横並び (`sm:flex-row`)。
-- 390: たたまれている。開くとボタンは縦。`⌘⏎` の表記は無い。
+- 390: たたまれている。開くのは `button[aria-controls="issue-awaiting-questions"]` (`src/client/issue/awaiting-questions.tsx:30-36`)。開くとボタンは縦。`⌘⏎` の表記は無い。
 
 ### issue-questions-settled 答え済みと取り下げ
 
@@ -364,7 +368,7 @@ issue 画面は板の上に重なる `role="dialog"` (`src/client/issue-view.tsx
 
 ### issue-discard 破棄の確認
 
-- 行き方: 新しい issue で題名か説明を書き、閉じる、別の issue、dashboard、サイドバーの外へのリンクを押す。
+- 行き方: `/?id=new` を開き、題名の欄に文字を入れる。閉じるのは issue 画面の中の `#drawer-close` (`Close (Esc)`)。390 では issue 画面が板の見出しまで覆うので、見出しの `#mobile-dashboard-link` は押せない (`src/client/issue-view.tsx:141`, `src/css.tsx:298-301`)。1280 ではサイドバーは覆われないので、サイドバーの Dashboard でも同じ確認が出る。
 - 確かめる点:
   - 題は `Discard changes?`。新しい issue の説明は `This new issue has not been created yet.` 既存で保存に失敗して残っているときは `Some changes to this issue have not been saved.` (`src/client/use-board-interactions.tsx:324-331`)。
   - ボタンは `Keep editing` (こちらに focus) と `Discard` (`src/components/confirm-dialog.tsx:6-7`, `47-51`)。
@@ -605,6 +609,124 @@ issue 画面は板の上に重なる `role="dialog"` (`src/client/issue-view.tsx
 - 確かめる点: `Copied ID #<id>`。他は `Copied link to #<id>`、`Copied title of #<id>`、`Copied #<id> as Markdown` (`src/client/issue-menu.ts:228-247`)。約 2 秒。live region は知らせが無いときも残る (`src/components/notice.tsx:2-3`)。
 - 1280 / 390: 下端中央。`whitespace-nowrap` なので、長い文は幅を超える。390 で題名が長いと、はみ出す。はみ出しを切るか折り返すかはソースが決めていない (未決)。
 
+## ライブ更新と書きかけ
+
+板は `/events` の SSE を受け、80ms 後に今の URL を `preserveDraft` で読み直す (`src/client/use-page-controller.ts:88-111`)。読み直しは `mergeDraft` で、手元で変えた項目だけを残す (`src/client/state.ts:88-96`, `302-309`)。接続が切れて戻り直したときと、`online` のときは、同じ読み直しをする (`src/client/use-page-controller.ts:97-107`)。
+
+dashboard と inbox は preact では無く、`live-page.ts` が SSE か一定間隔の読み取りと、`sessionStorage` の書きかけを持つ。
+
+### board-live-draft 編集中の読み直し
+
+- 行き方:
+  1. `GET /p/<main.slug>/?id=<ship>` を開く。
+  2. 題名の欄に、保存せず「Local title only」と入れる。`input` だけを出し、欄から離れない (`src/client/issue-view.tsx:183-185`)。離れると保存される。
+  3. 別のプロセスで `yaru issue save --id <ship> --priority low` を実行する。`.yaru` の変更で SSE が飛び、板が読み直す。
+- 確かめる点: 題名は「Local title only」のまま。優先度はサーバーの Low になる。他の項目は読み直した値 (`src/client/state.ts:302-309`)。
+- 1280 / 390: 残し方は同じ。属性の位置は issue-view と同じ。
+- 撮影: この操作はファイルを変える。撮る前に fixture の写しを取る。
+
+### board-live-online 切れてから戻り直す
+
+- 行き方:
+  1. `GET /p/<main.slug>/` を開く。
+  2. ブラウザを offline にする。CDP の `Network.emulateNetworkConditions` で `offline: true`。agent-browser では `agent-browser set offline on` (トップレベルの `offline` コマンドは無い)。
+  3. CLI で別の issue の題名を「Renamed while offline」に変える。
+  4. `agent-browser set offline off` で戻す。`online` と、SSE の `onopen` が読み直す (`src/client/use-page-controller.ts:99-107`)。
+- 確かめる点: 板に「Renamed while offline」が出る。offline の間は読み直せない。
+- 1280 / 390: 文言は同じ。
+- 撮影: 写しの上で行う。
+
+### dashboard-draft inbox-draft 書きかけの答え
+
+- 行き方:
+  1. dashboard を開く。Blocking の回答欄 (`textarea[form="answer-question-<blocking>"]`) に「draft text」と入れる。
+  2. ページを読み直す。
+  3. inbox でも、`textarea[form="answer-question-<slug>-<blocking>"]` に入れて読み直す。
+- 確かめる点: 読み直したあとも、同じ欄に「draft text」が戻る。鍵は `sessionStorage` の `yaru.drafts:<basePath>/dashboard` と `yaru.drafts:/inbox` (`src/web.tsx:454`, `546`, `src/ui/live-page.ts:71-100`)。空の欄だけを戻し、`?answer=` でサーバーが埋めた欄は上書きしない (同 92-98 行)。送ると、その質問の書きかけは消える (同 115-123 行)。
+- 1280 / 390: 欄の位置は質問カードと同じ。
+
+### dashboard-show-new 新しい質問の知らせ
+
+- 行き方:
+  1. dashboard を開き、回答欄に文字を入れる。入力中は自動で読み直さない (`src/ui/live-page.ts:139-157`)。
+  2. CLI で新しい open の質問を足す。SSE が `/events` に飛び、`/api/questions` を読み直す (`src/ui/live-page.ts:174-186`)。
+- 確かめる点: `#page-refresh` が現れ、文字は `1 new — Show`。押すと読み直す。入力が無ければ、ボタンを出さずにそのまま読み直す (同 149-152 行)。
+- 1280 / 390: ボタンは見出しの右 (`src/ui/page-header.tsx:44-48`)。
+- 撮影: 写しの上で行う。
+
+### dashboard-show-updated 更新の知らせ
+
+- 行き方: 回答欄に文字を入れたまま、CLI で issue を保存する。質問の顔ぶれは増えない。
+- 確かめる点: ボタンの文字は `Updated — Show` (`src/ui/live-page.ts:167-171`)。質問の取得に失敗したときも同じ文 (同 184-186 行)。
+- 1280 / 390: ボタンの位置は同じ。
+- 撮影: 写しの上で行う。inbox は 30 秒ごとの `/api/inbox` で同じ文を出す (`src/web.tsx:47-48`, `src/ui/live-page.ts:188-200`)。撮影は dashboard の SSE で見る。
+
+### dashboard-relative-time 相対時刻
+
+- 行き方: dashboard を開いたまま 1 分待つ。
+- 確かめる点: `time[data-relative]` の文字が、ブラウザの今で書き換わる (`src/ui/live-page.ts:204-215`)。間隔は 60 秒。最初の描画はサーバーの `YARU_NOW`、書き換えはブラウザの時計 (`new Date()`)。
+- 1280 / 390: 文字は同じ。
+
+### dashboard-deadline-passed 期限を過ぎた促し
+
+- 行き方: 描いたときは open で `data-answer-by` が付いている質問を開き、ブラウザの時計がその時刻を過ぎてから 1 分待つ。
+- 確かめる点: `#page-refresh` の文字が `Deadline passed — Show` (`src/ui/live-page.ts:210-213`)。`data-answer-by` は、期限切れでは無く、期限が未来の open だけに付く (`src/components/question-card.tsx:104`)。サーバーの `YARU_NOW` より後で、ブラウザの今より前の `answerBy` が要る。fixture の正午はブラウザの今より未来になることがあるので、この状態だけ、serve の `YARU_NOW` をブラウザの今より前にし、`answerBy` をその間に置く。
+- 1280 / 390: ボタンの位置は dashboard-show-new と同じ。
+- 撮影: 写しの上で、その質問の `answerBy` だけを書き換える。
+
+### dashboard-fragment-proceeded 閉じた Proceeded を開く
+
+- 行き方: Projects のカードから、期限切れの質問のリンク `/p/<slug>/dashboard#q-<id>` を開く (`src/projects/project-card.tsx:45`)。
+- 確かめる点: Proceeded は `details` で閉じている (`src/components/awaiting-question-list.tsx:111-116`)。fragment の先がその中なら、`live-page.ts` が `open` にしてからその位置へ流す (`src/ui/live-page.ts:237-250`)。題名 `Ship the fallback?` が見える。
+- 1280 / 390: 開き方は同じ。
+
+### dashboard-dismiss issue-dismiss inbox-dismiss 取り下げ
+
+- 行き方: 期限切れのカードの `Dismiss` を押す。dashboard、`/?id=<stale>` の issue、`/inbox` のそれぞれ。ボタンは `form="cancel-question-..."` (`src/components/question-card.tsx:157-164`, `src/components/question-answer.ts:34-36`)。inbox の form id は `cancel-question-<slug>-<id>`。
+- 確かめる点: 成功すると 303 で同じ画面に戻る (`src/web.tsx:196-217`)。その質問は答え待ちから外れる。issue では Questions のたたんだ行になる。
+- 1280: ボタンは横並び。
+- 390: ボタンは縦。
+- 撮影: 質問を消すので、画面ごとに写しを取る。
+
+### dashboard-dismiss-failed 取り下げの失敗
+
+- 行き方:
+  1. 期限切れの `Dismiss` が見えている画面を開く。
+  2. 読み直す前に、CLI でその質問に答える (`yaru question answer`)。状態は answered になる。
+  3. まだ残っている `Dismiss` を押す。
+- 確かめる点: サーバーは `cannot cancel question <id>: expected status open or expired, actual answered` で断り (`src/questions.ts:338-342`)、303 で `error` を戻す (`src/web.tsx:203-214`)。dashboard と inbox では上の Alert。issue では issue の上の Alert。すでに canceled の質問をもう一度取り下げるのは、エラーにせずそのまま返す (同 337 行)。
+- 1280 / 390: Alert の位置は各画面の失敗と同じ。
+- 撮影: 写しの上で行う。issue と inbox も同じ手順。
+
+## サイドバーと属性の面
+
+### dashboard-sidebar サイドバーの開閉
+
+- 行き方: 1280 で dashboard を開く。`#sidebar-toggle` (`Collapse sidebar`) を押す。続いて `#sidebar-open` (`Open sidebar`) を押す。
+- 確かめる点: 畳むと `html[data-sidebar="closed"]` で `#sidebar` が消え、768px 以上で `#sidebar-open` が `display: grid` になる (`src/css.tsx:156-162`)。dashboard では preact の onClick が無いので、`live-page.ts` が同じ localStorage の鍵 `yaru.sidebar.open` を書く (`src/ui/live-page.ts:253-267`)。板と dashboard で開閉は揃う。
+- 1280: 上記。
+- 390: サイドバーは元から無い。この操作は無い。
+- inbox は `PageShell` にサイドバーを渡していない (`src/inbox-page.tsx:59-62`)。開閉は無い。
+
+### issue-relation-kind 関係の種類
+
+- 行き方: `/?id=<ship>` で `Add relation` を押す。面の `Blocks` を押す。
+- 確かめる点: 面の上に `role="group"` の `Relation`。`Blocked by` と `Blocks`。押した方は `aria-pressed="true"` (`src/client/issue/relation-kind-switch.tsx:22-31`)。候補の名前が `Blocks` に変わる (`src/client/issue/relation-picker.tsx:24`)。issue を選ぶまで保存しない。
+- 1280 / 390: 面の中は同じ。
+
+### issue-labels-multi ラベルを複数選ぶ途中
+
+- 行き方: `/?id=<stale>` (ラベルが無い) で Labels の `Add labels` を押す。`bug` を押す。
+- 確かめる点: 複数選択なので面は開いたまま (`src/client/issue/property-picker.tsx:9`)。`bug` の `aria-selected` が true。押した時点でその項目は保存される (`src/client/issue/more-properties.tsx:60`)。
+- 1280 / 390: 面の位置は属性の欄に従う。
+- 撮影: 保存するので写しの上で行う。
+
+### issue-parent-empty 親の検索が 0 件
+
+- 行き方: 親の無い issue (`stale`) で `Set parent` を押す。検索欄に `zzzz-no-such` と入れる。
+- 確かめる点: 候補は 0 件で `No results` (`src/components/combobox.tsx:31`, `144-145`)。placeholder は `Search issues…` (`src/client/issue/parent-value.tsx:36`)。親は新しい値を作れないので、`Create` は出ない。
+- 1280 / 390: 文言は同じ。
+
 ## 撮影で触れないもの
 
 次は画面の状態ではあるが、fixture だけでは再現しない。手順だけ書く。
@@ -619,13 +741,12 @@ issue 画面は板の上に重なる `role="dialog"` (`src/client/issue-view.tsx
 
 仕様として決めない。ソースから一意に読めなかったもの。
 
-1. `YARU_NOW` がこのブランチに無い。相対表示 (「2 hours ago」) と、期限切れかどうかは、見るときの本物の時計とファイルの時刻で決まる。時計の口が入ったあと、fixture の `YARU_NOW` を serve に渡すと同じ時刻になる、という読みは `src/` にはまだ根拠が無い。
-2. `createApp` (接頭辞が空、ワークスペース名 `yaru`、切り替えボタン無し、dashboard のパンくずが `Issues`) はテストと単体のアプリにある (`src/page.ts:85-86`, `src/client/board/workspace-switcher.tsx:37-38`, `src/dashboard.tsx:115-121`)。`yaru serve` は `createServerApp` だけを起動する (`src/index.ts:350-356`)。Go の画面が接頭辞の空いた配り方を持つかは、このソースだけでは決まらない。
-3. 409 の ErrorView に、画面の操作だけで到達する手順が無い。フォームは 303 で理由を戻す。
-4. コピーの知らせは `whitespace-nowrap` で、390 で長い題名がはみ出すときの折り返しが無い (`src/components/notice.tsx:14`)。
-5. 確認幅の高さはソースに無い。撮影は 800 と 844 を仮に使う。
-6. `?assignee=me` と `?assignee=none` は、一覧のフィルタでは文字としての一致 (`src/store.ts:372-373`)。`me` を viewer に読み替えるのは、新しい issue の初期値と、保存のときだけ (`src/page.ts:186-191`)。サイドバーは人の名前しか出さない。`me` で絞る画面の操作は無い。
-7. まとめて選ぶ帯に Due date が無く、キーボードの `d` にはある (`src/client/bulk/bulk-bar.tsx:11-16`, `src/client/use-keyboard-shortcuts.ts:39-44`)。意図した差か、欠落かはソースが説明していない。
-8. 上流が無いコミットの `pushed` は null で、画面の三項は `Not pushed` と出す (`src/repository.ts:59`, `src/client/issue/commits.tsx:24`)。`no upstream` の札と「送っていない」が同時に出る。言葉を変えるかは決めていない。
-9. セッションが 0 の文の日数は、fixture を作るスクリプトがセッションファイルを書かないので、撮影では空の文だけを見る。日数の期待値は `src/sessions.ts` を別途読むこと。
-10. 板の右クリックは `contextmenu`。撮影に使う agent-browser の `click` には右ボタンが無い (`agent-browser click --help`)。撮影は Shift+F10 で開く。右クリックそのものの座標と、画面端でのメニュー位置 (`src/client/issue-menu.ts:276` 以降の `clampMenuPosition`) は、このスクリプトでは撮らない。
+1. `createApp` (接頭辞が空、ワークスペース名 `yaru`、切り替えボタン無し、dashboard のパンくずが `Issues`) はテストと単体のアプリにある (`src/page.ts:85-86`, `src/client/board/workspace-switcher.tsx:37-38`, `src/dashboard.tsx:115-121`)。`yaru serve` は `createServerApp` だけを起動する (`src/index.ts:350-356`)。Go の画面が接頭辞の空いた配り方を持つかは、このソースだけでは決まらない。
+2. 409 の ErrorView に、画面の操作だけで到達する手順が無い。フォームは 303 で理由を戻す。
+3. コピーの知らせは `whitespace-nowrap` で、390 で長い題名がはみ出すときの折り返しが無い (`src/components/notice.tsx:14`)。
+4. 確認幅の高さはソースに無い。撮影は 800 と 844 を仮に使う。
+5. `?assignee=me` と `?assignee=none` は、一覧のフィルタでは文字としての一致 (`src/store.ts:372-373`)。`me` を viewer に読み替えるのは、新しい issue の初期値と、保存のときだけ (`src/page.ts:186-191`)。サイドバーは人の名前しか出さない。`me` で絞る画面の操作は無い。
+6. まとめて選ぶ帯に Due date が無く、キーボードの `d` にはある (`src/client/bulk/bulk-bar.tsx:11-16`, `src/client/use-keyboard-shortcuts.ts:39-44`)。意図した差か、欠落かはソースが説明していない。
+7. 上流が無いコミットの `pushed` は null で、画面の三項は `Not pushed` と出す (`src/repository.ts:59`, `src/client/issue/commits.tsx:24`)。`no upstream` の札と「送っていない」が同時に出る。言葉を変えるかは決めていない。
+8. セッションが 0 の文の日数は、fixture を作るスクリプトがセッションファイルを書かないので、撮影では空の文だけを見る。日数の期待値は `src/sessions.ts` を別途読むこと。
+9. 板のメニューは Shift+F10 で開く。`agent-browser click` に右ボタンは無い。画面端でのメニュー位置 (`src/client/issue-menu.ts:276` 以降の `clampMenuPosition`) は、ポインタの座標で右クリックしたときのもので、この撮影では撮らない。
