@@ -1,0 +1,169 @@
+{
+  "name": "gs-question-answer-late-comment",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "initialized <WORKSPACE>/.yaru\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "save", "--title", "topic"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"topic\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "消すか",
+        "--issue",
+        "1",
+        "--default",
+        "残す",
+        "--answerBy",
+        "2026-09-27T00:00:00.000Z"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"消すか\",\n  \"issue\": \"1\",\n  \"priority\": null,\n  \"defaultAction\": \"残す\",\n  \"answerBy\": \"2026-09-27T00:00:00.000Z\",\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"expired\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "どうするか",
+        "--issue",
+        "1",
+        "--answerBy",
+        "2026-09-27T00:00:00.000Z"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"2\",\n  \"title\": \"どうするか\",\n  \"issue\": \"1\",\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": \"2026-09-27T00:00:00.000Z\",\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"expired\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "消してよい\n\n理由は後で"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:01:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"消すか\",\n  \"issue\": \"1\",\n  \"priority\": null,\n  \"defaultAction\": \"残す\",\n  \"answerBy\": \"2026-09-27T00:00:00.000Z\",\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": \"消してよい\\n\\n理由は後で\",\n  \"answeredBy\": \"golden\",\n  \"answeredAt\": \"2026-09-28T00:01:00.000Z\",\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:01:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"answered\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "answer", "2", "--body", "こうする"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:02:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"2\",\n  \"title\": \"どうするか\",\n  \"issue\": \"1\",\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": \"2026-09-27T00:00:00.000Z\",\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": \"こうする\",\n  \"answeredBy\": \"golden\",\n  \"answeredAt\": \"2026-09-28T00:02:00.000Z\",\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:02:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"answered\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "やはり残す", "--force"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:03:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"消すか\",\n  \"issue\": \"1\",\n  \"priority\": null,\n  \"defaultAction\": \"残す\",\n  \"answerBy\": \"2026-09-27T00:00:00.000Z\",\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": \"やはり残す\",\n  \"answeredBy\": \"golden\",\n  \"answeredAt\": \"2026-09-28T00:03:00.000Z\",\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:03:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"answered\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["comment", "list", "--issue", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"comments\": [\n    {\n      \"id\": \"1\",\n      \"issue\": \"1\",\n      \"parent\": null,\n      \"author\": \"golden\",\n      \"createdAt\": \"2026-09-28T00:01:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:01:00.000Z\",\n      \"body\": \"Late answer to Q1 (消すか), after the agent proceeded with the default:\\n\\n消してよい\\n\\n理由は後で\"\n    },\n    {\n      \"id\": \"2\",\n      \"issue\": \"1\",\n      \"parent\": null,\n      \"author\": \"golden\",\n      \"createdAt\": \"2026-09-28T00:02:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:02:00.000Z\",\n      \"body\": \"Late answer to Q2 (どうするか), after answerBy passed:\\n\\nこうする\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["comment", "list", "--issue", "1", "-f"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "1  golden  Late answer to Q1 (消すか), after the agent proceeded with the default:\n2  golden  Late answer to Q2 (どうするか), after answerBy passed:\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": "comments/1.md",
+      "content": "---\nid: 1\nissue: 1\nparent:\nauthor: golden\ncreatedAt: 2026-09-28T00:01:00.000Z\nupdatedAt: 2026-09-28T00:01:00.000Z\n---\n\nLate answer to Q1 (消すか), after the agent proceeded with the default:\n\n消してよい\n\n理由は後で\n"
+    },
+    {
+      "path": "comments/2.md",
+      "content": "---\nid: 2\nissue: 1\nparent:\nauthor: golden\ncreatedAt: 2026-09-28T00:02:00.000Z\nupdatedAt: 2026-09-28T00:02:00.000Z\n---\n\nLate answer to Q2 (どうするか), after answerBy passed:\n\nこうする\n"
+    },
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues/1.md",
+      "content": "---\nid: 1\ntitle: topic\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "questions/.gitignore",
+      "content": "*\n"
+    },
+    {
+      "path": "questions/1.md",
+      "content": "---\nid: 1\ntitle: 消すか\nstatus: open\nissue: 1\npriority:\ndefaultAction: 残す\nanswerBy: 2026-09-27T00:00:00.000Z\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy: golden\nansweredAt: 2026-09-28T00:03:00.000Z\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:03:00.000Z\n---\n\n<!-- yaru:answer -->\n\nやはり残す\n"
+    },
+    {
+      "path": "questions/2.md",
+      "content": "---\nid: 2\ntitle: どうするか\nstatus: open\nissue: 1\npriority:\ndefaultAction:\nanswerBy: 2026-09-27T00:00:00.000Z\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy: golden\nansweredAt: 2026-09-28T00:02:00.000Z\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:02:00.000Z\n---\n\n<!-- yaru:answer -->\n\nこうする\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

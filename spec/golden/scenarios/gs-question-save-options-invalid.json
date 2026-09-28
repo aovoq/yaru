@@ -1,0 +1,38 @@
+{
+  "name": "gs-question-save-options-invalid",
+  "description": "空の選択肢と、畳んだ結果が同じ選択肢の重複を拒む。ファイルはできない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--option", " "],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--option", "\n"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--option", ""],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--option", "a", "--option", "a"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--option", " a ", "--option", "a"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--option", "a\nb", "--option", "a b"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

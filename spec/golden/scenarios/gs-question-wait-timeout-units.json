@@ -1,0 +1,34 @@
+{
+  "name": "gs-question-wait-timeout-units",
+  "description": "question wait の期限の単位 ms, s, m, h。0 は待たずに時間切れ。stderr は渡した文字列のまま。先頭の 0 も残す",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--answerBy", "2h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "0ms", "--interval", "0ms"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "0s", "--interval", "0s"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "0m", "--interval", "1s"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "0h", "--interval", "1s"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "000100ms", "--interval", "00020ms"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "name": "gs-question-save-human-format",
+  "description": "question save の -f と --format と --f は id だけを出す。URL は足さない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--default", "x", "--answerBy", "1h", "-f"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "r",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h",
+        "--format"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "s",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h",
+        "--f"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "name": "gs-question-answer-conflict",
+  "description": "答え済みにもう一度答えると拒む。--force は置き換え、acknowledgedAt は空に戻る。最初の答えへの --force も通る",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "first", "--force"],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:02:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "second"],
+      "now": "2026-09-28T00:03:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "second", "--force"],
+      "now": "2026-09-28T00:04:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:05:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:06:00.000Z"
+    }
+  ]
+}

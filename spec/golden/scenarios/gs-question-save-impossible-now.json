@@ -1,0 +1,18 @@
+{
+  "name": "gs-question-save-impossible-now",
+  "description": "存在しない日の YARU_NOW では question を実行しない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list"],
+      "now": "2026-02-30T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q"],
+      "now": "2026-02-30T00:00:00.000Z"
+    }
+  ]
+}

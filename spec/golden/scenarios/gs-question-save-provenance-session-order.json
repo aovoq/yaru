@@ -1,0 +1,62 @@
+{
+  "name": "gs-question-save-provenance-session-order",
+  "description": "セッションは CLAUDE_CODE_SESSION_ID が先。両方あると Claude を使う。Claude が空なら Codex。空白は削る",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "both", "--default", "x", "--answerBy", "1h"],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "claude-1",
+        "CODEX_SESSION_ID": "codex-1"
+      },
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "codex", "--default", "x", "--answerBy", "1h"],
+      "environment": {
+        "CODEX_SESSION_ID": "codex-2"
+      },
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "blank claude",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "   ",
+        "CODEX_SESSION_ID": "codex-3"
+      },
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "trimmed", "--default", "x", "--answerBy", "1h"],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "  session-9  "
+      },
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "no session",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

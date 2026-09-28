@@ -1,0 +1,37 @@
+{
+  "name": "gs-question-answer-exactly-at-deadline-is-late",
+  "description": "answerBy と同じ時刻の答えは期限内ではない。issue があると遅い答えのコメントになる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "topic"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "q",
+        "--issue",
+        "1",
+        "--default",
+        "go",
+        "--answerBy",
+        "2026-09-28T01:00:00.000Z"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "at deadline"],
+      "now": "2026-09-28T01:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "list", "--issue", "1"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

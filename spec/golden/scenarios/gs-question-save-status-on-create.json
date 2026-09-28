@@ -1,0 +1,75 @@
+{
+  "name": "gs-question-save-status-on-create",
+  "description": "作成時の --status。open と canceled。前後の空白は無視する。canceled で既定も期限も無いと警告する。answered と expired は保存できない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "explicit open",
+        "--status",
+        "open",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "canceled",
+        "--status",
+        " canceled ",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "canceled blocking", "--status", "canceled"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "bad answered", "--status", "answered"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "bad expired", "--status", "expired"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "bad case",
+        "--status",
+        "Canceled",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "empty", "--status", ""],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "2", "--body", "nope"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

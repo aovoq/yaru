@@ -1,0 +1,36 @@
+{
+  "name": "gs-question-save-answer-by-rolls-invalid-calendar-day",
+  "description": "question save の --answerBy は存在しない日を翌月へ繰り上げて保存する。YARU_NOW は同じ日を拒む",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "feb 30",
+        "--default",
+        "x",
+        "--answerBy",
+        "2026-02-30T00:00:00Z"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "apr 31",
+        "--default",
+        "x",
+        "--answerBy",
+        "2026-04-31T00:00:00Z"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

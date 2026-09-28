@@ -1,0 +1,35 @@
+{
+  "name": "gs-question-wait-answered-human",
+  "description": "question wait の -f と --format は、答え済みなら answered と答えの本文だけを出す",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "yes"],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "1", "-f"],
+      "now": "2026-09-28T00:02:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "multiline"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "2", "--body", "-"],
+      "stdin": "one\ntwo\n",
+      "now": "2026-09-28T00:03:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "--id", "2", "--format"],
+      "now": "2026-09-28T00:04:00.000Z"
+    }
+  ]
+}

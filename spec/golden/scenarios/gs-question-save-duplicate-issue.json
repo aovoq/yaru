@@ -1,0 +1,98 @@
+{
+  "name": "gs-question-save-duplicate-issue",
+  "description": "重複は title と issue の組で見る。issue が違うと同じ title でも作れる。同じ issue の開いた質問は拒む",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "one"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "two"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "消すか",
+        "--issue",
+        "1",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "消すか",
+        "--issue",
+        "1",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "  消すか",
+        "--issue",
+        "1",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "消すか",
+        "--issue",
+        "2",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "消すか", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "消すか",
+        "--issue",
+        "1",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h",
+        "--force"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

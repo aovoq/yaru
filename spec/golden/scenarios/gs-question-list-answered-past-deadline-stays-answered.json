@@ -1,0 +1,30 @@
+{
+  "name": "gs-question-list-answered-past-deadline-stays-answered",
+  "description": "答え済みの質問は answerBy を過ぎても answered のまま。expired には戻らない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "yes"],
+      "now": "2026-09-28T00:10:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "--status", "answered"],
+      "now": "2026-09-28T02:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "--status", "expired"],
+      "now": "2026-09-28T02:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T02:00:00.000Z"
+    }
+  ]
+}

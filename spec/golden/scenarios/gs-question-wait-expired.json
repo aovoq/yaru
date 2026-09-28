@@ -1,0 +1,39 @@
+{
+  "name": "gs-question-wait-expired",
+  "description": "期限切れの question wait は待たずに返る。JSON と、既定の行動を書く人向けの出力。acknowledgedAt は付かない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "q",
+        "--default",
+        "進める",
+        "--answerBy",
+        "2026-09-27T00:00:00.000Z"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "1"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "1", "-f"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "--id", "1", "--format"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

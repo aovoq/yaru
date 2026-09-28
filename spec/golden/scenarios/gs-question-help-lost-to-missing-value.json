@@ -1,0 +1,9 @@
+{
+  "name": "gs-question-help-lost-to-missing-value",
+  "description": "値が要るフラグの次が --help だと、ヘルプより先に missing value で終わる",
+  "steps": [
+    {
+      "arguments": ["question", "save", "--title", "--help"]
+    }
+  ]
+}

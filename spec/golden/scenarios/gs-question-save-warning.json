@@ -1,0 +1,47 @@
+{
+  "name": "gs-question-save-warning",
+  "description": "作成時に --default と --answerBy が両方無いと警告して、終了コードは 0。片方だけ、または両方あれば警告しない。none は無いのと同じ。更新では警告しない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "blocking"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "default only", "--default", "x"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "deadline only", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "both", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "none default", "--default", "none"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "none both",
+        "--default",
+        "none",
+        "--answerBy",
+        "none"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--priority", "high"],
+      "now": "2026-09-28T00:01:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "name": "gs-question-list-missing-flag-value",
+  "steps": [
+    {
+      "arguments": ["question", "list", "--status"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --status\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "list", "--issue"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --issue\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "list", "--status", "--issue", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --status\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

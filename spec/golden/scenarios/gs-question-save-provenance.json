@@ -1,0 +1,28 @@
+{
+  "name": "gs-question-save-provenance",
+  "description": "作成時に CLAUDE_CODE_SESSION_ID と git の worktree と branch を残す。更新では別のセッションを渡しても変えない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--default", "x", "--answerBy", "1h"],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "session-1"
+      },
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--priority", "high"],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "session-2"
+      },
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1", "-f"],
+      "now": "2026-09-28T00:01:00.000Z"
+    }
+  ]
+}

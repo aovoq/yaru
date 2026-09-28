@@ -1,0 +1,22 @@
+{
+  "name": "gs-question-wait-not-found",
+  "description": "question wait の id が無い。期限の形が正しくても、その後に question not found になる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "9", "--timeout", "0ms"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "abc", "--timeout", "0ms", "--interval", "0ms"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "--id", "9", "--timeout", "0ms"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

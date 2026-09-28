@@ -1,0 +1,18 @@
+{
+  "name": "gs-question-answer-not-found",
+  "description": "question answer の id が無い",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "9", "--body", "yes"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "abc", "--body", "yes"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

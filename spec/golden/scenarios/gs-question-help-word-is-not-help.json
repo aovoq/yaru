@@ -1,0 +1,15 @@
+{
+  "name": "gs-question-help-word-is-not-help",
+  "description": "question help はヘルプにならない。サブコマンドが無いときと同じ usage になる",
+  "steps": [
+    {
+      "arguments": ["question", "help"]
+    },
+    {
+      "arguments": ["question"]
+    },
+    {
+      "arguments": ["question", "foo"]
+    }
+  ]
+}

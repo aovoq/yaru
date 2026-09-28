@@ -1,0 +1,27 @@
+{
+  "name": "gs-question-save-answer-by-overflow",
+  "description": "question save の --answerBy が Date の範囲を超えると、質問のエラー文ではなく Invalid Date になる。ファイルはできない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "q",
+        "--default",
+        "x",
+        "--answerBy",
+        "10000000000h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

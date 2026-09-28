@@ -1,0 +1,67 @@
+{
+  "name": "gs-question-get-usage",
+  "steps": [
+    {
+      "arguments": ["question", "get"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "usage: yaru question get <id>\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "get", "--format"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "usage: yaru question get <id>\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "get", "1", "extra"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: extra\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "get", "--status", "open"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --status\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "get", "--id"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --id\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

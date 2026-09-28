@@ -1,0 +1,34 @@
+{
+  "name": "gs-question-format-flag-takes-no-value",
+  "description": "-f と --format は値を取らない。list では次の語が余分な引数になる。get では次の語が id になり、--format 1 は質問 1 の人向けの出力になる",
+  "steps": [
+    {
+      "arguments": ["question", "list", "--format", "json"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "-f", "json"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "--format", "1"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1", "--format", "human"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "--format"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "name": "gs-question-save-body",
+  "description": "question save の --body。改行はそのまま。--body - は標準入力。空の標準入力は空の本文。区切り文字を含むと拒む",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "q",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h",
+        "--body",
+        "one\n\ntwo"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "stdin",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h",
+        "--body",
+        "-"
+      ],
+      "stdin": "from stdin\n",
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "empty stdin",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h",
+        "--body",
+        "-"
+      ],
+      "stdin": "",
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "marker",
+        "--body",
+        "before\n<!-- yaru:answer -->\nafter"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

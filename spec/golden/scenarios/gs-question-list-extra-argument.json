@@ -1,0 +1,9 @@
+{
+  "name": "gs-question-list-extra-argument",
+  "description": "question list が余分な位置引数を拒む",
+  "steps": [
+    {
+      "arguments": ["question", "list", "extra"]
+    }
+  ]
+}

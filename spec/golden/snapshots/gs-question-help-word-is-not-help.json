@@ -1,0 +1,43 @@
+{
+  "name": "gs-question-help-word-is-not-help",
+  "steps": [
+    {
+      "arguments": ["question", "help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "usage: yaru question list|get|save|answer|wait\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "usage: yaru question list|get|save|answer|wait\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "foo"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "usage: yaru question list|get|save|answer|wait\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

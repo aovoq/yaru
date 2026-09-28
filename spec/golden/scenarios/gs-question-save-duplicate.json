@@ -1,0 +1,57 @@
+{
+  "name": "gs-question-save-duplicate",
+  "description": "同じ title で issue が無い開いた質問は、もう一度作れない。--force なら作る。空白だけ違う title も同じとみなす。答え済みと取り下げの後は作れる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "消すか", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "消すか", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        " 消すか ",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "消すか",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h",
+        "--force"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "yes"],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "2", "--status", "canceled"],
+      "now": "2026-09-28T00:02:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "消すか", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:03:00.000Z"
+    }
+  ]
+}

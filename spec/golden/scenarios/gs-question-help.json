@@ -1,0 +1,48 @@
+{
+  "name": "gs-question-help",
+  "description": "question と各サブコマンドの --help と -h を記録する。-h がサブコマンドより前でも、後ろのサブコマンドの文面になる",
+  "steps": [
+    {
+      "arguments": ["question", "--help"]
+    },
+    {
+      "arguments": ["question", "-h"]
+    },
+    {
+      "arguments": ["question", "list", "--help"]
+    },
+    {
+      "arguments": ["question", "list", "-h"]
+    },
+    {
+      "arguments": ["question", "get", "--help"]
+    },
+    {
+      "arguments": ["question", "get", "-h"]
+    },
+    {
+      "arguments": ["question", "save", "--help"]
+    },
+    {
+      "arguments": ["question", "save", "-h"]
+    },
+    {
+      "arguments": ["question", "answer", "--help"]
+    },
+    {
+      "arguments": ["question", "answer", "-h"]
+    },
+    {
+      "arguments": ["question", "wait", "--help"]
+    },
+    {
+      "arguments": ["question", "wait", "-h"]
+    },
+    {
+      "arguments": ["question", "-h", "list"]
+    },
+    {
+      "arguments": ["-h", "question", "wait"]
+    }
+  ]
+}
