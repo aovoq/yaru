@@ -1,0 +1,62 @@
+{
+  "name": "gs-question-save-default",
+  "description": "question save の --default。改行は空白 1 つに畳む。none と空と空白は既定の行動が無いのと同じ",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "newlines",
+        "--default",
+        "  c \n d  ",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "none default",
+        "--default",
+        "none",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "empty default",
+        "--default",
+        "",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "blank default",
+        "--default",
+        "  ",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

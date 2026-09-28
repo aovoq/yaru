@@ -1,0 +1,49 @@
+{
+  "name": "gs-issue-list-from-worktree",
+  "description": "linked worktree から yaru issue list すると、元のフォルダの .yaru を読むことを記録する。登録の root は元のワークスペースである。",
+  "setup": {
+    "files": [
+      {
+        "path": "README.md",
+        "content": "latch\n"
+      }
+    ],
+    "commits": [
+      {
+        "message": "initial",
+        "paths": ["README.md"]
+      }
+    ],
+    "worktrees": [
+      {
+        "name": "feature",
+        "branch": "feat/add-thing"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "From main"],
+      "now": "2026-09-28T12:01:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list"],
+      "now": "2026-09-28T12:01:00.000Z",
+      "workingDirectory": "worktree:feature"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "From main"],
+      "now": "2026-09-28T12:01:00.000Z",
+      "workingDirectory": "worktree:feature"
+    },
+    {
+      "arguments": ["issue", "list", "--format"],
+      "now": "2026-09-28T12:01:00.000Z",
+      "workingDirectory": "worktree:feature"
+    }
+  ]
+}

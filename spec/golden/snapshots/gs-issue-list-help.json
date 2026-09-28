@@ -1,0 +1,103 @@
+{
+  "name": "gs-issue-list-help",
+  "steps": [
+    {
+      "arguments": ["issue", "list", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru issue list — list issues in this workspace\n\nFor my issues, use --assignee me. Use --assignee none for no assignee.\nUse --parent none for issues with no parent.\n\nUsage:\n  yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT]\n                  [--due overdue] [--parent ID] [--limit N] [--cursor ID]\n                  [-f|--format]\n\n--query searches issue id, title, or body.\n--due overdue is dueDate before today.\n--parent filters by parent issue id.\n--limit max results (default 50, max 250).\n--cursor next page cursor from a previous list.\nDefault output is {issues, hasNextPage, cursor}. -f / --format prints a table.\n\nStatus: backlog, todo, in_progress, done, canceled\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "list", "-h"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru issue list — list issues in this workspace\n\nFor my issues, use --assignee me. Use --assignee none for no assignee.\nUse --parent none for issues with no parent.\n\nUsage:\n  yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT]\n                  [--due overdue] [--parent ID] [--limit N] [--cursor ID]\n                  [-f|--format]\n\n--query searches issue id, title, or body.\n--due overdue is dueDate before today.\n--parent filters by parent issue id.\n--limit max results (default 50, max 250).\n--cursor next page cursor from a previous list.\nDefault output is {issues, hasNextPage, cursor}. -f / --format prints a table.\n\nStatus: backlog, todo, in_progress, done, canceled\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["--help", "issue", "list"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru issue list — list issues in this workspace\n\nFor my issues, use --assignee me. Use --assignee none for no assignee.\nUse --parent none for issues with no parent.\n\nUsage:\n  yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT]\n                  [--due overdue] [--parent ID] [--limit N] [--cursor ID]\n                  [-f|--format]\n\n--query searches issue id, title, or body.\n--due overdue is dueDate before today.\n--parent filters by parent issue id.\n--limit max results (default 50, max 250).\n--cursor next page cursor from a previous list.\nDefault output is {issues, hasNextPage, cursor}. -f / --format prints a table.\n\nStatus: backlog, todo, in_progress, done, canceled\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["-h", "issue", "list"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru issue list — list issues in this workspace\n\nFor my issues, use --assignee me. Use --assignee none for no assignee.\nUse --parent none for issues with no parent.\n\nUsage:\n  yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT]\n                  [--due overdue] [--parent ID] [--limit N] [--cursor ID]\n                  [-f|--format]\n\n--query searches issue id, title, or body.\n--due overdue is dueDate before today.\n--parent filters by parent issue id.\n--limit max results (default 50, max 250).\n--cursor next page cursor from a previous list.\nDefault output is {issues, hasNextPage, cursor}. -f / --format prints a table.\n\nStatus: backlog, todo, in_progress, done, canceled\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "--help", "list"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru issue list — list issues in this workspace\n\nFor my issues, use --assignee me. Use --assignee none for no assignee.\nUse --parent none for issues with no parent.\n\nUsage:\n  yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT]\n                  [--due overdue] [--parent ID] [--limit N] [--cursor ID]\n                  [-f|--format]\n\n--query searches issue id, title, or body.\n--due overdue is dueDate before today.\n--parent filters by parent issue id.\n--limit max results (default 50, max 250).\n--cursor next page cursor from a previous list.\nDefault output is {issues, hasNextPage, cursor}. -f / --format prints a table.\n\nStatus: backlog, todo, in_progress, done, canceled\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "list", "-h", "--status", "todo"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru issue list — list issues in this workspace\n\nFor my issues, use --assignee me. Use --assignee none for no assignee.\nUse --parent none for issues with no parent.\n\nUsage:\n  yaru issue list [--status NAME] [--assignee NAME] [--label NAME] [--query TEXT]\n                  [--due overdue] [--parent ID] [--limit N] [--cursor ID]\n                  [-f|--format]\n\n--query searches issue id, title, or body.\n--due overdue is dueDate before today.\n--parent filters by parent issue id.\n--limit max results (default 50, max 250).\n--cursor next page cursor from a previous list.\nDefault output is {issues, hasNextPage, cursor}. -f / --format prints a table.\n\nStatus: backlog, todo, in_progress, done, canceled\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["help", "issue", "list"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru — local issues, markdown in .yaru\n\n  yaru init\n  yaru issue list\n  yaru issue get <id>\n  yaru issue save\n  yaru comment list --issue ID\n  yaru comment get <id>\n  yaru comment save\n  yaru question list\n  yaru question get <id>\n  yaru question save\n  yaru question answer <id>\n  yaru question wait <id>\n  yaru serve [-p|--port 47800]\n\nOutput is JSON unless -f / --format. Commands print their contract with --help.\n\nyaru serve shows every workspace yaru has been used in: / lists them, /p/<name>/ is one board.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru issue — list, get, or save issues\n\n  yaru issue list\n  yaru issue get <id>\n  yaru issue save\n\nEach subcommand documents its flags with --help.\nOutput is JSON unless -f / --format.\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

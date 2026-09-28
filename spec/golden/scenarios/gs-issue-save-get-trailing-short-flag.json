@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-get-trailing-short-flag",
+  "description": "値の無い未知の 1 文字フラグは unknown flag ではなく、missing value になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "1", "-x"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

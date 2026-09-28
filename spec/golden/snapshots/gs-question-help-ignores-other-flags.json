@@ -1,0 +1,79 @@
+{
+  "name": "gs-question-help-ignores-other-flags",
+  "steps": [
+    {
+      "arguments": ["question", "list", "--help", "--nope", "x"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question list — list questions in this workspace\n\nUsage:\n  yaru question list [--status NAME] [--issue ID] [-f|--format]\n\nQuestions awaiting an answer come first: blocking ones (no default action),\nthen open ones by answerBy, then open ones without a deadline, then expired ones.\nAnswered and canceled questions follow, most recently resolved first.\nJSON prints {questions}.\n\nStatus: open, expired, answered, canceled\nexpired is an open question whose answerBy has passed.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "list", "--help", "--force"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question list — list questions in this workspace\n\nUsage:\n  yaru question list [--status NAME] [--issue ID] [-f|--format]\n\nQuestions awaiting an answer come first: blocking ones (no default action),\nthen open ones by answerBy, then open ones without a deadline, then expired ones.\nAnswered and canceled questions follow, most recently resolved first.\nJSON prints {questions}.\n\nStatus: open, expired, answered, canceled\nexpired is an open question whose answerBy has passed.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--help", "--title", "kept"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question save — ask a question or update one\n\nIf --id is provided, updates the existing question; otherwise creates a new one.\nDo not pass --id when creating. Title is required when creating: the question itself, one line.\nOmitted fields stay unchanged on update. none clears issue, priority, default, or answerBy.\n\n--default is the action you will take if no answer arrives by answerBy (one line).\n--answerBy is a duration from now (30m, 2h, 1d) or an ISO 8601 datetime.\n--option is one answer the human can pick with one tap (one line). Repeat it for each option;\nany --option replaces the whole list, and --option none clears it.\n--body is Markdown context: trade-offs, your recommendation. Use --body - to read stdin.\n--status canceled withdraws a question that no longer needs an answer; open restores it.\n\nCreating records the session (CLAUDE_CODE_SESSION_ID or CODEX_SESSION_ID), the git worktree,\nand the branch it was asked from.\nCreating refuses when an open question with the same title (and the same issue) exists;\nthe error names it. --force asks again anyway.\nCreating without --default and --answerBy warns: the question blocks until the human answers.\n\nCreating a question runs the notify command from .yaru/config.yml (notify: COMMAND) with\n{\"event\":\"question.created\",\"url\":\"...\",\"question\":{...}} on stdin. A failing command only warns.\nurl opens the question on the dashboard; publicUrl: URL in config.yml replaces http://127.0.0.1:47800.\nA running yaru serve also sends {\"event\":\"question.expiring\",...} once, 15 minutes before answerBy.\n\nUsage:\n  yaru question save --title TEXT [--issue ID] [--priority NAME] [--default TEXT]\n                     [--answerBy WHEN] [--option TEXT]... [--body TEXT|-] [--force]\n                     [-f|--format]\n  yaru question save --id ID [--title TEXT] [--issue ID] [--priority NAME] [--default TEXT]\n                     [--answerBy WHEN] [--option TEXT|none]... [--body TEXT|-]\n                     [--status open|canceled] [-f|--format]\n\nPriority: urgent, high, medium, low\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "list", "--help", "--nope"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --nope\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "save", "--help", "--title"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --title\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "save", "-h", "--priority"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --priority\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

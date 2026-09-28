@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-get-missing-id",
+  "description": "yaru issue get に id が無いとき、使い方を終了コード 1 で出すことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "get"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-get-equals-without-value",
+  "description": "yaru issue get の --id=1 は、値が無いと等号付きの名前のまま missing value になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "--id=1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

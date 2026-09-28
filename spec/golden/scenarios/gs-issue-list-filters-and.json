@@ -1,0 +1,275 @@
+{
+  "name": "gs-issue-list-filters-and",
+  "description": "yaru issue list の --status、--assignee、--label、--query、--due overdue、--parent を同時に付けると、全部に当たる issue だけが残ることを記録する。1 つでも外れると落ちる。全部外れたときは JSON が空で、--format は (none) である。",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Parent",
+        "--status",
+        "backlog",
+        "--assignee",
+        "golden",
+        "--label",
+        "other",
+        "--dueDate",
+        "2026-09-29",
+        "--priority",
+        "low",
+        "--body",
+        "parent"
+      ],
+      "now": "2026-09-28T12:01:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Latch match",
+        "--status",
+        "todo",
+        "--assignee",
+        "Ada",
+        "--label",
+        "cli",
+        "--label",
+        "docs",
+        "--dueDate",
+        "2026-09-27",
+        "--priority",
+        "high",
+        "--parent",
+        "1",
+        "--body",
+        "hinge bolt"
+      ],
+      "now": "2026-09-28T12:02:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Done latch",
+        "--status",
+        "done",
+        "--assignee",
+        "Ada",
+        "--label",
+        "cli",
+        "--dueDate",
+        "2026-09-27",
+        "--parent",
+        "1",
+        "--body",
+        "hinge bolt"
+      ],
+      "now": "2026-09-28T12:03:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Other person",
+        "--status",
+        "todo",
+        "--assignee",
+        "Bo",
+        "--label",
+        "cli",
+        "--dueDate",
+        "2026-09-27",
+        "--parent",
+        "1",
+        "--body",
+        "hinge bolt"
+      ],
+      "now": "2026-09-28T12:04:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Other label",
+        "--status",
+        "todo",
+        "--assignee",
+        "Ada",
+        "--label",
+        "other",
+        "--dueDate",
+        "2026-09-27",
+        "--parent",
+        "1",
+        "--body",
+        "hinge bolt"
+      ],
+      "now": "2026-09-28T12:05:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Other title",
+        "--status",
+        "todo",
+        "--assignee",
+        "Ada",
+        "--label",
+        "cli",
+        "--dueDate",
+        "2026-09-27",
+        "--parent",
+        "1",
+        "--body",
+        "no keyword"
+      ],
+      "now": "2026-09-28T12:06:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Future latch",
+        "--status",
+        "todo",
+        "--assignee",
+        "Ada",
+        "--label",
+        "cli",
+        "--dueDate",
+        "2026-09-29",
+        "--parent",
+        "1",
+        "--body",
+        "hinge bolt"
+      ],
+      "now": "2026-09-28T12:07:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Latch orphan",
+        "--status",
+        "todo",
+        "--assignee",
+        "Ada",
+        "--label",
+        "cli",
+        "--dueDate",
+        "2026-09-27",
+        "--body",
+        "hinge bolt"
+      ],
+      "now": "2026-09-28T12:08:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "list",
+        "--status",
+        "todo",
+        "--assignee",
+        "Ada",
+        "--label",
+        "cli",
+        "--query",
+        "latch",
+        "--due",
+        "overdue",
+        "--parent",
+        "1"
+      ],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "list",
+        "--status",
+        "todo",
+        "--assignee",
+        "Ada",
+        "--label",
+        "cli",
+        "--query",
+        "LATCH",
+        "--due",
+        "overdue",
+        "--parent",
+        "1",
+        "--format"
+      ],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "list",
+        "--status",
+        "todo",
+        "--assignee",
+        "Ada",
+        "--label",
+        "cli",
+        "--query",
+        "latch",
+        "--due",
+        "overdue"
+      ],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "list",
+        "--status",
+        "backlog",
+        "--assignee",
+        "Ada",
+        "--label",
+        "cli",
+        "--query",
+        "latch",
+        "--due",
+        "overdue",
+        "--parent",
+        "1"
+      ],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "list",
+        "--status",
+        "backlog",
+        "--assignee",
+        "Ada",
+        "--label",
+        "cli",
+        "--query",
+        "latch",
+        "--due",
+        "overdue",
+        "--parent",
+        "1",
+        "--format"
+      ],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

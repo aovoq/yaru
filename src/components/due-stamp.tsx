@@ -1,4 +1,5 @@
 import { formatDueDate, isIssueOverdue } from "../issue-dates"
+import { currentTime } from "../time"
 
 // issue の期日。「Oct 20」のように短く出し、hover で元の日付 (ISO) を見せる
 // 期日を過ぎた未完了の issue は危険の色で示し、色の見分けがつかない人と読み上げのために「Overdue」の言葉も添える
@@ -8,7 +9,7 @@ import { formatDueDate, isIssueOverdue } from "../issue-dates"
 export function DueStamp({
   date,
   status = "todo",
-  now = new Date(),
+  now = currentTime(),
 }: {
   date: string | null
   status?: string

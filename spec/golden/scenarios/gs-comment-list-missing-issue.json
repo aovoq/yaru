@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-list-missing-issue",
+  "description": "`--issue` が無いと usage を出す。ワークスペースを開く前に終わる",
+  "steps": [
+    {
+      "arguments": ["comment", "list"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

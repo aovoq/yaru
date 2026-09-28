@@ -1,0 +1,38 @@
+{
+  "name": "gs-issue-list-validation-order",
+  "description": "引数が揃ったあとの検査順を記録する。ワークスペースを開いたあと、--due、--status、issue の読み込み、--limit、--cursor の順で、最初の失敗だけを出す。",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--due", "late", "--status", "nope", "--limit", "0"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "nope", "--due", "late"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "nope", "--limit", "0"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--limit", "0", "--cursor", "99"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--cursor", "99", "--limit", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--cursor", "99", "--status", "nope"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--limit", "abc"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

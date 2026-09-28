@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package yaru.v1;
+
+// 板と dashboard のライブ更新。今の GET /events (src/web.tsx:303)。
+// つないだだけで .yaru/questions は作らない。issues、questions、comments の変化は、ディレクトリが後からできても change にする。
+service WatchService {
+  // 全ワークスペースを 1 本にはしない。今の SSE はワークスペースの中にある。
+  rpc WatchWorkspace(WatchWorkspaceRequest) returns (stream WatchWorkspaceResponse);
+}
+
+message WatchWorkspaceRequest {
+  string workspace = 1;
+}
+
+// つないだらすぐ ready。変化は change。約 5 秒ごとに heartbeat (今の : ping)。
+message WatchWorkspaceResponse {
+  oneof event {
+    WatchReady ready = 1;
+    WatchChange change = 2;
+    WatchHeartbeat heartbeat = 3;
+  }
+}
+
+// 接続できた合図。クライアントはこれを受けたら取り直す。
+message WatchReady {}
+
+// ファイルが変わった合図。中身は載らない。今の data は文字 change。
+message WatchChange {}
+
+// 接続を維持する合図。取り直しはしない。
+message WatchHeartbeat {}

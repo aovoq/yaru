@@ -1,0 +1,19 @@
+{
+  "name": "gs-comment-save-create-stdin-dash",
+  "description": "本文が `-` そのもののときは、標準入力で渡す",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "-"],
+      "now": "2026-09-28T12:05:00.000Z",
+      "stdin": "-"
+    }
+  ]
+}

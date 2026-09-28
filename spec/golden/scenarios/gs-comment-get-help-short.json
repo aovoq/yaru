@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-get-help-short",
+  "description": "`yaru comment get -h` が、取得の使い方を出す",
+  "steps": [
+    {
+      "arguments": ["comment", "get", "-h"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "gs-issue-save-update-body-controls",
+  "description": "本文の制御文字、引用符、<>& がファイルでは生のまま、get の JSON では制御文字だけ逃げることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--body", "a \"b\" \\ <c> &\u0001\b\f "],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

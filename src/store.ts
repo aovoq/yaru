@@ -12,6 +12,7 @@ import { isIssueOverdue } from "./issue-dates"
 import { appendIssueEvents, diffIssue } from "./issue-events"
 import { isIssueStale, readStaleAfter } from "./issue-stale"
 import type { Provenance } from "./provenance"
+import { currentTime } from "./time"
 
 export const PRIORITIES = ["urgent", "high", "medium", "low"] as const
 export type Priority = (typeof PRIORITIES)[number]
@@ -198,7 +199,7 @@ function withDerived(issues: Issue[], now: Date, staleAfter: number): Issue[] {
   }))
 }
 
-export function listIssues(store: Store, filter: Filter = {}, now = new Date()): Issue[] {
+export function listIssues(store: Store, filter: Filter = {}, now = currentTime()): Issue[] {
   const resolved: Filter = { ...filter, assignee: resolveAssignee(filter.assignee) }
   if (resolved.status !== undefined) resolved.status = resolveStatus(resolved.status)
   if (resolved.parent !== undefined && resolved.parent !== null) {
@@ -232,7 +233,7 @@ export function pageIssues(
   return { issues: page, hasNextPage }
 }
 
-export function getIssue(store: Store, id: string, now = new Date()): Issue {
+export function getIssue(store: Store, id: string, now = currentTime()): Issue {
   return readDerivedIssue(store, id, now, readStaleAfter(store))
 }
 
@@ -245,7 +246,7 @@ function readDerivedIssue(store: Store, id: string, now: Date, staleAfter: numbe
 }
 
 export function saveIssue(store: Store, input: SaveInput, options: SaveOptions = {}): Issue {
-  const clock = options.now ?? new Date()
+  const clock = options.now ?? currentTime()
   const now = clock.toISOString()
   const provenance = options.provenance
   // 設定の誤りで保存の後に読み直せないと、書けたのに失敗と伝わり、エージェントが作り直して issue が重複する。書く前に読む
@@ -385,7 +386,7 @@ function match(issue: Issue, filter: Filter, now: Date): boolean {
   return true
 }
 
-export function isOverdue(dueDate: string | null, now = new Date()): boolean {
+export function isOverdue(dueDate: string | null, now = currentTime()): boolean {
   return dueDate !== null && dueDate < calendarDate(now)
 }
 
@@ -658,7 +659,7 @@ export function getComment(store: Store, id: string): Comment {
 }
 
 export function saveComment(store: Store, input: SaveCommentInput): Comment {
-  const now = new Date().toISOString()
+  const now = currentTime().toISOString()
   if (input.id) {
     const current = getComment(store, input.id)
     if (input.body !== undefined && !input.body.trim()) {

@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-save-update-due-none-whitespace",
+  "description": "空白を削ると none になる --dueDate が期日を消すことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--dueDate", "2026-10-01"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--dueDate", " none "],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

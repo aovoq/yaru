@@ -1,0 +1,37 @@
+{
+  "name": "gs-init-worktree-init-after-main",
+  "description": "main を init したあとに worktree で init すると、worktree 側にもう一つの .yaru と登録を作る。その後の一覧は main を開く",
+  "setup": {
+    "files": [
+      {
+        "path": "README.md",
+        "content": "latch\n"
+      }
+    ],
+    "commits": [
+      {
+        "message": "initial",
+        "paths": ["README.md"]
+      }
+    ],
+    "worktrees": [
+      {
+        "name": "feature",
+        "branch": "feat/add-thing"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["init"]
+    },
+    {
+      "arguments": ["init"],
+      "workingDirectory": "worktree:feature"
+    },
+    {
+      "arguments": ["issue", "list"],
+      "workingDirectory": "worktree:feature"
+    }
+  ]
+}

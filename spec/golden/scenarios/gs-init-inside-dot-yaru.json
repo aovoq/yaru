@@ -1,0 +1,13 @@
+{
+  "name": "gs-init-inside-dot-yaru",
+  "description": ".yaru ディレクトリの中で init すると、その中に入れ子の .yaru を作り、slug は .yaru になる",
+  "steps": [
+    {
+      "arguments": ["init"]
+    },
+    {
+      "arguments": ["init"],
+      "workingDirectory": ".yaru"
+    }
+  ]
+}

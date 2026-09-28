@@ -1,0 +1,134 @@
+{
+  "name": "gs-question-list-order",
+  "description": "question list の並び。止まっているもの、期限が近いもの、期限が無いもの、期限切れ、答え済みと取り下げ。同じ時刻に片付いたものは id の大きい方が先",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "blocking old"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "due later",
+        "--default",
+        "later",
+        "--answerBy",
+        "3h"
+      ],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "due soon",
+        "--default",
+        "soon",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:02:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "no deadline older", "--default", "older"],
+      "now": "2026-09-28T00:03:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "proceeded",
+        "--default",
+        "go",
+        "--answerBy",
+        "10m"
+      ],
+      "now": "2026-09-28T00:04:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "blocking new"],
+      "now": "2026-09-28T00:05:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "blocking due", "--answerBy", "2h"],
+      "now": "2026-09-28T00:06:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "no deadline newer", "--default", "newer"],
+      "now": "2026-09-28T00:07:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "expired older",
+        "--default",
+        "old",
+        "--answerBy",
+        "2026-09-27T00:00:00.000Z"
+      ],
+      "now": "2026-09-28T00:08:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "answered early"],
+      "now": "2026-09-28T00:09:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "10", "--body", "early"],
+      "now": "2026-09-28T00:10:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "answered late"],
+      "now": "2026-09-28T00:11:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "11", "--body", "late"],
+      "now": "2026-09-28T00:20:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "canceled middle"],
+      "now": "2026-09-28T00:12:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "12", "--status", "canceled"],
+      "now": "2026-09-28T00:15:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "answered same a"],
+      "now": "2026-09-28T00:16:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "answered same b"],
+      "now": "2026-09-28T00:17:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "13", "--body", "a"],
+      "now": "2026-09-28T00:25:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "14", "--body", "b"],
+      "now": "2026-09-28T00:25:00.000Z"
+    },
+    {
+      "arguments": ["question", "list"],
+      "now": "2026-09-28T00:30:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "-f"],
+      "now": "2026-09-28T00:30:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "--format"],
+      "now": "2026-09-28T00:30:00.000Z"
+    }
+  ]
+}

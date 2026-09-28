@@ -1,0 +1,38 @@
+{
+  "name": "gs-question-save-withdraw",
+  "description": "question save --status canceled で取り下げ、open で戻す。2 回目の取り下げは canceledAt を変えない。戻すと canceledAt は空",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--status", "canceled"],
+      "now": "2026-09-28T00:05:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--status", "canceled"],
+      "now": "2026-09-28T00:10:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:10:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--status", "open"],
+      "now": "2026-09-28T00:15:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:15:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "--status", "open"],
+      "now": "2026-09-28T00:15:00.000Z"
+    }
+  ]
+}

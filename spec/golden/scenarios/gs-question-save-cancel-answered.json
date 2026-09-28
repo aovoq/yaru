@@ -1,0 +1,38 @@
+{
+  "name": "gs-question-save-cancel-answered",
+  "description": "答え済みでも question save --status canceled は成功する。答えと acknowledgedAt は残る。open に戻すと answered に戻り、受け取り時刻も残る",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "yes"],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:02:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--status", "canceled"],
+      "now": "2026-09-28T00:03:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:04:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--status", "open"],
+      "now": "2026-09-28T00:05:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:06:00.000Z"
+    }
+  ]
+}

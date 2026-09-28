@@ -1,0 +1,26 @@
+{
+  "name": "gs-issue-save-stale-config",
+  "description": "config.yml の staleAfter 2h を get が使い、ちょうど 2 時間では止まっておらず、1 ミリ秒を超えると止まることを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-20T02:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-20T02:00:00.001Z"
+    }
+  ],
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "staleAfter: 2h\n"
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: working\nstatus: in_progress\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt: 2026-09-20T00:00:00.000Z\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-20T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      }
+    ]
+  }
+}

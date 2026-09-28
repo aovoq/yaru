@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-help-unknown-subcommand",
+  "description": "知らないサブコマンドでも `--help` があれば comment の案内になり、エラーにしない",
+  "steps": [
+    {
+      "arguments": ["comment", "foo", "--help"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

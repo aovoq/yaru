@@ -1,0 +1,73 @@
+{
+  "name": "gs-question-list-human-columns",
+  "description": "question list の人向けの表。id の幅、status、priority、answerBy の桁を揃える",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "pad 1", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "pad 2", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "pad 3", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "pad 4", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "pad 5", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "pad 6", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "pad 7", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "pad 8", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "pad 9", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "wide",
+        "--priority",
+        "urgent",
+        "--default",
+        "x",
+        "--answerBy",
+        "2h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "no priority", "--priority", "low"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "-f"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "--format"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

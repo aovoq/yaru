@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-save-missing-body-value",
+  "description": "yaru issue save の --body に値が無いとき、値の不足で落ちることを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--title", "x", "--body"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

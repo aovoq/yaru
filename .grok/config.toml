@@ -1,0 +1,31 @@
+# yaru の Go 移行で、作業用の grok を全部承認のモードで動かすための拒否の決まり
+# deny は全部承認 (always-approve) より強い。本番の状態・他の worktree・外への送信を守る
+# https://docs.x.ai (grok の user-guide: 22-permissions-and-safety.md)
+[permission]
+deny = [
+  "Bash(git push*)",
+  "Bash(git reset --hard*)",
+  "Bash(git worktree*)",
+  "Bash(git branch -D*)",
+  "Bash(git checkout main*)",
+  "Bash(git switch main*)",
+  "Bash(git merge*)",
+  "Bash(git rebase*)",
+  "Bash(launchctl*)",
+  "Bash(herdr*)",
+  "Bash(tailscale*)",
+  "Bash(sudo*)",
+  "Bash(pkill*)",
+  "Bash(killall*)",
+  "Bash(rm -rf /*)",
+  "Bash(rm -rf ~*)",
+  "Bash(yaru *)",
+  "Edit(/Users/voq/ghq/github.com/aovoq/yaru/**)",
+  "Edit(/Users/voq/.local/state/**)",
+  "Edit(/Users/voq/dotfiles/**)",
+  "Edit(/Users/voq/Library/**)",
+  "Edit(/Users/voq/.herdr/worktrees/yaru/feat-change-go/**)",
+  "Edit(**/.grok/**)",
+  "Edit(**/docs/migration/**)",
+  "Edit(**/AGENTS.md)",
+]

@@ -1,0 +1,101 @@
+{
+  "name": "gs-issue-list-cursor-invalid",
+  "steps": [
+    {
+      "arguments": ["issue", "list", "--cursor", "99"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "cursor not found: expected an issue id from a previous list page, actual 99\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--cursor", " 1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "cursor not found: expected an issue id from a previous list page, actual  1\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--cursor", ""],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "cursor not found: expected an issue id from a previous list page, actual \n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--cursor", "9"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "cursor not found: expected an issue id from a previous list page, actual 9\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--status", "todo", "--cursor", "2"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "cursor not found: expected an issue id from a previous list page, actual 2\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--status", "todo", "--cursor", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"issues\": [],\n  \"hasNextPage\": false\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues/1.md",
+      "content": "---\nid: 1\ntitle: Todo\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+    },
+    {
+      "path": "issues/2.md",
+      "content": "---\nid: 2\ntitle: Done\nstatus: done\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+    },
+    {
+      "path": "issues/9.md",
+      "content": "not an issue\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

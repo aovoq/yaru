@@ -1,0 +1,25 @@
+{
+  "name": "gs-issue-save-patch-missing-issue",
+  "description": "形は正しい patch でも、居ない id は作らず issue not found になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--id",
+        "9",
+        "--patch",
+        "[{\"op\":\"append\",\"text\":\"!\"}]"
+      ],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "9"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

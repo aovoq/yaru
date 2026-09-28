@@ -1,0 +1,22 @@
+{
+  "name": "gs-issue-save-update-partial-title",
+  "description": "更新で --title だけを渡すと題名だけが変わり、本文や status は残ることを確かめる。イベントは title だけである",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "before", "--body", "keep", "--label", "ui"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--title", "after"],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "gs-comment-get-id-flag-unexpected-argument",
+  "steps": [
+    {
+      "arguments": ["comment", "get", "--id", "1", "extra"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: extra\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

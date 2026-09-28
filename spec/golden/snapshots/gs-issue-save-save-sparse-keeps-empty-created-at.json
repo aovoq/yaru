@@ -1,0 +1,49 @@
+{
+  "name": "gs-issue-save-save-sparse-keeps-empty-created-at",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--id", "1", "--title", "rewritten"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"rewritten\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"\",\n  \"updatedAt\": \"2026-09-28T12:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"rewritten\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"\",\n  \"updatedAt\": \"2026-09-28T12:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "events/1.jsonl",
+      "content": "{\"field\":\"title\",\"from\":\"sparse\",\"to\":\"rewritten\",\"by\":\"golden\",\"session\":null,\"at\":\"2026-09-28T12:00:00.000Z\"}\n"
+    },
+    {
+      "path": "issues/1.md",
+      "content": "---\nid: 1\ntitle: rewritten\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt:\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

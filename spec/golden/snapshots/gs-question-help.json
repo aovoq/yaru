@@ -1,0 +1,175 @@
+{
+  "name": "gs-question-help",
+  "steps": [
+    {
+      "arguments": ["question", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question — ask the human asynchronously and read the answer\n\n  yaru question list\n  yaru question get <id>\n  yaru question save\n  yaru question answer <id>\n  yaru question wait <id>\n\nAsk when a decision is the human's to make. Give a defaultAction and an answerBy\nso work continues with the default when no answer arrives in time.\nEach subcommand documents its flags with --help.\nOutput is JSON unless -f / --format.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "-h"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question — ask the human asynchronously and read the answer\n\n  yaru question list\n  yaru question get <id>\n  yaru question save\n  yaru question answer <id>\n  yaru question wait <id>\n\nAsk when a decision is the human's to make. Give a defaultAction and an answerBy\nso work continues with the default when no answer arrives in time.\nEach subcommand documents its flags with --help.\nOutput is JSON unless -f / --format.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "list", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question list — list questions in this workspace\n\nUsage:\n  yaru question list [--status NAME] [--issue ID] [-f|--format]\n\nQuestions awaiting an answer come first: blocking ones (no default action),\nthen open ones by answerBy, then open ones without a deadline, then expired ones.\nAnswered and canceled questions follow, most recently resolved first.\nJSON prints {questions}.\n\nStatus: open, expired, answered, canceled\nexpired is an open question whose answerBy has passed.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "list", "-h"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question list — list questions in this workspace\n\nUsage:\n  yaru question list [--status NAME] [--issue ID] [-f|--format]\n\nQuestions awaiting an answer come first: blocking ones (no default action),\nthen open ones by answerBy, then open ones without a deadline, then expired ones.\nAnswered and canceled questions follow, most recently resolved first.\nJSON prints {questions}.\n\nStatus: open, expired, answered, canceled\nexpired is an open question whose answerBy has passed.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "get", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question get — retrieve one question by id\n\nUsage:\n  yaru question get <id> [-f|--format]\n\nReading an answered question for the first time records acknowledgedAt,\nso the human can see the answer was picked up.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "get", "-h"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question get — retrieve one question by id\n\nUsage:\n  yaru question get <id> [-f|--format]\n\nReading an answered question for the first time records acknowledgedAt,\nso the human can see the answer was picked up.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question save — ask a question or update one\n\nIf --id is provided, updates the existing question; otherwise creates a new one.\nDo not pass --id when creating. Title is required when creating: the question itself, one line.\nOmitted fields stay unchanged on update. none clears issue, priority, default, or answerBy.\n\n--default is the action you will take if no answer arrives by answerBy (one line).\n--answerBy is a duration from now (30m, 2h, 1d) or an ISO 8601 datetime.\n--option is one answer the human can pick with one tap (one line). Repeat it for each option;\nany --option replaces the whole list, and --option none clears it.\n--body is Markdown context: trade-offs, your recommendation. Use --body - to read stdin.\n--status canceled withdraws a question that no longer needs an answer; open restores it.\n\nCreating records the session (CLAUDE_CODE_SESSION_ID or CODEX_SESSION_ID), the git worktree,\nand the branch it was asked from.\nCreating refuses when an open question with the same title (and the same issue) exists;\nthe error names it. --force asks again anyway.\nCreating without --default and --answerBy warns: the question blocks until the human answers.\n\nCreating a question runs the notify command from .yaru/config.yml (notify: COMMAND) with\n{\"event\":\"question.created\",\"url\":\"...\",\"question\":{...}} on stdin. A failing command only warns.\nurl opens the question on the dashboard; publicUrl: URL in config.yml replaces http://127.0.0.1:47800.\nA running yaru serve also sends {\"event\":\"question.expiring\",...} once, 15 minutes before answerBy.\n\nUsage:\n  yaru question save --title TEXT [--issue ID] [--priority NAME] [--default TEXT]\n                     [--answerBy WHEN] [--option TEXT]... [--body TEXT|-] [--force]\n                     [-f|--format]\n  yaru question save --id ID [--title TEXT] [--issue ID] [--priority NAME] [--default TEXT]\n                     [--answerBy WHEN] [--option TEXT|none]... [--body TEXT|-]\n                     [--status open|canceled] [-f|--format]\n\nPriority: urgent, high, medium, low\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "-h"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question save — ask a question or update one\n\nIf --id is provided, updates the existing question; otherwise creates a new one.\nDo not pass --id when creating. Title is required when creating: the question itself, one line.\nOmitted fields stay unchanged on update. none clears issue, priority, default, or answerBy.\n\n--default is the action you will take if no answer arrives by answerBy (one line).\n--answerBy is a duration from now (30m, 2h, 1d) or an ISO 8601 datetime.\n--option is one answer the human can pick with one tap (one line). Repeat it for each option;\nany --option replaces the whole list, and --option none clears it.\n--body is Markdown context: trade-offs, your recommendation. Use --body - to read stdin.\n--status canceled withdraws a question that no longer needs an answer; open restores it.\n\nCreating records the session (CLAUDE_CODE_SESSION_ID or CODEX_SESSION_ID), the git worktree,\nand the branch it was asked from.\nCreating refuses when an open question with the same title (and the same issue) exists;\nthe error names it. --force asks again anyway.\nCreating without --default and --answerBy warns: the question blocks until the human answers.\n\nCreating a question runs the notify command from .yaru/config.yml (notify: COMMAND) with\n{\"event\":\"question.created\",\"url\":\"...\",\"question\":{...}} on stdin. A failing command only warns.\nurl opens the question on the dashboard; publicUrl: URL in config.yml replaces http://127.0.0.1:47800.\nA running yaru serve also sends {\"event\":\"question.expiring\",...} once, 15 minutes before answerBy.\n\nUsage:\n  yaru question save --title TEXT [--issue ID] [--priority NAME] [--default TEXT]\n                     [--answerBy WHEN] [--option TEXT]... [--body TEXT|-] [--force]\n                     [-f|--format]\n  yaru question save --id ID [--title TEXT] [--issue ID] [--priority NAME] [--default TEXT]\n                     [--answerBy WHEN] [--option TEXT|none]... [--body TEXT|-]\n                     [--status open|canceled] [-f|--format]\n\nPriority: urgent, high, medium, low\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "answer", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question answer — answer a question\n\nUsage:\n  yaru question answer <id> --body TEXT|- [--force] [-f|--format]\n\nAn expired question can still be answered; when it belongs to an issue, the late answer\nis also added to the issue as a comment.\nAn answered question keeps its answer: answering again fails unless --force replaces it.\nA canceled question cannot be answered.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "answer", "-h"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question answer — answer a question\n\nUsage:\n  yaru question answer <id> --body TEXT|- [--force] [-f|--format]\n\nAn expired question can still be answered; when it belongs to an issue, the late answer\nis also added to the issue as a comment.\nAn answered question keeps its answer: answering again fails unless --force replaces it.\nA canceled question cannot be answered.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "wait", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question wait — block until a question is resolved\n\nUsage:\n  yaru question wait <id> [--timeout DURATION] [--interval DURATION] [-f|--format]\n\nReturns when the question is answered, canceled, or expired (answerBy passed).\nOn expired, proceed with defaultAction. Prints the question as JSON.\nReturning an answer records acknowledgedAt the first time.\n-f / --format prints the answer, or the defaultAction when expired.\n\n--timeout defaults to 10m, --interval to 1s. Durations: 100ms, 30s, 10m, 1h.\nExit code 0 when resolved, 2 when the timeout passed first.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "wait", "-h"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question wait — block until a question is resolved\n\nUsage:\n  yaru question wait <id> [--timeout DURATION] [--interval DURATION] [-f|--format]\n\nReturns when the question is answered, canceled, or expired (answerBy passed).\nOn expired, proceed with defaultAction. Prints the question as JSON.\nReturning an answer records acknowledgedAt the first time.\n-f / --format prints the answer, or the defaultAction when expired.\n\n--timeout defaults to 10m, --interval to 1s. Durations: 100ms, 30s, 10m, 1h.\nExit code 0 when resolved, 2 when the timeout passed first.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "-h", "list"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question list — list questions in this workspace\n\nUsage:\n  yaru question list [--status NAME] [--issue ID] [-f|--format]\n\nQuestions awaiting an answer come first: blocking ones (no default action),\nthen open ones by answerBy, then open ones without a deadline, then expired ones.\nAnswered and canceled questions follow, most recently resolved first.\nJSON prints {questions}.\n\nStatus: open, expired, answered, canceled\nexpired is an open question whose answerBy has passed.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["-h", "question", "wait"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru question wait — block until a question is resolved\n\nUsage:\n  yaru question wait <id> [--timeout DURATION] [--interval DURATION] [-f|--format]\n\nReturns when the question is answered, canceled, or expired (answerBy passed).\nOn expired, proceed with defaultAction. Prints the question as JSON.\nReturning an answer records acknowledgedAt the first time.\n-f / --format prints the answer, or the defaultAction when expired.\n\n--timeout defaults to 10m, --interval to 1s. Durations: 100ms, 30s, 10m, 1h.\nExit code 0 when resolved, 2 when the timeout passed first.\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

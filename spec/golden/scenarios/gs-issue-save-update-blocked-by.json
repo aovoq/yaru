@@ -1,0 +1,36 @@
+{
+  "name": "gs-issue-save-update-blocked-by",
+  "description": "--blockedBy が相手の blocks と updatedAt を書き換え、イベントは相手に付き、相手の session は変えないことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "owner"],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "owner-session"
+      },
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "blocked"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "2", "--blockedBy", "1"],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "blocked-session"
+      },
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "2"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

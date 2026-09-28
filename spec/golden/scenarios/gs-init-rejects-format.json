@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-rejects-format",
+  "description": "init は --format を受け付けない。値を取らないフラグなので、うしろの human は値にならず unknown flag: --format になる",
+  "steps": [
+    {
+      "arguments": ["init", "--format", "human"]
+    }
+  ]
+}

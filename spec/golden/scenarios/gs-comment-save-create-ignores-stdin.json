@@ -1,0 +1,19 @@
+{
+  "name": "gs-comment-save-create-ignores-stdin",
+  "description": "`--body` が `-` でないとき、標準入力は読まない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "hello"],
+      "now": "2026-09-28T12:05:00.000Z",
+      "stdin": "ignored\n"
+    }
+  ]
+}

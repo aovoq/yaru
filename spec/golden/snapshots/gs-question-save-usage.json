@@ -1,0 +1,103 @@
+{
+  "name": "gs-question-save-usage",
+  "steps": [
+    {
+      "arguments": ["question", "save", "extra"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: extra\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "save", "--nope", "x"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --nope\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "save", "--title"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --title\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "save", "--option"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --option\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "save", "--body"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --body\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "save", "--force", "true"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: true\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "save", "--force=true"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --force=true\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "save", "-force"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: -force\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

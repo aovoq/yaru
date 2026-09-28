@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-help-missing-value-before-help",
+  "description": "値の無い未知フラグは --help より先に検査され、契約を出さず missing value になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--not-a-flag", "--help"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

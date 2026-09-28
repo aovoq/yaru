@@ -1,0 +1,15 @@
+{
+  "name": "gs-issue-save-create-body-stdin-dash",
+  "description": "本文そのものが - のときは、--body - の標準入力で渡すことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--body", "-"],
+      "stdin": "-",
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "name": "gs-issue-list-stale-after",
+  "description": "config.yml の staleAfter が 2h のとき、yaru issue list がその長さで stale を決めることを記録する。ちょうど 2 時間は false で、1 ミリ秒を超えると true である。todo は古くても false である。",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "staleAfter: 2h\n"
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: Exact two hours\nstatus: in_progress\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T10:00:00.000Z\nupdatedAt: 2026-09-28T10:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/2.md",
+        "content": "---\nid: 2\ntitle: Old todo\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list"],
+      "now": "2026-09-28T12:00:00.001Z"
+    }
+  ]
+}

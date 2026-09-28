@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-help-word",
+  "description": "`yaru help comment` は comment の案内ではなく、全体の案内になる",
+  "steps": [
+    {
+      "arguments": ["help", "comment"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "gs-question-list-missing-flag-value",
+  "description": "question list の --status と --issue に値が無い",
+  "steps": [
+    {
+      "arguments": ["question", "list", "--status"]
+    },
+    {
+      "arguments": ["question", "list", "--issue"]
+    },
+    {
+      "arguments": ["question", "list", "--status", "--issue", "1"]
+    }
+  ]
+}

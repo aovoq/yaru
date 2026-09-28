@@ -1,0 +1,43 @@
+{
+  "name": "gs-question-answer-invalid-body",
+  "description": "question answer の本文が無い、空、空白だけ。質問が無い方が、本文の検査より先。区切り文字は本文の検査で拒む",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1"],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", ""],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "   "],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "-"],
+      "stdin": " \n ",
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "9", "--body", ""],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "yes <!-- yaru:answer --> no"],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:01:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "name": "gs-issue-save-get-filename-id",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "5"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"5\",\n  \"title\": \"filename wins\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": null,\n  \"branch\": null,\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "issue not found: 1\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues/5.md",
+      "content": "---\nid: 1\ntitle: filename wins\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-list-not-workspace",
+  "description": ".yaru が無い場所の yaru issue list が、終了コード 1 と not a yaru workspace になることを記録する。絞り込みや --limit より先に、ワークスペースが無いことで失敗する。",
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--due", "late", "--status", "nope", "--limit", "0"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--format"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

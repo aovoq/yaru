@@ -1,0 +1,26 @@
+{
+  "name": "gs-issue-save-save-parent-cycle-in-files",
+  "description": "ファイル上の親子循環は、--parent を渡さない題名の更新では検査されず、循環した parent が残ることを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--id", "1", "--title", "fixed"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ],
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: one\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent: 2\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/2.md",
+        "content": "---\nid: 2\ntitle: two\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent: 1\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      }
+    ]
+  }
+}

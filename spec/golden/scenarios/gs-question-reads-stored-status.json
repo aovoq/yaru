@@ -1,0 +1,62 @@
+{
+  "name": "gs-question-reads-stored-status",
+  "description": "ファイルの status が answered でも区切りが無ければ open。canceled だけが取り下げ。大文字の Canceled は取り下げにならない。区切りの後ろが空でも answered になる",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/questions/1.md",
+        "content": "---\nid: 1\ntitle: marked answered\nstatus: answered\n---\n\n"
+      },
+      {
+        "path": ".yaru/questions/2.md",
+        "content": "---\nid: 2\ntitle: marked canceled\nstatus: canceled\n---\n\n"
+      },
+      {
+        "path": ".yaru/questions/3.md",
+        "content": "---\nid: 3\ntitle: wrong case\nstatus: Canceled\n---\n\n"
+      },
+      {
+        "path": ".yaru/questions/4.md",
+        "content": "---\nid: 4\ntitle: empty answer\nstatus: open\n---\n\n<!-- yaru:answer -->\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["question", "list"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "2"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "3"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "4"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "--status", "open"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "--status", "canceled"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "--status", "answered"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

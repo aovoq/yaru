@@ -1,0 +1,22 @@
+{
+  "name": "gs-issue-save-get-sparse-file",
+  "description": "status などが無い手書きの issue を get すると、status は todo、createdAt と updatedAt は空文字になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ],
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\ntitle: sparse\n---\n\n\n"
+      }
+    ]
+  }
+}

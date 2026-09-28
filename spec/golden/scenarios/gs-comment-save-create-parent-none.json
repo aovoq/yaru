@@ -1,0 +1,18 @@
+{
+  "name": "gs-comment-save-create-parent-none",
+  "description": "作成時の `--parent none` はクリアではなく id `none` を探し、 comment not found: none になる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--parent", "none", "--issue", "1", "--body", "hi"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

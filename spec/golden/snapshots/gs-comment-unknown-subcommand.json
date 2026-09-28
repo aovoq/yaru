@@ -1,0 +1,19 @@
+{
+  "name": "gs-comment-unknown-subcommand",
+  "steps": [
+    {
+      "arguments": ["comment", "delete"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "usage: yaru comment list|get|save\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

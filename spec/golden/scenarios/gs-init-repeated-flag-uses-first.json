@@ -1,0 +1,22 @@
+{
+  "name": "gs-init-repeated-flag-uses-first",
+  "description": "同じフラグを繰り返すと、最初の値だけが使われる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Done", "--status", "done"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Todo", "--status", "todo"],
+      "now": "2026-09-28T12:01:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--status", "todo", "--status", "done"],
+      "now": "2026-09-28T12:01:00.000Z"
+    }
+  ]
+}

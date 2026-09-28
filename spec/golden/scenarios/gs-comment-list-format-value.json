@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-list-format-value",
+  "description": "`--format` は値を取らない。次の `json` は位置引数になり unexpected argument になる。 JSON はフラグ無しが既定",
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--issue", "1", "--format", "json"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

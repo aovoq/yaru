@@ -1,0 +1,88 @@
+{
+  "name": "gs-question-save-answer-by-iso",
+  "description": "question save の --answerBy の絶対時刻。オフセットは UTC の toISOString になる。秒の省略と小数秒も受ける",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "offset",
+        "--default",
+        "x",
+        "--answerBy",
+        "2026-09-30T18:00:00+09:00"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "fraction",
+        "--default",
+        "x",
+        "--answerBy",
+        "2026-09-30T09:00:00.5Z"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "no seconds",
+        "--default",
+        "x",
+        "--answerBy",
+        "2026-09-30T18:00Z"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "zulu",
+        "--default",
+        "x",
+        "--answerBy",
+        "2026-09-30T00:00:00.000Z"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "equal now",
+        "--default",
+        "x",
+        "--answerBy",
+        "2026-09-28T00:00:00.000Z"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "just after",
+        "--default",
+        "x",
+        "--answerBy",
+        "2026-09-28T00:00:00.001Z"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

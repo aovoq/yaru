@@ -1,0 +1,24 @@
+{
+  "name": "gs-question-help-ignores-other-flags",
+  "description": "--help は引数の分解の後。値が付いた知らないフラグと、値の要らない --force は無視してヘルプを出す。値が無いフラグはヘルプより先に missing value になる",
+  "steps": [
+    {
+      "arguments": ["question", "list", "--help", "--nope", "x"]
+    },
+    {
+      "arguments": ["question", "list", "--help", "--force"]
+    },
+    {
+      "arguments": ["question", "save", "--help", "--title", "kept"]
+    },
+    {
+      "arguments": ["question", "list", "--help", "--nope"]
+    },
+    {
+      "arguments": ["question", "save", "--help", "--title"]
+    },
+    {
+      "arguments": ["question", "save", "-h", "--priority"]
+    }
+  ]
+}

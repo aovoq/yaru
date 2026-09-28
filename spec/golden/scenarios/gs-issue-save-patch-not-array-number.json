@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-patch-not-array-number",
+  "description": "JSON 数値の --patch を配列ではないとして拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "9", "--patch", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

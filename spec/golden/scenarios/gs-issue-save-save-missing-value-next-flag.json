@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-save-missing-value-next-flag",
+  "description": "yaru issue save の --title の次が別フラグだと、題名が無く値の不足になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--title", "--body"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-get-dash-id",
+  "description": "yaru issue get の -1 は短いフラグではなく id になり、見つからなければその文字列のまま落ちることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "-1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

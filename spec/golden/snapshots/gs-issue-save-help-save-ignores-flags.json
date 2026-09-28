@@ -1,0 +1,19 @@
+{
+  "name": "gs-issue-save-help-save-ignores-flags",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--title", "x", "--not-a-flag", "nope", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru issue save — create or update an issue\n\nIf --id is provided, updates the existing issue; otherwise creates a new one.\nDo not pass --id when creating. Title is required when creating.\n\nOmitted fields stay unchanged on update. --assignee me is git config user.name.\nnone clears assignee, dueDate, priority, or parent.\n\nRepeat --label to set labels; any --label replaces the whole list. Omit to leave labels unchanged.\n\n--block ID appends an outgoing block. --blockedBy ID records that the other issue blocks this one.\n--removeBlock ID / --removeBlockedBy ID remove those relations. Repeatable.\n\n--body is Markdown. Use --body - to read stdin. Do not escape newlines.\n\n--patch is a JSON array of partial body edits, applied in order and atomically\n(one failing operation aborts the whole save). Every anchor string must match\nthe current body exactly once. Only valid on update, in place of --body.\nUse --patch - to read the JSON array from stdin.\n\nPatch operations:\n  replace         {\"op\":\"replace\",\"old_string\":\"...\",\"new_string\":\"...\",\"replace_all\":false}\n  insert_before   {\"op\":\"insert_before\",\"anchor\":\"...\",\"text\":\"...\"}\n  insert_after    {\"op\":\"insert_after\",\"anchor\":\"...\",\"text\":\"...\"}\n  prepend         {\"op\":\"prepend\",\"text\":\"...\"}\n  append          {\"op\":\"append\",\"text\":\"...\"}\n  replace_range   {\"op\":\"replace_range\",\"from\":\"...\",\"to\":\"...\",\"new_string\":\"...\"}\n\nUsage:\n  yaru issue save --title TITLE [--status NAME] [--assignee NAME] [--label NAME]\n                  [--dueDate YYYY-MM-DD] [--priority NAME] [--parent ID]\n                  [--block ID] [--blockedBy ID] [--body TEXT|-]\n                  [-f|--format]\n  yaru issue save --id ID [--title TITLE] [--status NAME] [--assignee NAME] [--label NAME]\n                  [--dueDate YYYY-MM-DD] [--priority NAME] [--parent ID]\n                  [--block ID] [--blockedBy ID] [--removeBlock ID] [--removeBlockedBy ID]\n                  [--body TEXT|-|--patch JSON|-] [-f|--format]\n\nStatus: backlog, todo, in_progress, done, canceled\nPriority: urgent, high, medium, low\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

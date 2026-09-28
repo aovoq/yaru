@@ -1,0 +1,19 @@
+{
+  "name": "gs-comment-help-unknown-subcommand",
+  "steps": [
+    {
+      "arguments": ["comment", "foo", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru comment — list, get, or save comments\n\n  yaru comment list --issue ID\n  yaru comment get <id>\n  yaru comment save\n\nEach subcommand documents its flags with --help.\nOutput is JSON unless -f / --format.\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

@@ -1,0 +1,27 @@
+{
+  "name": "gs-question-save-notify-public-url",
+  "description": "config.yml の publicUrl を知らせの url の頭にする。末尾のスラッシュは削る",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "publicUrl: https://mac.example.ts.net///\nnotify: cat > .yaru/notify-stdin.json\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "消すか",
+        "--default",
+        "残す",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

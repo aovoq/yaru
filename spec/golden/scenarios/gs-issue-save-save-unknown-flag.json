@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-save-unknown-flag",
+  "description": "値の付いた未知のフラグを、yaru issue save がワークスペースを開く前に unknown flag として拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--title", "x", "--nope", "y"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

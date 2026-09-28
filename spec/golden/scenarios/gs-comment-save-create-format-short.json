@@ -1,0 +1,18 @@
+{
+  "name": "gs-comment-save-create-format-short",
+  "description": "作成の `-f` は id だけを出し、板の URL は足さない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "hello", "-f"],
+      "now": "2026-09-28T12:05:00.000Z"
+    }
+  ]
+}

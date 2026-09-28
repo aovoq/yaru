@@ -1,0 +1,51 @@
+{
+  "name": "gs-question-save-from-worktree",
+  "description": "linked worktree で question save すると、質問は元の .yaru に書き、worktree と branch はその worktree のものを残す",
+  "setup": {
+    "files": [
+      {
+        "path": "README.md",
+        "content": "latch\n"
+      }
+    ],
+    "commits": [
+      {
+        "message": "initial",
+        "paths": ["README.md"]
+      }
+    ],
+    "worktrees": [
+      {
+        "name": "feature",
+        "branch": "feat/add-thing"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "from worktree",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "session-worktree"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": "worktree:feature"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

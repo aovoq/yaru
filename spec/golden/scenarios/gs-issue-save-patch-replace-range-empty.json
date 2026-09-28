@@ -1,0 +1,29 @@
+{
+  "name": "gs-issue-save-patch-replace-range-empty",
+  "description": "patch の replace_range は new_string が空でも、範囲を消せることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--body", "hello WORLD foo"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--id",
+        "1",
+        "--patch",
+        "[{\"op\":\"replace_range\",\"from\":\"hello \",\"to\":\" foo\",\"new_string\":\"\"}]"
+      ],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "name": "gs-comment-save-create-next-id-gap",
+  "steps": [
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "next"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T13:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"4\",\n  \"issue\": \"1\",\n  \"parent\": null,\n  \"author\": \"golden\",\n  \"createdAt\": \"2026-09-28T13:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T13:00:00.000Z\",\n  \"body\": \"next\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": "comments/3.md",
+      "content": "---\nid: 3\nissue: 1\nparent:\nauthor: golden\ncreatedAt: 2026-09-28T12:05:00.000Z\nupdatedAt: 2026-09-28T12:05:00.000Z\n---\n\nkept\n"
+    },
+    {
+      "path": "comments/4.md",
+      "content": "---\nid: 4\nissue: 1\nparent:\nauthor: golden\ncreatedAt: 2026-09-28T13:00:00.000Z\nupdatedAt: 2026-09-28T13:00:00.000Z\n---\n\nnext\n"
+    },
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues/1.md",
+      "content": "---\nid: 1\ntitle: Topic\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

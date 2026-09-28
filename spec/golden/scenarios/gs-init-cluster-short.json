@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-cluster-short",
+  "description": "init -hf は短いフラグの束にならない。位置引数として無視し、初期化する",
+  "steps": [
+    {
+      "arguments": ["init", "-hf"]
+    }
+  ]
+}

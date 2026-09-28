@@ -1,0 +1,24 @@
+{
+  "name": "gs-question-list-unknown-flag",
+  "description": "question list の知らないフラグ。値があるときは unknown flag。値を取る 1 文字フラグと --force=true は、値が無いと missing value になる",
+  "steps": [
+    {
+      "arguments": ["question", "list", "--assignee", "me"]
+    },
+    {
+      "arguments": ["question", "list", "-x", "nope"]
+    },
+    {
+      "arguments": ["question", "list", "--bogus", "value"]
+    },
+    {
+      "arguments": ["question", "list", "-x"]
+    },
+    {
+      "arguments": ["question", "list", "--force=true"]
+    },
+    {
+      "arguments": ["question", "list", "--force=true", "x"]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-help-before-command",
+  "description": "`yaru --help comment` が、 comment の案内になる",
+  "steps": [
+    {
+      "arguments": ["--help", "comment"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

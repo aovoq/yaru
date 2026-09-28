@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package yaru.v1;
+
+import "yaru/v1/common.proto";
+
+// 全ワークスペースの受信箱。GET /api/inbox (src/web.tsx:558)。
+// 30 秒の定期取得のままにするかは未決 (ユーザー) (src/web.tsx:48-49)。
+service InboxService {
+  rpc GetInbox(GetInboxRequest) returns (GetInboxResponse);
+}
+
+message GetInboxRequest {}
+
+// now はグループ分けの expired を決めた時刻。
+message GetInboxResponse {
+  InboxGroups groups = 1;
+  repeated InboxWorkspace workspaces = 2;
+  string now = 3;
+}
+
+// 答え待ちだけ。答え済みと取り下げは入らない (src/inbox.ts:41-43、src/questions.ts:452-458)。
+message InboxGroups {
+  repeated InboxItem blocking = 1;
+  repeated InboxItem due_soon = 2;
+  repeated InboxItem no_deadline = 3;
+  repeated InboxItem proceeded = 4;
+}
+
+message InboxItem {
+  string workspace = 1;
+  // /p/<slug> (src/inbox.ts:63-64)。
+  string base_path = 2;
+  // <basePath>/dashboard#q-<id> (src/inbox.ts:49)。
+  string href = 3;
+  // q-<slug>-<id> (src/inbox.ts:59-60)。
+  string anchor = 4;
+  Question question = 5;
+}
+
+message InboxWorkspace {
+  string slug = 1;
+  string base_path = 2;
+  // open と expired の件数 (src/inbox.ts:44)。
+  int32 awaiting = 3;
+}

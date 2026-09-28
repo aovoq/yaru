@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-save-unknown-short-flag",
+  "description": "値の付いた未知の 1 文字フラグを、yaru issue save が unknown flag として拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--title", "x", "-x", "y"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

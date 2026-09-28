@@ -1,0 +1,22 @@
+{
+  "name": "gs-question-wait-timeout",
+  "description": "開いたままの question wait は --timeout で終了コード 2。YARU_NOW が固定でも実時間で戻る。stdout に JSON を出してから stderr に期限を書く。acknowledgedAt は付かない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--default", "x", "--answerBy", "2h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "100ms", "--interval", "20ms"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

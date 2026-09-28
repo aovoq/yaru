@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-save-positional",
+  "description": "yaru issue save は位置引数の id を受け取らず、unexpected argument で落ちることを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "1", "--title", "x"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

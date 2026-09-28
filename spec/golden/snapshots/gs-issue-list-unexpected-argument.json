@@ -1,0 +1,139 @@
+{
+  "name": "gs-issue-list-unexpected-argument",
+  "steps": [
+    {
+      "arguments": ["issue", "list", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: 1\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: help\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--", "--limit", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: --limit\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--format", "json"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: json\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "-f", "table"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: table\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "LIST"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "usage: yaru issue list|get|save\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--limit", "1", "extra"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: extra\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--limit", "0", "extra"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: extra\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--due", "late", "extra"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: extra\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "-ff"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: -ff\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "-status"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: -status\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

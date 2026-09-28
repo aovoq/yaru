@@ -1,0 +1,23 @@
+{
+  "name": "gs-comment-get-format-trailing-newline",
+  "description": "末尾に改行のある本文を人向けに出すと、本文の改行のあとにさらにもう 1 つ改行が付く",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "-"],
+      "now": "2026-09-28T12:05:00.000Z",
+      "stdin": "line\n"
+    },
+    {
+      "arguments": ["comment", "get", "1", "-f"],
+      "now": "2026-09-28T12:05:00.000Z"
+    }
+  ]
+}

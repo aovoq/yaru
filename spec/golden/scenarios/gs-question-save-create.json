@@ -1,0 +1,41 @@
+{
+  "name": "gs-question-save-create",
+  "description": "question save の作成。JSON が既定。title, issue, priority, default, answerBy, option, body を記録する",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "topic"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "消すか",
+        "--issue",
+        "1",
+        "--priority",
+        "high",
+        "--default",
+        "残す",
+        "--answerBy",
+        "2h",
+        "--option",
+        "残す",
+        "--option",
+        "消す",
+        "--body",
+        "背景"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "name": "gs-question-not-a-workspace",
+  "description": "init する前の question は not a yaru workspace になる。フラグの中身の検査より、ワークスペースを開く方が先のもの",
+  "steps": [
+    {
+      "arguments": ["question", "list"]
+    },
+    {
+      "arguments": ["question", "list", "--status", "pending"]
+    },
+    {
+      "arguments": ["question", "list", "-f"]
+    },
+    {
+      "arguments": ["question", "get", "1"]
+    },
+    {
+      "arguments": ["question", "save", "--title", "q"]
+    },
+    {
+      "arguments": ["question", "save", "--title", ""]
+    },
+    {
+      "arguments": ["question", "save", "--priority", "now"]
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "yes"]
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "0ms"]
+    }
+  ]
+}

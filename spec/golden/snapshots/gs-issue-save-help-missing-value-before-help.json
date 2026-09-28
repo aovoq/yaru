@@ -1,0 +1,19 @@
+{
+  "name": "gs-issue-save-help-missing-value-before-help",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--not-a-flag", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --not-a-flag\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

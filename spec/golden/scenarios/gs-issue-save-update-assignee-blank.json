@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-save-update-assignee-blank",
+  "description": "更新の空白だけの --assignee が担当を消すことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--assignee", "ada"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--assignee", ""],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

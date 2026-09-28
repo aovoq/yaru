@@ -1,0 +1,29 @@
+{
+  "name": "gs-issue-save-patch-range-from-two",
+  "description": "replace_range の from が 2 回あると拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--body", "foo bar foo tail"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--id",
+        "1",
+        "--patch",
+        "[{\"op\":\"replace_range\",\"from\":\"foo\",\"to\":\" tail\",\"new_string\":\"hi\"}]"
+      ],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

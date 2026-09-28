@@ -1,0 +1,26 @@
+{
+  "name": "gs-comment-get-missing-issue-field",
+  "description": "issue キーが無いコメントは invalid comment file になる",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: Topic\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/comments/1.md",
+        "content": "---\nid: 1\nauthor: golden\n---\n\nhello\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["comment", "get", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

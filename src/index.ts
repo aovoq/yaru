@@ -26,6 +26,7 @@ import {
 } from "./questions"
 import { notify, notifyBaseUrl, questionUrl } from "./notify"
 import { readProvenance } from "./provenance"
+import { currentTime } from "./time"
 import { DEFAULT_PORT, serve } from "./web"
 import { registerWorkspace } from "./workspaces"
 
@@ -327,6 +328,9 @@ const SERVE_FLAGS = new Set(["help", "h", "port", "p"])
 
 async function main() {
   try {
+    // 読めない YARU_NOW は、ファイルを書く前に止める。値は ISO 8601 の日時 (RFC 3339)
+    // https://www.rfc-editor.org/rfc/rfc3339#section-5.6
+    currentTime()
     const { rest, flag, flags } = parse(process.argv.slice(2))
     const wantsHelp = Boolean(flag("help") || flag("h") || rest[0] === "help")
     if (wantsHelp) {
@@ -652,10 +656,14 @@ async function question(
     const timeout = parseDurationFlag("timeout", flag("timeout") ?? "10m")
     const interval = parseDurationFlag("interval", flag("interval") ?? "1s")
     const store = openWorkspace()
-    const deadline = Date.now() + timeout
+    // 待ち時間は単調に進む時計で測る。YARU_NOW で止めた現在時刻だと timeout が来ない
+    // https://www.w3.org/TR/hr-time-3/#dom-performance-now
+    const waitStartedAt = performance.now()
+    const waitDeadline = waitStartedAt + timeout
     let current = getQuestion(store, id)
-    while (current.status === "open" && Date.now() < deadline) {
-      await Bun.sleep(Math.min(interval, Math.max(deadline - Date.now(), 0)))
+    while (current.status === "open" && performance.now() < waitDeadline) {
+      const remainingMilliseconds = waitDeadline - performance.now()
+      await Bun.sleep(Math.min(interval, Math.max(remainingMilliseconds, 0)))
       current = getQuestion(store, id)
     }
     current = acknowledgeQuestion(store, id)

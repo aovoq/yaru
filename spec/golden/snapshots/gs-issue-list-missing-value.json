@@ -1,0 +1,139 @@
+{
+  "name": "gs-issue-list-missing-value",
+  "steps": [
+    {
+      "arguments": ["issue", "list", "--status"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --status\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--assignee"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --assignee\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--label"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --label\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--query"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --query\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--due"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --due\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--parent"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --parent\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--limit"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --limit\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--cursor"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --cursor\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "-x"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for -x\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--status=todo"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --status=todo\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--foo"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --foo\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

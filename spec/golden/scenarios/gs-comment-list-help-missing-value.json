@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-list-help-missing-value",
+  "description": "`--help` より前に、値の無いフラグがあると、案内ではなく missing value になる",
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--help", "--issue"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

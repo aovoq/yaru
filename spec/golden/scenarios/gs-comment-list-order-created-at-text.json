@@ -1,0 +1,30 @@
+{
+  "name": "gs-comment-list-order-created-at-text",
+  "description": "createdAt は日時ではなく文字列として比べる。同じ瞬間でも `+00:00` は `Z` より先になる",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: Topic\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/comments/1.md",
+        "content": "---\nid: 1\nissue: 1\nparent:\nauthor: golden\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\n---\n\nzulu\n"
+      },
+      {
+        "path": ".yaru/comments/2.md",
+        "content": "---\nid: 2\nissue: 1\nparent:\nauthor: golden\ncreatedAt: 2026-09-28T12:00:00.000+00:00\nupdatedAt: 2026-09-28T12:00:00.000+00:00\n---\n\noffset\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--issue", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

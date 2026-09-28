@@ -1,0 +1,22 @@
+{
+  "name": "gs-comment-save-create-reply",
+  "description": "`--parent` で返信を作る。 issue は親からコピーし、 parent に親の id を書く",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "parent"],
+      "now": "2026-09-28T12:05:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--parent", "1", "--body", "child"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

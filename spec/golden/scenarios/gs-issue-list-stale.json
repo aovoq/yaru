@@ -1,0 +1,46 @@
+{
+  "name": "gs-issue-list-stale",
+  "description": "yaru issue list の JSON で、in_progress が既定の 24 時間より長く更新されていないときだけ stale が true になることを記録する。ちょうど 24 時間、todo、done、壊れた updatedAt、未来の updatedAt は false である。壊れた updatedAt は日付ではなく文字列として並ぶ。人向けの表には stale が無い。",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: Exact\nstatus: in_progress\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-27T12:00:00.000Z\nupdatedAt: 2026-09-27T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/2.md",
+        "content": "---\nid: 2\ntitle: Older\nstatus: in_progress\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-27T11:59:59.999Z\nupdatedAt: 2026-09-27T11:59:59.999Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/3.md",
+        "content": "---\nid: 3\ntitle: Todo old\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-01T00:00:00.000Z\nupdatedAt: 2026-09-01T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/4.md",
+        "content": "---\nid: 4\ntitle: Bad clock\nstatus: in_progress\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: not-a-date\nupdatedAt: not-a-date\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/5.md",
+        "content": "---\nid: 5\ntitle: Future\nstatus: in_progress\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-29T00:00:00.000Z\nupdatedAt: 2026-09-29T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/6.md",
+        "content": "---\nid: 6\ntitle: Done old\nstatus: done\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-01T00:00:00.000Z\nupdatedAt: 2026-09-01T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--format"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

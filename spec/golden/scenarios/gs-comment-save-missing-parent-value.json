@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-save-missing-parent-value",
+  "description": "`--parent` の次がフラグだと missing value for --parent になる",
+  "steps": [
+    {
+      "arguments": ["comment", "save", "--parent", "--body", "hi"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

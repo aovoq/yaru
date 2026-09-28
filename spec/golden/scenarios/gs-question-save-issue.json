@@ -1,0 +1,64 @@
+{
+  "name": "gs-question-save-issue",
+  "description": "question save の --issue。issue が無いと作らない。none と空は issue を外す。更新で省くと残る",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "topic"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "q",
+        "--issue",
+        "9",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "q",
+        "--issue",
+        "1",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--priority", "low"],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--issue", "none"],
+      "now": "2026-09-28T00:02:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--issue", "1"],
+      "now": "2026-09-28T00:03:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--issue", ""],
+      "now": "2026-09-28T00:04:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--issue", "  none  "],
+      "now": "2026-09-28T00:05:00.000Z"
+    }
+  ]
+}

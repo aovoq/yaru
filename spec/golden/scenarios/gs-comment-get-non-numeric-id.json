@@ -1,0 +1,26 @@
+{
+  "name": "gs-comment-get-non-numeric-id",
+  "description": "数字でない id `note` でも、そのファイルがあれば取得できる",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: Topic\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/comments/note.md",
+        "content": "---\nid: note\nissue: 1\nparent:\nauthor: golden\ncreatedAt: 2026-09-28T12:05:00.000Z\nupdatedAt: 2026-09-28T12:05:00.000Z\n---\n\nnoted\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["comment", "get", "note"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

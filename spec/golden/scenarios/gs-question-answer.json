@@ -1,0 +1,75 @@
+{
+  "name": "gs-question-answer",
+  "description": "question answer は JSON が既定。--body と --body -。末尾の改行は答えに残る。answeredBy は git の名前。-f と --format は id だけ",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "q",
+        "--body",
+        "context",
+        "--default",
+        "x",
+        "--answerBy",
+        "2h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "first"],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "stdin", "--default", "x", "--answerBy", "2h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "2", "--body", "-"],
+      "stdin": "消して\nよい\n",
+      "now": "2026-09-28T00:02:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "id flag", "--default", "x", "--answerBy", "2h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "--id", "3", "--body", "via id"],
+      "now": "2026-09-28T00:03:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "human", "--default", "x", "--answerBy", "2h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "4", "--body", "shown as id", "-f"],
+      "now": "2026-09-28T00:04:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "answer",
+        "--id",
+        "4",
+        "--body",
+        "format id",
+        "--format",
+        "--force"
+      ],
+      "now": "2026-09-28T00:05:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:06:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "2"],
+      "now": "2026-09-28T00:06:00.000Z"
+    }
+  ]
+}

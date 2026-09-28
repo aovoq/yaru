@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-save-clock-save-yesterday",
+  "description": "yaru issue save は 日付ですらない文字列 の YARU_NOW を、ファイルを書く前に拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x"],
+      "now": "yesterday"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

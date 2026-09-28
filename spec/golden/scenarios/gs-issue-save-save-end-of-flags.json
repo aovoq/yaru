@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-save-end-of-flags",
+  "description": "yaru issue save は -- の後ろを位置引数にし、フラグとして消費しないことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--", "--title", "x"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

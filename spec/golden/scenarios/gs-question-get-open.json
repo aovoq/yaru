@@ -1,0 +1,58 @@
+{
+  "name": "gs-question-get-open",
+  "description": "開いている質問の question get。JSON が既定。-f と --format と --f は人向け。--id と位置引数と -- の後ろの id。まだ答えが無いので acknowledgedAt は付かない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "Ship it?",
+        "--priority",
+        "high",
+        "--default",
+        "Ship it",
+        "--answerBy",
+        "2h",
+        "--option",
+        "Ship it",
+        "--option",
+        "Hold it",
+        "--body",
+        "The latch sticks.\n\nMore context."
+      ],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "session-1"
+      },
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "--id", "1"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "--", "1"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1", "-f"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1", "--format"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "--id", "1", "--f"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

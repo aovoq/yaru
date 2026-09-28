@@ -1,0 +1,22 @@
+{
+  "name": "gs-comment-get-format-before-id",
+  "description": "`--format` は値を取らないので、その次の 1 が id になり人向けで出す",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "hello"],
+      "now": "2026-09-28T12:05:00.000Z"
+    },
+    {
+      "arguments": ["comment", "get", "--format", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

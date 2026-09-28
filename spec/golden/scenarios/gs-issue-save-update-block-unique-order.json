@@ -1,0 +1,26 @@
+{
+  "name": "gs-issue-save-update-block-unique-order",
+  "description": "繰り返した --block は先に出た順を残し、重複を落とすことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "a"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "b"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "c"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--block", "3", "--block", "2", "--block", "3"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

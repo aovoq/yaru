@@ -1,0 +1,242 @@
+{
+  "name": "gs-issue-list-limit-default",
+  "description": "yaru issue list の既定の --limit が 50 であることを記録する。同じ updatedAt の 51 件は localeCompare の降順で、先頭 50 件の cursor の次のページに残り 1 件が出る。LC_ALL と LANG は C に固定する。",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: Issue 1\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/2.md",
+        "content": "---\nid: 2\ntitle: Issue 2\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/3.md",
+        "content": "---\nid: 3\ntitle: Issue 3\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/4.md",
+        "content": "---\nid: 4\ntitle: Issue 4\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/5.md",
+        "content": "---\nid: 5\ntitle: Issue 5\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/6.md",
+        "content": "---\nid: 6\ntitle: Issue 6\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/7.md",
+        "content": "---\nid: 7\ntitle: Issue 7\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/8.md",
+        "content": "---\nid: 8\ntitle: Issue 8\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/9.md",
+        "content": "---\nid: 9\ntitle: Issue 9\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/10.md",
+        "content": "---\nid: 10\ntitle: Issue 10\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/11.md",
+        "content": "---\nid: 11\ntitle: Issue 11\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/12.md",
+        "content": "---\nid: 12\ntitle: Issue 12\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/13.md",
+        "content": "---\nid: 13\ntitle: Issue 13\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/14.md",
+        "content": "---\nid: 14\ntitle: Issue 14\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/15.md",
+        "content": "---\nid: 15\ntitle: Issue 15\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/16.md",
+        "content": "---\nid: 16\ntitle: Issue 16\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/17.md",
+        "content": "---\nid: 17\ntitle: Issue 17\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/18.md",
+        "content": "---\nid: 18\ntitle: Issue 18\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/19.md",
+        "content": "---\nid: 19\ntitle: Issue 19\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/20.md",
+        "content": "---\nid: 20\ntitle: Issue 20\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/21.md",
+        "content": "---\nid: 21\ntitle: Issue 21\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/22.md",
+        "content": "---\nid: 22\ntitle: Issue 22\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/23.md",
+        "content": "---\nid: 23\ntitle: Issue 23\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/24.md",
+        "content": "---\nid: 24\ntitle: Issue 24\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/25.md",
+        "content": "---\nid: 25\ntitle: Issue 25\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/26.md",
+        "content": "---\nid: 26\ntitle: Issue 26\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/27.md",
+        "content": "---\nid: 27\ntitle: Issue 27\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/28.md",
+        "content": "---\nid: 28\ntitle: Issue 28\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/29.md",
+        "content": "---\nid: 29\ntitle: Issue 29\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/30.md",
+        "content": "---\nid: 30\ntitle: Issue 30\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/31.md",
+        "content": "---\nid: 31\ntitle: Issue 31\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/32.md",
+        "content": "---\nid: 32\ntitle: Issue 32\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/33.md",
+        "content": "---\nid: 33\ntitle: Issue 33\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/34.md",
+        "content": "---\nid: 34\ntitle: Issue 34\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/35.md",
+        "content": "---\nid: 35\ntitle: Issue 35\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/36.md",
+        "content": "---\nid: 36\ntitle: Issue 36\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/37.md",
+        "content": "---\nid: 37\ntitle: Issue 37\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/38.md",
+        "content": "---\nid: 38\ntitle: Issue 38\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/39.md",
+        "content": "---\nid: 39\ntitle: Issue 39\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/40.md",
+        "content": "---\nid: 40\ntitle: Issue 40\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/41.md",
+        "content": "---\nid: 41\ntitle: Issue 41\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/42.md",
+        "content": "---\nid: 42\ntitle: Issue 42\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/43.md",
+        "content": "---\nid: 43\ntitle: Issue 43\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/44.md",
+        "content": "---\nid: 44\ntitle: Issue 44\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/45.md",
+        "content": "---\nid: 45\ntitle: Issue 45\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/46.md",
+        "content": "---\nid: 46\ntitle: Issue 46\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/47.md",
+        "content": "---\nid: 47\ntitle: Issue 47\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/48.md",
+        "content": "---\nid: 48\ntitle: Issue 48\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/49.md",
+        "content": "---\nid: 49\ntitle: Issue 49\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/50.md",
+        "content": "---\nid: 50\ntitle: Issue 50\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      },
+      {
+        "path": ".yaru/issues/51.md",
+        "content": "---\nid: 51\ntitle: Issue 51\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\nplain\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "now": "2026-09-28T12:00:00.000Z",
+      "environment": {
+        "LC_ALL": "C",
+        "LANG": "C"
+      }
+    },
+    {
+      "arguments": ["issue", "list", "--limit", "50"],
+      "now": "2026-09-28T12:00:00.000Z",
+      "environment": {
+        "LC_ALL": "C",
+        "LANG": "C"
+      }
+    },
+    {
+      "arguments": ["issue", "list", "--limit", "50", "--cursor", "10"],
+      "now": "2026-09-28T12:00:00.000Z",
+      "environment": {
+        "LC_ALL": "C",
+        "LANG": "C"
+      }
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import { EmptyState } from "./components/empty-state"
+import { currentTime } from "./time"
 import { InboxLink } from "./projects/inbox-link"
 import { ProjectCard } from "./projects/project-card"
 import type { Question } from "./questions"
@@ -18,7 +19,7 @@ export type ProjectSummary = {
 
 export function ProjectsPage({
   projects,
-  now = new Date(),
+  now = currentTime(),
 }: {
   projects: ProjectSummary[]
   now?: Date

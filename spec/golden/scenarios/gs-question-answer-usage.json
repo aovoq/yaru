@@ -1,0 +1,24 @@
+{
+  "name": "gs-question-answer-usage",
+  "description": "question answer の id が無い、余分な引数、知らないフラグ、--body の値が無い。id が無いときは --body があっても usage になる",
+  "steps": [
+    {
+      "arguments": ["question", "answer"]
+    },
+    {
+      "arguments": ["question", "answer", "--body", "yes"]
+    },
+    {
+      "arguments": ["question", "answer", "1", "extra", "--body", "yes"]
+    },
+    {
+      "arguments": ["question", "answer", "--timeout", "1s"]
+    },
+    {
+      "arguments": ["question", "answer", "--body"]
+    },
+    {
+      "arguments": ["question", "answer", "1", "--force", "true", "--body", "yes"]
+    }
+  ]
+}

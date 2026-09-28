@@ -1,0 +1,399 @@
+{
+  "name": "gs-question-list-order",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "initialized <WORKSPACE>/.yaru\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--title", "blocking old"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"blocking old\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "warning: question 1 has no --default and no --answerBy: work blocks until the human answers; give both unless there is no safe default\n",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "due later",
+        "--default",
+        "later",
+        "--answerBy",
+        "3h"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:01:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"2\",\n  \"title\": \"due later\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": \"later\",\n  \"answerBy\": \"2026-09-28T03:01:00.000Z\",\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:01:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:01:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "due soon",
+        "--default",
+        "soon",
+        "--answerBy",
+        "1h"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:02:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"3\",\n  \"title\": \"due soon\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": \"soon\",\n  \"answerBy\": \"2026-09-28T01:02:00.000Z\",\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:02:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:02:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--title", "no deadline older", "--default", "older"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:03:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"4\",\n  \"title\": \"no deadline older\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": \"older\",\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:03:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:03:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "proceeded",
+        "--default",
+        "go",
+        "--answerBy",
+        "10m"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:04:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"5\",\n  \"title\": \"proceeded\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": \"go\",\n  \"answerBy\": \"2026-09-28T00:14:00.000Z\",\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:04:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:04:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--title", "blocking new"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:05:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"6\",\n  \"title\": \"blocking new\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:05:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:05:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "warning: question 6 has no --default and no --answerBy: work blocks until the human answers; give both unless there is no safe default\n",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--title", "blocking due", "--answerBy", "2h"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:06:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"7\",\n  \"title\": \"blocking due\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": \"2026-09-28T02:06:00.000Z\",\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:06:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:06:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--title", "no deadline newer", "--default", "newer"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:07:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"8\",\n  \"title\": \"no deadline newer\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": \"newer\",\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:07:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:07:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "expired older",
+        "--default",
+        "old",
+        "--answerBy",
+        "2026-09-27T00:00:00.000Z"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:08:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"9\",\n  \"title\": \"expired older\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": \"old\",\n  \"answerBy\": \"2026-09-27T00:00:00.000Z\",\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:08:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:08:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"expired\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--title", "answered early"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:09:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"10\",\n  \"title\": \"answered early\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:09:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:09:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "warning: question 10 has no --default and no --answerBy: work blocks until the human answers; give both unless there is no safe default\n",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "answer", "10", "--body", "early"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:10:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"10\",\n  \"title\": \"answered early\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": \"early\",\n  \"answeredBy\": \"golden\",\n  \"answeredAt\": \"2026-09-28T00:10:00.000Z\",\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:09:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:10:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"answered\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--title", "answered late"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:11:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"11\",\n  \"title\": \"answered late\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:11:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:11:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "warning: question 11 has no --default and no --answerBy: work blocks until the human answers; give both unless there is no safe default\n",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "answer", "11", "--body", "late"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:20:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"11\",\n  \"title\": \"answered late\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": \"late\",\n  \"answeredBy\": \"golden\",\n  \"answeredAt\": \"2026-09-28T00:20:00.000Z\",\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:11:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:20:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"answered\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--title", "canceled middle"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:12:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"12\",\n  \"title\": \"canceled middle\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:12:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:12:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "warning: question 12 has no --default and no --answerBy: work blocks until the human answers; give both unless there is no safe default\n",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--id", "12", "--status", "canceled"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:15:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"12\",\n  \"title\": \"canceled middle\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": \"2026-09-28T00:15:00.000Z\",\n  \"createdAt\": \"2026-09-28T00:12:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:15:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"canceled\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--title", "answered same a"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:16:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"13\",\n  \"title\": \"answered same a\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:16:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:16:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "warning: question 13 has no --default and no --answerBy: work blocks until the human answers; give both unless there is no safe default\n",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--title", "answered same b"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:17:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"14\",\n  \"title\": \"answered same b\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:17:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:17:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "warning: question 14 has no --default and no --answerBy: work blocks until the human answers; give both unless there is no safe default\n",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "answer", "13", "--body", "a"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:25:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"13\",\n  \"title\": \"answered same a\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": \"a\",\n  \"answeredBy\": \"golden\",\n  \"answeredAt\": \"2026-09-28T00:25:00.000Z\",\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:16:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:25:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"answered\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "answer", "14", "--body", "b"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:25:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"14\",\n  \"title\": \"answered same b\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": \"b\",\n  \"answeredBy\": \"golden\",\n  \"answeredAt\": \"2026-09-28T00:25:00.000Z\",\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:17:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:25:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"answered\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "list"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:30:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"questions\": [\n    {\n      \"id\": \"7\",\n      \"title\": \"blocking due\",\n      \"issue\": null,\n      \"priority\": null,\n      \"defaultAction\": null,\n      \"answerBy\": \"2026-09-28T02:06:00.000Z\",\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": null,\n      \"answeredBy\": null,\n      \"answeredAt\": null,\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:06:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:06:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"open\"\n    },\n    {\n      \"id\": \"1\",\n      \"title\": \"blocking old\",\n      \"issue\": null,\n      \"priority\": null,\n      \"defaultAction\": null,\n      \"answerBy\": null,\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": null,\n      \"answeredBy\": null,\n      \"answeredAt\": null,\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"open\"\n    },\n    {\n      \"id\": \"6\",\n      \"title\": \"blocking new\",\n      \"issue\": null,\n      \"priority\": null,\n      \"defaultAction\": null,\n      \"answerBy\": null,\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": null,\n      \"answeredBy\": null,\n      \"answeredAt\": null,\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:05:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:05:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"open\"\n    },\n    {\n      \"id\": \"3\",\n      \"title\": \"due soon\",\n      \"issue\": null,\n      \"priority\": null,\n      \"defaultAction\": \"soon\",\n      \"answerBy\": \"2026-09-28T01:02:00.000Z\",\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": null,\n      \"answeredBy\": null,\n      \"answeredAt\": null,\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:02:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:02:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"open\"\n    },\n    {\n      \"id\": \"2\",\n      \"title\": \"due later\",\n      \"issue\": null,\n      \"priority\": null,\n      \"defaultAction\": \"later\",\n      \"answerBy\": \"2026-09-28T03:01:00.000Z\",\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": null,\n      \"answeredBy\": null,\n      \"answeredAt\": null,\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:01:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:01:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"open\"\n    },\n    {\n      \"id\": \"8\",\n      \"title\": \"no deadline newer\",\n      \"issue\": null,\n      \"priority\": null,\n      \"defaultAction\": \"newer\",\n      \"answerBy\": null,\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": null,\n      \"answeredBy\": null,\n      \"answeredAt\": null,\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:07:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:07:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"open\"\n    },\n    {\n      \"id\": \"4\",\n      \"title\": \"no deadline older\",\n      \"issue\": null,\n      \"priority\": null,\n      \"defaultAction\": \"older\",\n      \"answerBy\": null,\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": null,\n      \"answeredBy\": null,\n      \"answeredAt\": null,\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:03:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:03:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"open\"\n    },\n    {\n      \"id\": \"5\",\n      \"title\": \"proceeded\",\n      \"issue\": null,\n      \"priority\": null,\n      \"defaultAction\": \"go\",\n      \"answerBy\": \"2026-09-28T00:14:00.000Z\",\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": null,\n      \"answeredBy\": null,\n      \"answeredAt\": null,\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:04:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:04:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"expired\"\n    },\n    {\n      \"id\": \"9\",\n      \"title\": \"expired older\",\n      \"issue\": null,\n      \"priority\": null,\n      \"defaultAction\": \"old\",\n      \"answerBy\": \"2026-09-27T00:00:00.000Z\",\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": null,\n      \"answeredBy\": null,\n      \"answeredAt\": null,\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:08:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:08:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"expired\"\n    },\n    {\n      \"id\": \"14\",\n      \"title\": \"answered same b\",\n      \"issue\": null,\n      \"priority\": null,\n      \"defaultAction\": null,\n      \"answerBy\": null,\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": \"b\",\n      \"answeredBy\": \"golden\",\n      \"answeredAt\": \"2026-09-28T00:25:00.000Z\",\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:17:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:25:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"answered\"\n    },\n    {\n      \"id\": \"13\",\n      \"title\": \"answered same a\",\n      \"issue\": null,\n      \"priority\": null,\n      \"defaultAction\": null,\n      \"answerBy\": null,\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": \"a\",\n      \"answeredBy\": \"golden\",\n      \"answeredAt\": \"2026-09-28T00:25:00.000Z\",\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:16:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:25:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"answered\"\n    },\n    {\n      \"id\": \"11\",\n      \"title\": \"answered late\",\n      \"issue\": null,\n      \"priority\": null,\n      \"defaultAction\": null,\n      \"answerBy\": null,\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": \"late\",\n      \"answeredBy\": \"golden\",\n      \"answeredAt\": \"2026-09-28T00:20:00.000Z\",\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:11:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:20:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"answered\"\n    },\n    {\n      \"id\": \"12\",\n      \"title\": \"canceled middle\",\n      \"issue\": null,\n      \"priority\": null,\n      \"defaultAction\": null,\n      \"answerBy\": null,\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": null,\n      \"answeredBy\": null,\n      \"answeredAt\": null,\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": \"2026-09-28T00:15:00.000Z\",\n      \"createdAt\": \"2026-09-28T00:12:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:15:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"canceled\"\n    },\n    {\n      \"id\": \"10\",\n      \"title\": \"answered early\",\n      \"issue\": null,\n      \"priority\": null,\n      \"defaultAction\": null,\n      \"answerBy\": null,\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": \"early\",\n      \"answeredBy\": \"golden\",\n      \"answeredAt\": \"2026-09-28T00:10:00.000Z\",\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:09:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:10:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"answered\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "list", "-f"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:30:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "7   open      -       2026-09-28T02:06:00.000Z  blocking due\n1   open      -       -                         blocking old\n6   open      -       -                         blocking new\n3   open      -       2026-09-28T01:02:00.000Z  due soon\n2   open      -       2026-09-28T03:01:00.000Z  due later\n8   open      -       -                         no deadline newer\n4   open      -       -                         no deadline older\n5   expired   -       2026-09-28T00:14:00.000Z  proceeded\n9   expired   -       2026-09-27T00:00:00.000Z  expired older\n14  answered  -       -                         answered same b\n13  answered  -       -                         answered same a\n11  answered  -       -                         answered late\n12  canceled  -       -                         canceled middle\n10  answered  -       -                         answered early\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "list", "--format"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:30:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "7   open      -       2026-09-28T02:06:00.000Z  blocking due\n1   open      -       -                         blocking old\n6   open      -       -                         blocking new\n3   open      -       2026-09-28T01:02:00.000Z  due soon\n2   open      -       2026-09-28T03:01:00.000Z  due later\n8   open      -       -                         no deadline newer\n4   open      -       -                         no deadline older\n5   expired   -       2026-09-28T00:14:00.000Z  proceeded\n9   expired   -       2026-09-27T00:00:00.000Z  expired older\n14  answered  -       -                         answered same b\n13  answered  -       -                         answered same a\n11  answered  -       -                         answered late\n12  canceled  -       -                         canceled middle\n10  answered  -       -                         answered early\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": "comments",
+      "content": "",
+      "directory": true
+    },
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues",
+      "content": "",
+      "directory": true
+    },
+    {
+      "path": "questions/.gitignore",
+      "content": "*\n"
+    },
+    {
+      "path": "questions/1.md",
+      "content": "---\nid: 1\ntitle: blocking old\nstatus: open\nissue:\npriority:\ndefaultAction:\nanswerBy:\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\n---\n\n\n"
+    },
+    {
+      "path": "questions/10.md",
+      "content": "---\nid: 10\ntitle: answered early\nstatus: open\nissue:\npriority:\ndefaultAction:\nanswerBy:\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy: golden\nansweredAt: 2026-09-28T00:10:00.000Z\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:09:00.000Z\nupdatedAt: 2026-09-28T00:10:00.000Z\n---\n\n<!-- yaru:answer -->\n\nearly\n"
+    },
+    {
+      "path": "questions/11.md",
+      "content": "---\nid: 11\ntitle: answered late\nstatus: open\nissue:\npriority:\ndefaultAction:\nanswerBy:\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy: golden\nansweredAt: 2026-09-28T00:20:00.000Z\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:11:00.000Z\nupdatedAt: 2026-09-28T00:20:00.000Z\n---\n\n<!-- yaru:answer -->\n\nlate\n"
+    },
+    {
+      "path": "questions/12.md",
+      "content": "---\nid: 12\ntitle: canceled middle\nstatus: canceled\nissue:\npriority:\ndefaultAction:\nanswerBy:\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt: 2026-09-28T00:15:00.000Z\ncreatedAt: 2026-09-28T00:12:00.000Z\nupdatedAt: 2026-09-28T00:15:00.000Z\n---\n\n\n"
+    },
+    {
+      "path": "questions/13.md",
+      "content": "---\nid: 13\ntitle: answered same a\nstatus: open\nissue:\npriority:\ndefaultAction:\nanswerBy:\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy: golden\nansweredAt: 2026-09-28T00:25:00.000Z\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:16:00.000Z\nupdatedAt: 2026-09-28T00:25:00.000Z\n---\n\n<!-- yaru:answer -->\n\na\n"
+    },
+    {
+      "path": "questions/14.md",
+      "content": "---\nid: 14\ntitle: answered same b\nstatus: open\nissue:\npriority:\ndefaultAction:\nanswerBy:\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy: golden\nansweredAt: 2026-09-28T00:25:00.000Z\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:17:00.000Z\nupdatedAt: 2026-09-28T00:25:00.000Z\n---\n\n<!-- yaru:answer -->\n\nb\n"
+    },
+    {
+      "path": "questions/2.md",
+      "content": "---\nid: 2\ntitle: due later\nstatus: open\nissue:\npriority:\ndefaultAction: later\nanswerBy: 2026-09-28T03:01:00.000Z\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:01:00.000Z\nupdatedAt: 2026-09-28T00:01:00.000Z\n---\n\n\n"
+    },
+    {
+      "path": "questions/3.md",
+      "content": "---\nid: 3\ntitle: due soon\nstatus: open\nissue:\npriority:\ndefaultAction: soon\nanswerBy: 2026-09-28T01:02:00.000Z\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:02:00.000Z\nupdatedAt: 2026-09-28T00:02:00.000Z\n---\n\n\n"
+    },
+    {
+      "path": "questions/4.md",
+      "content": "---\nid: 4\ntitle: no deadline older\nstatus: open\nissue:\npriority:\ndefaultAction: older\nanswerBy:\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:03:00.000Z\nupdatedAt: 2026-09-28T00:03:00.000Z\n---\n\n\n"
+    },
+    {
+      "path": "questions/5.md",
+      "content": "---\nid: 5\ntitle: proceeded\nstatus: open\nissue:\npriority:\ndefaultAction: go\nanswerBy: 2026-09-28T00:14:00.000Z\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:04:00.000Z\nupdatedAt: 2026-09-28T00:04:00.000Z\n---\n\n\n"
+    },
+    {
+      "path": "questions/6.md",
+      "content": "---\nid: 6\ntitle: blocking new\nstatus: open\nissue:\npriority:\ndefaultAction:\nanswerBy:\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:05:00.000Z\nupdatedAt: 2026-09-28T00:05:00.000Z\n---\n\n\n"
+    },
+    {
+      "path": "questions/7.md",
+      "content": "---\nid: 7\ntitle: blocking due\nstatus: open\nissue:\npriority:\ndefaultAction:\nanswerBy: 2026-09-28T02:06:00.000Z\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:06:00.000Z\nupdatedAt: 2026-09-28T00:06:00.000Z\n---\n\n\n"
+    },
+    {
+      "path": "questions/8.md",
+      "content": "---\nid: 8\ntitle: no deadline newer\nstatus: open\nissue:\npriority:\ndefaultAction: newer\nanswerBy:\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:07:00.000Z\nupdatedAt: 2026-09-28T00:07:00.000Z\n---\n\n\n"
+    },
+    {
+      "path": "questions/9.md",
+      "content": "---\nid: 9\ntitle: expired older\nstatus: open\nissue:\npriority:\ndefaultAction: old\nanswerBy: 2026-09-27T00:00:00.000Z\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:08:00.000Z\nupdatedAt: 2026-09-28T00:08:00.000Z\n---\n\n\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-usage-unknown-subcommand",
+  "description": "yaru issue の未知のサブコマンドを、list|get|save の使い方として拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "nope"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

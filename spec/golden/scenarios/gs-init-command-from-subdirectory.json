@@ -1,0 +1,21 @@
+{
+  "name": "gs-init-command-from-subdirectory",
+  "description": "サブディレクトリから開くと、親の .yaru を使い、登録の root は親のままである",
+  "setup": {
+    "files": [
+      {
+        "path": "pkg/keep",
+        "content": "x\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["init"]
+    },
+    {
+      "arguments": ["issue", "list"],
+      "workingDirectory": "pkg"
+    }
+  ]
+}

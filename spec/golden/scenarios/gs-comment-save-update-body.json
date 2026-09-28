@@ -1,0 +1,26 @@
+{
+  "name": "gs-comment-save-update-body",
+  "description": "更新で変わるのは本文と updatedAt だけであり parent と author と createdAt は残る",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "parent"],
+      "now": "2026-09-28T12:05:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--parent", "1", "--body", "child"],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--id", "2", "--body", "edited"],
+      "now": "2026-09-28T14:00:00.000Z"
+    }
+  ]
+}

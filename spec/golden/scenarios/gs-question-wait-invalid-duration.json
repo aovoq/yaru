@@ -1,0 +1,33 @@
+{
+  "name": "gs-question-wait-invalid-duration",
+  "description": "question wait の --timeout と --interval が 100ms, 30s, 10m, 1h の形でない。期限の検査はワークスペースを開くより先",
+  "steps": [
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "10d"]
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "1"]
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "30S"]
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "-1s"]
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "1.5s"]
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", ""]
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "1ms "]
+    },
+    {
+      "arguments": ["question", "wait", "1", "--interval", "1d"]
+    },
+    {
+      "arguments": ["question", "wait", "1", "--interval", "nope"]
+    }
+  ]
+}

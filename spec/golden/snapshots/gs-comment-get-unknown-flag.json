@@ -1,0 +1,19 @@
+{
+  "name": "gs-comment-get-unknown-flag",
+  "steps": [
+    {
+      "arguments": ["comment", "get", "1", "--issue", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --issue\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

@@ -1,0 +1,15 @@
+{
+  "name": "gs-init-format-human-empty",
+  "description": "値を付けない -f と --format は人向けの出力になる。issue が無い一覧は (none) である",
+  "steps": [
+    {
+      "arguments": ["init"]
+    },
+    {
+      "arguments": ["issue", "list", "-f"]
+    },
+    {
+      "arguments": ["issue", "list", "--format"]
+    }
+  ]
+}

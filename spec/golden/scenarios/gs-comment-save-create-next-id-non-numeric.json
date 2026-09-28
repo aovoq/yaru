@@ -1,0 +1,26 @@
+{
+  "name": "gs-comment-save-create-next-id-non-numeric",
+  "description": "数字でないファイル名は次の id に数えない。 `note.md` があっても次は 1",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: Topic\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/comments/note.md",
+        "content": "---\nid: note\nissue: 1\nparent:\nauthor: golden\ncreatedAt: 2026-09-28T12:05:00.000Z\nupdatedAt: 2026-09-28T12:05:00.000Z\n---\n\nkept\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "next"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

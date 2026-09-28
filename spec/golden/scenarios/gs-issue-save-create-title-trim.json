@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-create-title-trim",
+  "description": "作成時の題名は前後の空白だけを削り、途中の空白は残すことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "  a  b  "],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "name": "gs-issue-list-due-invalid",
+  "description": "--due が overdue 以外だと終了コード 1 になることを記録する。空白、大文字、空文字は逾期にしない。繰り返すと最初の値だけを使い、最初が overdue なら次が不正でも成功する。",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Past", "--dueDate", "2026-09-27"],
+      "now": "2026-09-28T12:01:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--due", "late"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--due", "Overdue"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--due", " overdue"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--due", "overdue "],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--due", ""],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--due", "overdue", "--due", "late"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--due", "late", "--due", "overdue"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

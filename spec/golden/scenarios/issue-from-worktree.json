@@ -1,0 +1,29 @@
+{
+  "name": "issue-from-worktree",
+  "description": "linked worktree の中から issue を作ると、元のフォルダの .yaru に書き、出どころは worktree になる",
+  "setup": {
+    "files": [{ "path": "README.md", "content": "latch\n" }],
+    "commits": [{ "message": "initial", "paths": ["README.md"] }],
+    "worktrees": [{ "name": "feature", "branch": "feat/add-thing" }]
+  },
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "From the main worktree"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "From the linked worktree"],
+      "now": "2026-09-28T12:05:00.000Z",
+      "workingDirectory": "worktree:feature"
+    },
+    {
+      "arguments": ["issue", "get", "2"],
+      "now": "2026-09-28T12:05:00.000Z",
+      "workingDirectory": "worktree:feature"
+    }
+  ]
+}

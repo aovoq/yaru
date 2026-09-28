@@ -1,0 +1,18 @@
+{
+  "name": "gs-comment-save-create-untrimmed",
+  "description": "前後の空白は空の判定にだけ使い、保存する本文からは削らない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "  padded  "],
+      "now": "2026-09-28T12:05:00.000Z"
+    }
+  ]
+}

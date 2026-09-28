@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-get-empty-id-flag",
+  "description": "`--id` が空だと位置 id も見ず、同じ usage になる",
+  "steps": [
+    {
+      "arguments": ["comment", "get", "--id", ""],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

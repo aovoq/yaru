@@ -1,0 +1,115 @@
+{
+  "name": "gs-question-wait-invalid-duration",
+  "steps": [
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "10d"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "invalid timeout: expected a duration like 100ms, 30s, 10m, or 1h, actual 10d\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "invalid timeout: expected a duration like 100ms, 30s, 10m, or 1h, actual 1\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "30S"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "invalid timeout: expected a duration like 100ms, 30s, 10m, or 1h, actual 30S\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "-1s"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "invalid timeout: expected a duration like 100ms, 30s, 10m, or 1h, actual -1s\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "1.5s"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "invalid timeout: expected a duration like 100ms, 30s, 10m, or 1h, actual 1.5s\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", ""],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "invalid timeout: expected a duration like 100ms, 30s, 10m, or 1h, actual \n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "1ms "],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "invalid timeout: expected a duration like 100ms, 30s, 10m, or 1h, actual 1ms \n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "wait", "1", "--interval", "1d"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "invalid interval: expected a duration like 100ms, 30s, 10m, or 1h, actual 1d\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "wait", "1", "--interval", "nope"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "invalid interval: expected a duration like 100ms, 30s, 10m, or 1h, actual nope\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

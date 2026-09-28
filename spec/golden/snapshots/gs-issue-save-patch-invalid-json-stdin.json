@@ -1,0 +1,19 @@
+{
+  "name": "gs-issue-save-patch-invalid-json-stdin",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--id", "1", "--patch", "-"],
+      "stdin": "{",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "invalid patch: expected a JSON array of operations, actual \"{\"\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

@@ -1,0 +1,22 @@
+{
+  "name": "gs-issue-save-update-title-escape-event",
+  "description": "題名の引用符、バックスラッシュ、タブ、制御文字、U+2028 を更新したとき、イベントの JSON がどう逃げるかを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "plain"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--title", "say \"hi\" \\ <tag> &\t\u0001 end"],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

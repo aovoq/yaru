@@ -1,0 +1,58 @@
+{
+  "name": "gs-issue-list-label",
+  "description": "yaru issue list の --label が、複数ラベルのうち 1 つと完全一致すれば残すことを記録する。大文字小文字と末尾の空白は区別する。空文字は絞らない。カンマ区切りの文字列は 1 つのラベルとして探して外れる。繰り返すと最初の値だけを使う。当たらないときは JSON が空で、--format は (none) である。",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Both", "--label", "cli", "--label", "docs"],
+      "now": "2026-09-28T12:01:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Upper", "--label", "CLI"],
+      "now": "2026-09-28T12:02:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Only", "--label", "cli"],
+      "now": "2026-09-28T12:03:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--label", "cli"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--label", "docs"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--label", "CLI"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--label", "cli "],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--label", "cli, docs"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--label", ""],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--label", "docs", "--label", "cli"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--label", "missing"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--label", "missing", "--format"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "name": "gs-issue-list-stale",
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"issues\": [\n    {\n      \"id\": \"4\",\n      \"title\": \"Bad clock\",\n      \"status\": \"in_progress\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": null,\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"not-a-date\",\n      \"updatedAt\": \"not-a-date\",\n      \"session\": null,\n      \"worktree\": null,\n      \"branch\": null,\n      \"stale\": false,\n      \"body\": \"\"\n    },\n    {\n      \"id\": \"5\",\n      \"title\": \"Future\",\n      \"status\": \"in_progress\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": null,\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-29T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-29T00:00:00.000Z\",\n      \"session\": null,\n      \"worktree\": null,\n      \"branch\": null,\n      \"stale\": false,\n      \"body\": \"\"\n    },\n    {\n      \"id\": \"1\",\n      \"title\": \"Exact\",\n      \"status\": \"in_progress\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": null,\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-27T12:00:00.000Z\",\n      \"updatedAt\": \"2026-09-27T12:00:00.000Z\",\n      \"session\": null,\n      \"worktree\": null,\n      \"branch\": null,\n      \"stale\": false,\n      \"body\": \"\"\n    },\n    {\n      \"id\": \"2\",\n      \"title\": \"Older\",\n      \"status\": \"in_progress\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": null,\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-27T11:59:59.999Z\",\n      \"updatedAt\": \"2026-09-27T11:59:59.999Z\",\n      \"session\": null,\n      \"worktree\": null,\n      \"branch\": null,\n      \"stale\": true,\n      \"body\": \"\"\n    },\n    {\n      \"id\": \"6\",\n      \"title\": \"Done old\",\n      \"status\": \"done\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": null,\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-01T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-01T00:00:00.000Z\",\n      \"session\": null,\n      \"worktree\": null,\n      \"branch\": null,\n      \"stale\": false,\n      \"body\": \"\"\n    },\n    {\n      \"id\": \"3\",\n      \"title\": \"Todo old\",\n      \"status\": \"todo\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": null,\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-01T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-01T00:00:00.000Z\",\n      \"session\": null,\n      \"worktree\": null,\n      \"branch\": null,\n      \"stale\": false,\n      \"body\": \"\"\n    }\n  ],\n  \"hasNextPage\": false\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "list", "--format"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "4  in_progress   -             -           -       Bad clock\n5  in_progress   -             -           -       Future\n1  in_progress   -             -           -       Exact\n2  in_progress   -             -           -       Older\n6  done          -             -           -       Done old\n3  todo          -             -           -       Todo old\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues/1.md",
+      "content": "---\nid: 1\ntitle: Exact\nstatus: in_progress\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-27T12:00:00.000Z\nupdatedAt: 2026-09-27T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+    },
+    {
+      "path": "issues/2.md",
+      "content": "---\nid: 2\ntitle: Older\nstatus: in_progress\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-27T11:59:59.999Z\nupdatedAt: 2026-09-27T11:59:59.999Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+    },
+    {
+      "path": "issues/3.md",
+      "content": "---\nid: 3\ntitle: Todo old\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-01T00:00:00.000Z\nupdatedAt: 2026-09-01T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+    },
+    {
+      "path": "issues/4.md",
+      "content": "---\nid: 4\ntitle: Bad clock\nstatus: in_progress\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: not-a-date\nupdatedAt: not-a-date\nsession:\nworktree:\nbranch:\n---\n\n\n"
+    },
+    {
+      "path": "issues/5.md",
+      "content": "---\nid: 5\ntitle: Future\nstatus: in_progress\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-29T00:00:00.000Z\nupdatedAt: 2026-09-29T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+    },
+    {
+      "path": "issues/6.md",
+      "content": "---\nid: 6\ntitle: Done old\nstatus: done\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-01T00:00:00.000Z\nupdatedAt: 2026-09-01T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

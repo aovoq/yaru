@@ -1,0 +1,101 @@
+{
+  "name": "issue-create-list-get",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "initialized <WORKSPACE>/.yaru\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Fix the gate",
+        "--body",
+        "The latch sticks.",
+        "--label",
+        "cli",
+        "--priority",
+        "high"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"Fix the gate\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [\n    \"cli\"\n  ],\n  \"dueDate\": null,\n  \"priority\": \"high\",\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"The latch sticks.\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "list"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"issues\": [\n    {\n      \"id\": \"1\",\n      \"title\": \"Fix the gate\",\n      \"status\": \"todo\",\n      \"assignee\": null,\n      \"labels\": [\n        \"cli\"\n      ],\n      \"dueDate\": null,\n      \"priority\": \"high\",\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n      \"updatedAt\": \"2026-09-28T12:00:00.000Z\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"stale\": false,\n      \"body\": \"The latch sticks.\"\n    }\n  ],\n  \"hasNextPage\": false\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "list", "--format"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "1  todo          -             -           high    Fix the gate\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"Fix the gate\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [\n    \"cli\"\n  ],\n  \"dueDate\": null,\n  \"priority\": \"high\",\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"The latch sticks.\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": "comments",
+      "content": "",
+      "directory": true
+    },
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues/1.md",
+      "content": "---\nid: 1\ntitle: Fix the gate\nstatus: todo\nassignee:\nlabels: cli\ndueDate:\npriority: high\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\nThe latch sticks.\n"
+    },
+    {
+      "path": "questions/.gitignore",
+      "content": "*\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

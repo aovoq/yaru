@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-list-issue-looks-like-flag",
+  "description": "`--issue` の次が `--` で始まると、 id ではなく missing value for --issue になる",
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--issue", "--format"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

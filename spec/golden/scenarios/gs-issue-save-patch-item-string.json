@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-patch-item-string",
+  "description": "patch の要素が文字列だと、操作オブジェクトではないとして拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "9", "--patch", "[\"x\"]"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-help-get",
+  "description": "yaru issue get の --help が、ワークスペース無しで終了コード 0 になり、契約を標準出力へ出すことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "--help"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

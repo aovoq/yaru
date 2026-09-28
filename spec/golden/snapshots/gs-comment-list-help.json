@@ -1,0 +1,19 @@
+{
+  "name": "gs-comment-list-help",
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru comment list — list comments on an issue\n\nUsage:\n  yaru comment list --issue ID [-f|--format]\n\nJSON prints {comments}. Comments are ordered by createdAt.\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

@@ -1,0 +1,31 @@
+{
+  "name": "gs-init-format-without-command",
+  "steps": [
+    {
+      "arguments": ["--format"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru — local issues, markdown in .yaru\n\n  yaru init\n  yaru issue list\n  yaru issue get <id>\n  yaru issue save\n  yaru comment list --issue ID\n  yaru comment get <id>\n  yaru comment save\n  yaru question list\n  yaru question get <id>\n  yaru question save\n  yaru question answer <id>\n  yaru question wait <id>\n  yaru serve [-p|--port 47800]\n\nOutput is JSON unless -f / --format. Commands print their contract with --help.\n\nyaru serve shows every workspace yaru has been used in: / lists them, /p/<name>/ is one board.\n",
+      "stderr": "",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["-f"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru — local issues, markdown in .yaru\n\n  yaru init\n  yaru issue list\n  yaru issue get <id>\n  yaru issue save\n  yaru comment list --issue ID\n  yaru comment get <id>\n  yaru comment save\n  yaru question list\n  yaru question get <id>\n  yaru question save\n  yaru question answer <id>\n  yaru question wait <id>\n  yaru serve [-p|--port 47800]\n\nOutput is JSON unless -f / --format. Commands print their contract with --help.\n\nyaru serve shows every workspace yaru has been used in: / lists them, /p/<name>/ is one board.\n",
+      "stderr": "",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

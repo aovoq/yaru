@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-save-update-priority-none",
+  "description": "更新の --priority none が優先度を消し、イベントの to が null になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--priority", "high"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--priority", "none"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

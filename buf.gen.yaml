@@ -1,0 +1,15 @@
+version: v2
+# go_package は proto に書かず、buf の managed mode で決める (proto を Go と TS の両方で使うため)
+# https://buf.build/docs/generate/managed-mode/
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/aovoq/yaru/gen
+plugins:
+  - local: protoc-gen-go
+    out: gen
+    opt: paths=source_relative
+  - local: protoc-gen-connect-go
+    out: gen
+    opt: paths=source_relative

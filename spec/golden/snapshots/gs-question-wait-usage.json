@@ -1,0 +1,79 @@
+{
+  "name": "gs-question-wait-usage",
+  "steps": [
+    {
+      "arguments": ["question", "wait"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "usage: yaru question wait <id>\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "wait", "1", "extra"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: extra\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "wait", "--status", "open"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --status\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "wait", "--timeout"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --timeout\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "wait", "--interval"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --interval\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "wait", "--timeout", "nope"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "usage: yaru question wait <id>\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

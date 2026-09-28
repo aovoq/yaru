@@ -1,0 +1,22 @@
+{
+  "name": "gs-comment-save-create-invalid-stale-after",
+  "description": "作成は issue を読むので、壊れた staleAfter だとコメントを書かずに止まる",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "staleAfter: nope\n"
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: Topic\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "hello"],
+      "now": "2026-09-28T12:05:00.000Z"
+    }
+  ]
+}

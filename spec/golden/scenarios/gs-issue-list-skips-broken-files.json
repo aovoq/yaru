@@ -1,0 +1,78 @@
+{
+  "name": "gs-issue-list-skips-broken-files",
+  "description": "壊れた issue ファイルを yaru issue list が黙って飛ばし、残りの issue だけで成功することを記録する。不正な status、dueDate、priority、空ファイル、frontmatter が閉じていないファイル、.md でないファイル、下のディレクトリ、拡張子の大文字は読まない。飛ばした id は cursor に使えない。",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: Keep\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/10.md",
+        "content": "---\nid: 10\ntitle: Also\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/2.md",
+        "content": "not an issue\n"
+      },
+      {
+        "path": ".yaru/issues/3.md",
+        "content": "---\nid: 3\ntitle: Bad status\nstatus: nope\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/4.md",
+        "content": "---\nid: 4\ntitle: Bad date\nstatus: todo\nassignee:\nlabels:\ndueDate: 2026-02-30\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/5.md",
+        "content": "---\nid: 5\ntitle: Bad priority\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority: p0\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/6.md",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/7.md",
+        "content": "---\nno closer\n"
+      },
+      {
+        "path": ".yaru/issues/readme.txt",
+        "content": "nope\n"
+      },
+      {
+        "path": ".yaru/issues/extra/8.md",
+        "content": "---\nid: 8\ntitle: Nested\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/9.MD",
+        "content": "---\nid: 9\ntitle: Upper extension\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--format"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--cursor", "3"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--cursor", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--cursor", "10"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

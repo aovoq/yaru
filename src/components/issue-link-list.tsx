@@ -1,4 +1,5 @@
 import type { Issue } from "../store"
+import { currentTime } from "../time"
 import { PriorityIcon } from "./icons/priority-icon"
 import { StatusIcon } from "./icons/status-icon"
 import { Avatar } from "./avatar"
@@ -20,7 +21,7 @@ export function IssueLinkList({
   hrefFor,
   showDueDate = false,
   showStale = false,
-  now = new Date(),
+  now = currentTime(),
 }: {
   issues: Issue[]
   hrefFor: (issue: Issue) => string

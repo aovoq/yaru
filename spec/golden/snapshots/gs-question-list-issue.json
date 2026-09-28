@@ -1,0 +1,257 @@
+{
+  "name": "gs-question-list-issue",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "initialized <WORKSPACE>/.yaru\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "save", "--title", "topic one"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"topic one\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "save", "--title", "topic two"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"2\",\n  \"title\": \"topic two\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "on first",
+        "--issue",
+        "1",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"on first\",\n  \"issue\": \"1\",\n  \"priority\": null,\n  \"defaultAction\": \"x\",\n  \"answerBy\": \"2026-09-28T01:00:00.000Z\",\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "on second",
+        "--issue",
+        "2",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"2\",\n  \"title\": \"on second\",\n  \"issue\": \"2\",\n  \"priority\": null,\n  \"defaultAction\": \"x\",\n  \"answerBy\": \"2026-09-28T01:00:00.000Z\",\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "no issue",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"3\",\n  \"title\": \"no issue\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": \"x\",\n  \"answerBy\": \"2026-09-28T01:00:00.000Z\",\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "yes"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:01:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"on first\",\n  \"issue\": \"1\",\n  \"priority\": null,\n  \"defaultAction\": \"x\",\n  \"answerBy\": \"2026-09-28T01:00:00.000Z\",\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": \"yes\",\n  \"answeredBy\": \"golden\",\n  \"answeredAt\": \"2026-09-28T00:01:00.000Z\",\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:01:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"answered\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "list", "--issue", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"questions\": [\n    {\n      \"id\": \"1\",\n      \"title\": \"on first\",\n      \"issue\": \"1\",\n      \"priority\": null,\n      \"defaultAction\": \"x\",\n      \"answerBy\": \"2026-09-28T01:00:00.000Z\",\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": \"yes\",\n      \"answeredBy\": \"golden\",\n      \"answeredAt\": \"2026-09-28T00:01:00.000Z\",\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:01:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"answered\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "list", "--issue", "2"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"questions\": [\n    {\n      \"id\": \"2\",\n      \"title\": \"on second\",\n      \"issue\": \"2\",\n      \"priority\": null,\n      \"defaultAction\": \"x\",\n      \"answerBy\": \"2026-09-28T01:00:00.000Z\",\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": null,\n      \"answeredBy\": null,\n      \"answeredAt\": null,\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"open\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "list", "--issue", "9"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"questions\": []\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "list", "--status", "open", "--issue", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"questions\": []\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "list", "--status", "answered", "--issue", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"questions\": [\n    {\n      \"id\": \"1\",\n      \"title\": \"on first\",\n      \"issue\": \"1\",\n      \"priority\": null,\n      \"defaultAction\": \"x\",\n      \"answerBy\": \"2026-09-28T01:00:00.000Z\",\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": \"yes\",\n      \"answeredBy\": \"golden\",\n      \"answeredAt\": \"2026-09-28T00:01:00.000Z\",\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:01:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"answered\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "list", "--issue", ""],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"questions\": [\n    {\n      \"id\": \"2\",\n      \"title\": \"on second\",\n      \"issue\": \"2\",\n      \"priority\": null,\n      \"defaultAction\": \"x\",\n      \"answerBy\": \"2026-09-28T01:00:00.000Z\",\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": null,\n      \"answeredBy\": null,\n      \"answeredAt\": null,\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"open\"\n    },\n    {\n      \"id\": \"3\",\n      \"title\": \"no issue\",\n      \"issue\": null,\n      \"priority\": null,\n      \"defaultAction\": \"x\",\n      \"answerBy\": \"2026-09-28T01:00:00.000Z\",\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": null,\n      \"answeredBy\": null,\n      \"answeredAt\": null,\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"open\"\n    },\n    {\n      \"id\": \"1\",\n      \"title\": \"on first\",\n      \"issue\": \"1\",\n      \"priority\": null,\n      \"defaultAction\": \"x\",\n      \"answerBy\": \"2026-09-28T01:00:00.000Z\",\n      \"options\": [],\n      \"author\": \"golden\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"answer\": \"yes\",\n      \"answeredBy\": \"golden\",\n      \"answeredAt\": \"2026-09-28T00:01:00.000Z\",\n      \"acknowledgedAt\": null,\n      \"notifiedExpiringAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:01:00.000Z\",\n      \"body\": \"\",\n      \"status\": \"answered\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "list", "--issue", "none"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"questions\": []\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "list", "--issue", "1", "-f"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "1  answered  -       2026-09-28T01:00:00.000Z  on first\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": "comments",
+      "content": "",
+      "directory": true
+    },
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues/1.md",
+      "content": "---\nid: 1\ntitle: topic one\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "issues/2.md",
+      "content": "---\nid: 2\ntitle: topic two\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "questions/.gitignore",
+      "content": "*\n"
+    },
+    {
+      "path": "questions/1.md",
+      "content": "---\nid: 1\ntitle: on first\nstatus: open\nissue: 1\npriority:\ndefaultAction: x\nanswerBy: 2026-09-28T01:00:00.000Z\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy: golden\nansweredAt: 2026-09-28T00:01:00.000Z\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:01:00.000Z\n---\n\n<!-- yaru:answer -->\n\nyes\n"
+    },
+    {
+      "path": "questions/2.md",
+      "content": "---\nid: 2\ntitle: on second\nstatus: open\nissue: 2\npriority:\ndefaultAction: x\nanswerBy: 2026-09-28T01:00:00.000Z\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\n---\n\n\n"
+    },
+    {
+      "path": "questions/3.md",
+      "content": "---\nid: 3\ntitle: no issue\nstatus: open\nissue:\npriority:\ndefaultAction: x\nanswerBy: 2026-09-28T01:00:00.000Z\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\n---\n\n\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

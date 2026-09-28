@@ -1,0 +1,22 @@
+{
+  "name": "gs-question-get-not-found",
+  "description": "question get の id が無い。数字でない id も同じ",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "9"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "abc"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "--id", "9"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

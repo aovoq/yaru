@@ -1,0 +1,39 @@
+{
+  "name": "gs-question-get-expired-and-canceled-do-not-acknowledge",
+  "description": "期限切れと取り下げは question get しても acknowledgedAt が付かない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "expired",
+        "--default",
+        "go",
+        "--answerBy",
+        "2026-09-27T00:00:00.000Z"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "canceled"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "2", "--status", "canceled"],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:02:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "2", "-f"],
+      "now": "2026-09-28T00:03:00.000Z"
+    }
+  ]
+}

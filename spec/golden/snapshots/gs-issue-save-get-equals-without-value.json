@@ -1,0 +1,19 @@
+{
+  "name": "gs-issue-save-get-equals-without-value",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "--id=1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --id=1\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

@@ -1,0 +1,22 @@
+{
+  "name": "gs-issue-save-update-title-newline-event",
+  "description": "更新した題名の改行はファイルでは空白になるが、イベントの to は改行のままであることを確かめる。get は空白の題名を返す",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "a"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--title", "b\nc"],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

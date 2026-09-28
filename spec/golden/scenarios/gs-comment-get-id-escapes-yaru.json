@@ -1,0 +1,22 @@
+{
+  "name": "gs-comment-get-id-escapes-yaru",
+  "description": "id `../../README` は .yaru の外の README.md を読み、 invalid issue file になる",
+  "setup": {
+    "files": [
+      {
+        "path": "README.md",
+        "content": "hello\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "get", "../../README"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

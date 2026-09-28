@@ -1,0 +1,4 @@
+# bun test は TS 版 (src) と golden の仕組み (spec) だけを読む。web/ の画面のテストは vitest で動かす (cd web && npm test)
+# https://bun.com/docs/runtime/bunfig#test-pathignorepatterns
+[test]
+pathIgnorePatterns = ["web/**"]

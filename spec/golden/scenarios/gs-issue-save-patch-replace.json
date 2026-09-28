@@ -1,0 +1,29 @@
+{
+  "name": "gs-issue-save-patch-replace",
+  "description": "patch の replace が、本文に 1 回だけある文字列を置き換え、ほかの本文を残すことを確かめる。本文だけの変更はイベントを作らない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--body", "alpha\nbeta\ngamma"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--id",
+        "1",
+        "--patch",
+        "[{\"op\":\"replace\",\"old_string\":\"beta\",\"new_string\":\"BETA\"}]"
+      ],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

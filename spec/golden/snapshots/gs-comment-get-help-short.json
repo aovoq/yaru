@@ -1,0 +1,19 @@
+{
+  "name": "gs-comment-get-help-short",
+  "steps": [
+    {
+      "arguments": ["comment", "get", "-h"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru comment get — retrieve one comment by id\n\nUsage:\n  yaru comment get <id> [-f|--format]\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

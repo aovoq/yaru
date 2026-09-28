@@ -1,0 +1,124 @@
+{
+  "name": "gs-issue-save-event-all-fields",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "initialized <WORKSPACE>/.yaru\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "save", "--title", "parent"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"parent\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "save", "--title", "child", "--body", "old"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"2\",\n  \"title\": \"child\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"old\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--id",
+        "2",
+        "--title",
+        "renamed",
+        "--status",
+        "in_progress",
+        "--assignee",
+        "ada",
+        "--label",
+        "ui",
+        "--label",
+        "web",
+        "--dueDate",
+        "2026-10-01",
+        "--priority",
+        "high",
+        "--parent",
+        "1",
+        "--block",
+        "1",
+        "--body",
+        "new"
+      ],
+      "stdin": "",
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "session-1",
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T13:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"2\",\n  \"title\": \"renamed\",\n  \"status\": \"in_progress\",\n  \"assignee\": \"ada\",\n  \"labels\": [\n    \"ui\",\n    \"web\"\n  ],\n  \"dueDate\": \"2026-10-01\",\n  \"priority\": \"high\",\n  \"parent\": \"1\",\n  \"blocks\": [\n    \"1\"\n  ],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": \"2026-09-28T13:00:00.000Z\",\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T13:00:00.000Z\",\n  \"session\": \"session-1\",\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"new\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "get", "2"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T13:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"2\",\n  \"title\": \"renamed\",\n  \"status\": \"in_progress\",\n  \"assignee\": \"ada\",\n  \"labels\": [\n    \"ui\",\n    \"web\"\n  ],\n  \"dueDate\": \"2026-10-01\",\n  \"priority\": \"high\",\n  \"parent\": \"1\",\n  \"blocks\": [\n    \"1\"\n  ],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": \"2026-09-28T13:00:00.000Z\",\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T13:00:00.000Z\",\n  \"session\": \"session-1\",\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"new\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": "comments",
+      "content": "",
+      "directory": true
+    },
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "events/2.jsonl",
+      "content": "{\"field\":\"title\",\"from\":\"child\",\"to\":\"renamed\",\"by\":\"golden\",\"session\":\"session-1\",\"at\":\"2026-09-28T13:00:00.000Z\"}\n{\"field\":\"status\",\"from\":\"todo\",\"to\":\"in_progress\",\"by\":\"golden\",\"session\":\"session-1\",\"at\":\"2026-09-28T13:00:00.000Z\"}\n{\"field\":\"assignee\",\"from\":null,\"to\":\"ada\",\"by\":\"golden\",\"session\":\"session-1\",\"at\":\"2026-09-28T13:00:00.000Z\"}\n{\"field\":\"labels\",\"from\":[],\"to\":[\"ui\",\"web\"],\"by\":\"golden\",\"session\":\"session-1\",\"at\":\"2026-09-28T13:00:00.000Z\"}\n{\"field\":\"dueDate\",\"from\":null,\"to\":\"2026-10-01\",\"by\":\"golden\",\"session\":\"session-1\",\"at\":\"2026-09-28T13:00:00.000Z\"}\n{\"field\":\"priority\",\"from\":null,\"to\":\"high\",\"by\":\"golden\",\"session\":\"session-1\",\"at\":\"2026-09-28T13:00:00.000Z\"}\n{\"field\":\"parent\",\"from\":null,\"to\":\"1\",\"by\":\"golden\",\"session\":\"session-1\",\"at\":\"2026-09-28T13:00:00.000Z\"}\n{\"field\":\"blocks\",\"from\":[],\"to\":[\"1\"],\"by\":\"golden\",\"session\":\"session-1\",\"at\":\"2026-09-28T13:00:00.000Z\"}\n"
+    },
+    {
+      "path": "issues/1.md",
+      "content": "---\nid: 1\ntitle: parent\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "issues/2.md",
+      "content": "---\nid: 2\ntitle: renamed\nstatus: in_progress\nassignee: ada\nlabels: ui, web\ndueDate: 2026-10-01\npriority: high\nparent: 1\nblocks: 1\nstartedAt: 2026-09-28T13:00:00.000Z\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T13:00:00.000Z\nsession: session-1\nworktree: <WORKSPACE>\nbranch: main\n---\n\nnew\n"
+    },
+    {
+      "path": "questions/.gitignore",
+      "content": "*\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

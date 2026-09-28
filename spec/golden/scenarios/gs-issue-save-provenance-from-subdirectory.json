@@ -1,0 +1,27 @@
+{
+  "name": "gs-issue-save-provenance-from-subdirectory",
+  "description": "ワークスペースのサブディレクトリで保存しても、.yaru は根に書き、worktree は根のパスになることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "from nested"],
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": "nested"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ],
+  "setup": {
+    "files": [
+      {
+        "path": "nested/keep.txt",
+        "content": "x\n"
+      }
+    ]
+  }
+}

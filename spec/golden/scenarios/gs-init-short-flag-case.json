@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-short-flag-case",
+  "description": "短いフラグの大文字小文字は区別し、-H はヘルプにならず missing value になる",
+  "steps": [
+    {
+      "arguments": ["init", "-H"]
+    }
+  ]
+}

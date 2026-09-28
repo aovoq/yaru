@@ -1,0 +1,30 @@
+{
+  "name": "gs-init-parent-not-child",
+  "description": "子に .yaru があっても、その親ディレクトリから開くと上へ探して根のワークスペースを登録する",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "root\n"
+      },
+      {
+        "path": "packages/app/.yaru/config.yml",
+        "content": "nested\n"
+      },
+      {
+        "path": "packages/keep",
+        "content": "x\n"
+      },
+      {
+        "path": "packages/app/keep",
+        "content": "x\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "workingDirectory": "packages"
+    }
+  ]
+}

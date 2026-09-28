@@ -1,0 +1,160 @@
+{
+  "name": "gs-question-save-warning",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "initialized <WORKSPACE>/.yaru\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--title", "blocking"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"blocking\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "warning: question 1 has no --default and no --answerBy: work blocks until the human answers; give both unless there is no safe default\n",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--title", "default only", "--default", "x"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"2\",\n  \"title\": \"default only\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": \"x\",\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--title", "deadline only", "--answerBy", "1h"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"3\",\n  \"title\": \"deadline only\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": \"2026-09-28T01:00:00.000Z\",\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--title", "both", "--default", "x", "--answerBy", "1h"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"4\",\n  \"title\": \"both\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": \"x\",\n  \"answerBy\": \"2026-09-28T01:00:00.000Z\",\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--title", "none default", "--default", "none"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"5\",\n  \"title\": \"none default\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "warning: question 5 has no --default and no --answerBy: work blocks until the human answers; give both unless there is no safe default\n",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "none both",
+        "--default",
+        "none",
+        "--answerBy",
+        "none"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"6\",\n  \"title\": \"none both\",\n  \"issue\": null,\n  \"priority\": null,\n  \"defaultAction\": null,\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "warning: question 6 has no --default and no --answerBy: work blocks until the human answers; give both unless there is no safe default\n",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--priority", "high"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:01:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"blocking\",\n  \"issue\": null,\n  \"priority\": \"high\",\n  \"defaultAction\": null,\n  \"answerBy\": null,\n  \"options\": [],\n  \"author\": \"golden\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:01:00.000Z\",\n  \"body\": \"\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": "comments",
+      "content": "",
+      "directory": true
+    },
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues",
+      "content": "",
+      "directory": true
+    },
+    {
+      "path": "questions/.gitignore",
+      "content": "*\n"
+    },
+    {
+      "path": "questions/1.md",
+      "content": "---\nid: 1\ntitle: blocking\nstatus: open\nissue:\npriority: high\ndefaultAction:\nanswerBy:\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:01:00.000Z\n---\n\n\n"
+    },
+    {
+      "path": "questions/2.md",
+      "content": "---\nid: 2\ntitle: default only\nstatus: open\nissue:\npriority:\ndefaultAction: x\nanswerBy:\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\n---\n\n\n"
+    },
+    {
+      "path": "questions/3.md",
+      "content": "---\nid: 3\ntitle: deadline only\nstatus: open\nissue:\npriority:\ndefaultAction:\nanswerBy: 2026-09-28T01:00:00.000Z\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\n---\n\n\n"
+    },
+    {
+      "path": "questions/4.md",
+      "content": "---\nid: 4\ntitle: both\nstatus: open\nissue:\npriority:\ndefaultAction: x\nanswerBy: 2026-09-28T01:00:00.000Z\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\n---\n\n\n"
+    },
+    {
+      "path": "questions/5.md",
+      "content": "---\nid: 5\ntitle: none default\nstatus: open\nissue:\npriority:\ndefaultAction:\nanswerBy:\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\n---\n\n\n"
+    },
+    {
+      "path": "questions/6.md",
+      "content": "---\nid: 6\ntitle: none both\nstatus: open\nissue:\npriority:\ndefaultAction:\nanswerBy:\noptions:\nauthor: golden\nsession:\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\n---\n\n\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

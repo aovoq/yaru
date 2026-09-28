@@ -1,0 +1,30 @@
+{
+  "name": "gs-issue-save-update-block-remove-then-add",
+  "description": "同じ保存の --removeBlock と --block は、フラグの順ではなく先に外してから足すので、外した id が残ることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "a"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "b"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--block", "2"],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--block", "2", "--removeBlock", "2"],
+      "now": "2026-09-28T14:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T14:00:00.000Z"
+    }
+  ]
+}

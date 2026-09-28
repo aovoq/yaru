@@ -1,0 +1,18 @@
+{
+  "name": "gs-question-save-warning-and-notify-failure",
+  "description": "既定も期限も無い作成で、警告のあとに notify の失敗が続く",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "notify: echo boom >&2; exit 3\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["question", "save", "--title", "q"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

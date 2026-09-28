@@ -1,0 +1,30 @@
+{
+  "name": "gs-issue-save-stale-boundary",
+  "description": "in_progress の stale は、更新から既定の 24 時間ちょうどでは偽、1 ミリ秒を超えると真になることを確かめる。todo は古くても偽である",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "working", "--status", "in_progress"],
+      "now": "2026-09-20T00:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "waiting"],
+      "now": "2026-09-20T00:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-21T00:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-21T00:00:00.001Z"
+    },
+    {
+      "arguments": ["issue", "get", "2"],
+      "now": "2026-09-21T00:00:00.001Z"
+    }
+  ]
+}

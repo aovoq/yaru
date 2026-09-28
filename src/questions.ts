@@ -16,6 +16,7 @@ import {
   type Store,
 } from "./store"
 import type { Provenance } from "./provenance"
+import { currentTime } from "./time"
 
 // エージェントが人に投げる非同期の質問
 // 人が期限までに答えなければ、エージェントは defaultAction で進める
@@ -115,7 +116,11 @@ export type QuestionFilter = {
 
 type StoredQuestion = Omit<Question, "status"> & { canceled: boolean }
 
-export function saveQuestion(store: Store, input: SaveQuestionInput, now = new Date()): Question {
+export function saveQuestion(
+  store: Store,
+  input: SaveQuestionInput,
+  now = currentTime(),
+): Question {
   const status = input.status !== undefined ? resolveStoredStatus(input.status) : undefined
   const timestamp = now.toISOString()
   const priority = resolvePriority(input.priority)
@@ -191,7 +196,7 @@ export function answerQuestion(
   store: Store,
   id: string,
   input: AnswerQuestionInput,
-  now = new Date(),
+  now = currentTime(),
 ): Question {
   const path = questionPath(store, id)
   if (!existsSync(path)) throw new Error(`question not found: ${id}`)
@@ -260,7 +265,7 @@ export function undoAnswer(
   store: Store,
   id: string,
   input: UndoAnswerInput,
-  now = new Date(),
+  now = currentTime(),
 ): Question {
   const path = questionPath(store, id)
   if (!existsSync(path)) throw new Error(`question not found: ${id}`)
@@ -324,7 +329,7 @@ function isLateAnswer(issue: string | null, answerBy: string | null, answeredAt:
 }
 
 // 答えを待っている質問を取り下げる。答え済みの質問は、答えを読んだエージェントが既に動いているかもしれないので取り下げさせない
-export function cancelQuestion(store: Store, id: string, now = new Date()): Question {
+export function cancelQuestion(store: Store, id: string, now = currentTime()): Question {
   const path = questionPath(store, id)
   if (!existsSync(path)) throw new Error(`question not found: ${id}`)
   const current = readQuestion(path, id)
@@ -340,7 +345,7 @@ export function cancelQuestion(store: Store, id: string, now = new Date()): Ques
 }
 
 // エージェントが答えを初めて受け取った時刻を残す。並びが揺れないよう updatedAt は変えない
-export function acknowledgeQuestion(store: Store, id: string, now = new Date()): Question {
+export function acknowledgeQuestion(store: Store, id: string, now = currentTime()): Question {
   const path = questionPath(store, id)
   if (!existsSync(path)) throw new Error(`question not found: ${id}`)
   const current = readQuestion(path, id)
@@ -353,7 +358,7 @@ export function acknowledgeQuestion(store: Store, id: string, now = new Date()):
 }
 
 // 期限が近いことを知らせた時刻を残す。並びが揺れないよう updatedAt は変えない
-export function markExpiringNotified(store: Store, id: string, now = new Date()): Question {
+export function markExpiringNotified(store: Store, id: string, now = currentTime()): Question {
   const path = questionPath(store, id)
   if (!existsSync(path)) throw new Error(`question not found: ${id}`)
   const next: StoredQuestion = { ...readQuestion(path, id), notifiedExpiringAt: now.toISOString() }
@@ -373,7 +378,7 @@ export function questionsAboutToExpire(questions: Question[], now: Date): Questi
   })
 }
 
-export function getQuestion(store: Store, id: string, now = new Date()): Question {
+export function getQuestion(store: Store, id: string, now = currentTime()): Question {
   const path = questionPath(store, id)
   if (!existsSync(path)) throw new Error(`question not found: ${id}`)
   return withStatus(readQuestion(path, id), now)
@@ -382,7 +387,7 @@ export function getQuestion(store: Store, id: string, now = new Date()): Questio
 export function listQuestions(
   store: Store,
   filter: QuestionFilter = {},
-  now = new Date(),
+  now = currentTime(),
 ): Question[] {
   const status = filter.status !== undefined ? resolveStatus(filter.status) : undefined
   const questions = loadRawQuestions(store).map((question) => withStatus(question, now))

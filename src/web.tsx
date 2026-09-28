@@ -35,6 +35,7 @@ import {
   open,
   type Store,
 } from "./store"
+import { currentTime } from "./time"
 import { BoardPage } from "./ui/board-page"
 import { ErrorView } from "./ui/error-view"
 import { livePageScript } from "./ui/live-page"
@@ -429,7 +430,7 @@ async function renderDashboard(
     answered: Question | null
   },
 ): Promise<string> {
-  const now = new Date()
+  const now = currentTime()
   return renderDocument(
     await styles(),
     <DashboardPage
@@ -506,7 +507,7 @@ export function createServerApp(directory = stateDirectory()) {
   // 失敗したフォームから戻ってきたときは、どのワークスペースの (workspace) どの質問か (q) で、そのカードに理由と書きかけを戻す
   // 答えた直後に戻ってきたときは、そのワークスペースの答えた質問 (answered) の取り消しの知らせを出す
   app.get(INBOX_PATH, async (c) => {
-    const now = new Date()
+    const now = currentTime()
     const workspaceSlug = c.req.query("workspace") || undefined
     const answeredId = c.req.query("answered") || undefined
     const answeredWorkspace =
@@ -555,7 +556,7 @@ export function createServerApp(directory = stateDirectory()) {
   registerFontRoutes(app)
 
   app.get("/api/inbox", (c) => {
-    return c.json(readInbox(directory, new Date()))
+    return c.json(readInbox(directory, currentTime()))
   })
 
   app.get("/p/:slug", (c) => c.redirect(`${workspaceBasePath(c.req.param("slug"))}/`))
@@ -590,7 +591,7 @@ export function createServerApp(directory = stateDirectory()) {
 }
 
 async function renderProjects(directory: string): Promise<string> {
-  const now = new Date()
+  const now = currentTime()
   const projects: ProjectSummary[] = listWorkspaces(directory).map((workspace) => {
     const store = open(workspace.root)
     return {
@@ -609,6 +610,9 @@ async function renderProjects(directory: string): Promise<string> {
 }
 
 export function serve(port = DEFAULT_PORT) {
+  // YARU_NOW の値を起動時に検査するための呼び出し。読めない値は待受の前に止める
+  // https://www.rfc-editor.org/rfc/rfc3339#section-5.6
+  currentTime()
   const app = createServerApp()
   try {
     const server = Bun.serve({
@@ -641,7 +645,7 @@ function watchNotifications(directory: string, baseUrl: string): void {
     if (running) return
     running = true
     try {
-      const now = new Date()
+      const now = currentTime()
       const warnings = [
         ...(await notifyExpiringQuestions(directory, now, baseUrl)),
         ...(await notifyStaleIssues(directory, now, baseUrl)),

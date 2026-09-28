@@ -1,0 +1,30 @@
+{
+  "name": "gs-question-save-usage",
+  "description": "question save の余分な引数、知らないフラグ、値が無いフラグ、--force の書き方",
+  "steps": [
+    {
+      "arguments": ["question", "save", "extra"]
+    },
+    {
+      "arguments": ["question", "save", "--nope", "x"]
+    },
+    {
+      "arguments": ["question", "save", "--title"]
+    },
+    {
+      "arguments": ["question", "save", "--option"]
+    },
+    {
+      "arguments": ["question", "save", "--body"]
+    },
+    {
+      "arguments": ["question", "save", "--force", "true"]
+    },
+    {
+      "arguments": ["question", "save", "--force=true"]
+    },
+    {
+      "arguments": ["question", "save", "-force"]
+    }
+  ]
+}
