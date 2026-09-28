@@ -158,6 +158,26 @@ describe("protocol-relative urls and skipped controls", () => {
   test("a relative url is left unchanged when it has no scheme", () => {
     expect(renderMarkdown("[rel](/p/app/?id=1)")).toBe('<p><a href="/p/app/?id=1">rel</a></p>\n')
   })
+
+  test("a slash mixed with a backslash does not leave the origin", () => {
+    // WHATWG は /\ \/ \\ を // と読む。制御文字を飛ばしたあとも同じ。
+    // https://url.spec.whatwg.org/#special-authority-slashes-state
+    for (const source of [
+      "[ext](/\\evil.com)",
+      "[ext](<\\\\/host>)",
+      "[ext](<\u0001/\\evil.com>)",
+      "[ext](<\u0001\\\\/host>)",
+    ]) {
+      expect(renderMarkdown(source)).toBe("<p>ext</p>\n")
+      expect(renderMarkdown(source)).not.toContain("evil.com")
+      expect(renderMarkdown(source)).not.toContain("host")
+    }
+    expect(renderMarkdown("![img](/\\evil.com/a.png)")).toBe("<p>img</p>\n")
+    expect(renderMarkdown("![img](/\\evil.com/a.png)")).not.toContain("<img")
+    for (const href of ["\\/host", "\\\\evil.example", "/\\evil.example"]) {
+      expect(renderMarkdown("#3", { issueHref: () => href })).toBe("<p>#3</p>\n")
+    }
+  })
 })
 
 // いまの src/markdown.ts を bun で動かし、決定で変えていない入力は同じ HTML になることを見る

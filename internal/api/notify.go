@@ -42,12 +42,12 @@ type Event struct {
 // QuestionURL は dashboard の質問カードへの URL。src/notify.ts:40-42 。
 // https://www.rfc-editor.org/rfc/rfc3986#section-3.5
 func QuestionURL(baseURL string, slug string, id string) string {
-	return strings.TrimRight(baseURL, "/") + "/p/" + encodeURIComponent(slug) + "/dashboard#q-" + encodeURIComponent(id)
+	return strings.TrimRight(baseURL, "/") + "/p/" + EncodeURIComponent(slug) + "/dashboard#q-" + EncodeURIComponent(id)
 }
 
 // IssueURL は板の issue への URL。src/notify.ts:45-47 。
 func IssueURL(baseURL string, slug string, id string) string {
-	return strings.TrimRight(baseURL, "/") + "/p/" + encodeURIComponent(slug) + "/?id=" + encodeURIComponent(id)
+	return strings.TrimRight(baseURL, "/") + "/p/" + EncodeURIComponent(slug) + "/?id=" + EncodeURIComponent(id)
 }
 
 // Notify は config.yml の notify を sh -c で呼ぶ。コマンドが無ければ何もしない。
@@ -142,7 +142,7 @@ func notifyExpiring(stateDirectory string, fallbackBaseURL string, moment time.T
 		if _, found := workspace.ReadConfigValue(opened, "notify"); !found {
 			continue
 		}
-		baseURL := notifyBaseURL(opened, fallbackBaseURL)
+		baseURL := BaseURL(opened, fallbackBaseURL)
 		listed, err := questions.ListQuestions(questionDirectory(opened), questions.QuestionFilter{}, &moment)
 		if err != nil {
 			return nil, err
@@ -180,7 +180,7 @@ func notifyStale(stateDirectory string, fallbackBaseURL string, moment time.Time
 		if _, found := workspace.ReadConfigValue(opened, "notify"); !found {
 			continue
 		}
-		baseURL := notifyBaseURL(opened, fallbackBaseURL)
+		baseURL := BaseURL(opened, fallbackBaseURL)
 		issues, err := store.ListIssues(opened, store.Filter{Status: store.Present("in_progress")}, &moment)
 		if err != nil {
 			return nil, err
@@ -227,7 +227,9 @@ func notifyStale(stateDirectory string, fallbackBaseURL string, moment time.Time
 	return warnings, nil
 }
 
-func notifyBaseURL(space workspace.Workspace, fallback string) string {
+// BaseURL は知らせのリンクの頭。publicUrl が無いか、削ったあと空なら fallback。
+// src/notify.ts:31-35 と src/notify.ts:49-51。https://www.rfc-editor.org/rfc/rfc3986#section-3.3
+func BaseURL(space workspace.Workspace, fallback string) string {
 	value, found := workspace.ReadConfigValue(space, "publicUrl")
 	if !found {
 		return fallback

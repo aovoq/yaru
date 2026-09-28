@@ -35,6 +35,13 @@ export function matchPath(pathname: string, knownSlugs?: ReadonlySet<string>): R
   return { name: "not-found" }
 }
 
+// /terminal の文書だけ style-src に unsafe-inline が付く。
+// その path へ入るときと、そこから出るときは、今の文書を捨てて読み直す。
+// docs/spec/security.md の「決定 (2026-09-28)」。https://www.w3.org/TR/CSP3/#directive-style-src
+export function requiresDocumentReload(currentPathname: string, nextPathname: string): boolean {
+  return (currentPathname === "/terminal") !== (nextPathname === "/terminal")
+}
+
 function decodeSlug(segment: string): string | null {
   let slug: string
   try {

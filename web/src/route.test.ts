@@ -5,6 +5,7 @@ import {
   readBoardQuery,
   readDashboardQuery,
   readInboxQuery,
+  requiresDocumentReload,
 } from "./route"
 
 // docs/spec/routes.md の「SPA が受け取る path」
@@ -67,6 +68,16 @@ describe("matchPath", () => {
       slug: "app",
       registration: "known",
     })
+  })
+
+  test("entering or leaving /terminal reloads the document", () => {
+    expect(requiresDocumentReload("/", "/terminal")).toBe(true)
+    expect(requiresDocumentReload("/p/app/", "/terminal")).toBe(true)
+    expect(requiresDocumentReload("/terminal", "/")).toBe(true)
+    expect(requiresDocumentReload("/terminal", "/inbox")).toBe(true)
+    expect(requiresDocumentReload("/terminal", "/terminal")).toBe(false)
+    expect(requiresDocumentReload("/", "/inbox")).toBe(false)
+    expect(requiresDocumentReload("/p/app/", "/p/app/dashboard")).toBe(false)
   })
 
   test("decodes the slug and rejects an empty slug or one that contains a slash", () => {

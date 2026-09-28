@@ -148,6 +148,57 @@ func TestHumanFormats(t *testing.T) {
 	}
 }
 
+func TestQuestionCreatedNotifyDropsParentSecrets(t *testing.T) {
+	// CLI の question.created は api.Notify の許可リストだけを子に渡す。親の環境は渡さない。
+	// docs/spec/security.md の「知らせコマンド」と「決定」
+	t.Setenv("APP_TOKEN", "secret-token-value")
+	t.Setenv("YARU_STATE_DIR", t.TempDir())
+	t.Setenv("YARU_NOW", "2026-09-28T12:00:00.000Z")
+	t.Setenv("HERDR_SESSION", "secret-session")
+	t.Setenv("TMUX", "1")
+	parentPath := os.Getenv("PATH")
+	root := t.TempDir()
+	opened, err := workspace.Init(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	envFile := filepath.Join(root, "notify-env.txt")
+	config := "notify: env > " + envFile + "\n"
+	if err := os.WriteFile(filepath.Join(opened.Directory, "config.yml"), []byte(config), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	warning, err := defaultServices().notifyQuestionCreated(opened, "http://127.0.0.1:47800/p/app/dashboard#q-1", questions.Question{
+		ID:        "1",
+		Title:     "soon",
+		Options:   []string{},
+		Status:    "open",
+		CreatedAt: "2026-09-28T12:00:00.000Z",
+		UpdatedAt: "2026-09-28T12:00:00.000Z",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if warning != "" {
+		t.Fatal(warning)
+	}
+	body, err := os.ReadFile(envFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for _, secret := range []string{"secret-token-value", "APP_TOKEN=", "YARU_STATE_DIR=", "YARU_NOW=", "HERDR_SESSION=", "TMUX=", "PATH=" + parentPath} {
+		if strings.Contains(text, secret) {
+			t.Fatalf("child environment contains %s\n%s", secret, text)
+		}
+	}
+	if strings.Count(text, "\n") > 20 {
+		t.Fatalf("child environment has %d lines\n%s", strings.Count(text, "\n"), text)
+	}
+	if !strings.Contains(text, "YARU_EVENT=question.created") {
+		t.Fatalf("environment %s", text)
+	}
+}
+
 func TestQuestionWarningPrecedesJSON(t *testing.T) {
 	var notifiedURL string
 	stdout, stderr, code := runCLI(t, []string{"question", "save", "--title", "No default"}, "", &services{

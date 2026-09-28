@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef } from "preact/hooks"
+import { requiresDocumentReload } from "../route"
 import type { BoardApi } from "../board/board-api"
 import { deleteNewIssueParams } from "../board/view-model"
 import type { Issue } from "../domain/issue"
@@ -64,6 +65,10 @@ export function usePageController(initialPage: PageData, options: PageController
     async (href: string, historyMode: HistoryMode = "push", preserveDraft = false) => {
       const sequence = ++requestSequence.current
       const pageUrl = new URL(href, window.location.href)
+      if (requiresDocumentReload(window.location.pathname, pageUrl.pathname)) {
+        window.location.assign(pageUrl.href)
+        return
+      }
       try {
         let page = await api.loadPage(pageUrl.href)
         if (sequence !== requestSequence.current) return

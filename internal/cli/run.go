@@ -9,8 +9,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/aovoq/yaru/internal/api"
 	"github.com/aovoq/yaru/internal/document"
-	"github.com/aovoq/yaru/internal/notify"
 	"github.com/aovoq/yaru/internal/questions"
 	"github.com/aovoq/yaru/internal/server"
 	"github.com/aovoq/yaru/internal/store"
@@ -383,12 +383,12 @@ func (runner runtime) hintBoard(opened workspace.Workspace, issueID string) erro
 	if err != nil {
 		return err
 	}
-	base := fmt.Sprintf("http://127.0.0.1:%d/p/%s", server.DefaultPort, notify.EncodeURIComponent(slug))
-	reachable, err := runner.services.fetchIssue(base + "/api/issues/" + notify.EncodeURIComponent(issueID))
+	base := fmt.Sprintf("http://127.0.0.1:%d/p/%s", server.DefaultPort, api.EncodeURIComponent(slug))
+	reachable, err := runner.services.fetchIssue(base + "/api/issues/" + api.EncodeURIComponent(issueID))
 	if err != nil || !reachable {
 		return nil
 	}
-	_, err = fmt.Fprintf(runner.stdout, "%s/?id=%s\n", base, notify.EncodeURIComponent(issueID))
+	_, err = fmt.Fprintf(runner.stdout, "%s/?id=%s\n", base, api.EncodeURIComponent(issueID))
 	return err
 }
 

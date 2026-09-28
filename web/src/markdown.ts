@@ -131,26 +131,30 @@ function linkIssueReferences(
   })
 }
 
-// issue のリンクは板の中を移る物なので、他の origin へ出る URL (https://…、//…、/\…) やスキームのあるものは使わない
-// ブラウザは / の後の \ を / と読むので、/\ も他の origin へのリンクになる
+// issue のリンクは板の中を移る物なので、他の origin へ出る URL (https://…、//…、/\…、\/…) やスキームのあるものは使わない
+// ブラウザは先頭の / と \ の組を // と読む
 // https://url.spec.whatwg.org/#special-authority-slashes-state
 function sameOriginRelative(href: string): string | null {
   if (href.startsWith("?")) return href
-  if (href.startsWith("/") && href[1] !== "/" && href[1] !== "\\") return href
+  if (href.startsWith("/") && !opensSpecialAuthority(href)) return href
   return null
+}
+
+function opensSpecialAuthority(value: string): boolean {
+  return value.replaceAll("\\", "/").startsWith("//")
 }
 
 // ブラウザは URL のスキームの中のタブ・改行・制御文字を読み飛ばすので、それらを除いてからスキームを確かめる
 // https://url.spec.whatwg.org/#concept-basic-url-parser
 // 判定そのものは src/markdown.ts:143-149 と同じ。docs/spec/security.md の決定 (2026-09-28) で次の 2 つを足す
-// - スキームの無い //host は拒否する。今の TS 版は safeUrl がスキーム無しをそのまま返す (src/markdown.ts:148)
+// - スキームの無い //host と、制御文字を除いたあとの /\ \/ \\ は拒否する。今の TS 版は safeUrl がスキーム無しをそのまま返す (src/markdown.ts:148)
 // - 許可スキームのとき、検査で読み飛ばした制御文字は href から除く。TS 版は除く前の文字列を返す
 const URL_SKIPPED_CONTROLS = /[\u0000-\u0020\u007f]/g
 
 function safeUrl(href: string, schemes: string[]): string | null {
   const trimmed = href.trim()
   const stripped = trimmed.replace(URL_SKIPPED_CONTROLS, "")
-  if (stripped.startsWith("//")) return null
+  if (opensSpecialAuthority(stripped)) return null
   const scheme = stripped.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/)
   if (!scheme) return trimmed
   if (!schemes.includes(`${scheme[1]!.toLowerCase()}:`)) return null
