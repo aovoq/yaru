@@ -7,6 +7,7 @@ package api
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -15,6 +16,7 @@ import (
 	yaruv1 "github.com/aovoq/yaru/gen/yaru/v1"
 	"github.com/aovoq/yaru/internal/questions"
 	"github.com/aovoq/yaru/internal/repository"
+	"github.com/aovoq/yaru/internal/sessions"
 	"github.com/aovoq/yaru/internal/store"
 )
 
@@ -446,6 +448,25 @@ func copyBool(value *bool) *bool {
 	return &copied
 }
 
+func copyFloat(value *float64) *float64 {
+	if value == nil {
+		return nil
+	}
+	copied := *value
+	return &copied
+}
+
+func copyInt32(value *int, name string) (*int32, error) {
+	if value == nil {
+		return nil, nil
+	}
+	converted, err := int32Count(name, *value)
+	if err != nil {
+		return nil, err
+	}
+	return &converted, nil
+}
+
 func copyStrings(values []string) []string {
 	if len(values) == 0 {
 		return []string{}
@@ -517,4 +538,161 @@ func enumActual(value interface{ String() string }) string {
 		return text
 	}
 	return text
+}
+
+// protoSessionHealth は dashboard のセッション。件数は int32、トークンは double。
+// docs/spec/routes.md の「数値」。src/sessions.ts:44-49 、src/dashboard.tsx:35-52 。
+func protoSessionHealth(health sessions.Health) (*yaruv1.SessionHealth, error) {
+	windowDays, err := int32Count("windowDays", health.WindowDays)
+	if err != nil {
+		return nil, err
+	}
+	summaries := []*yaruv1.SessionSummary{}
+	for _, session := range health.Sessions {
+		converted, convertErr := protoSession(session)
+		if convertErr != nil {
+			return nil, convertErr
+		}
+		summaries = append(summaries, converted)
+	}
+	totals, err := protoTotals(health.Totals)
+	if err != nil {
+		return nil, err
+	}
+	return &yaruv1.SessionHealth{
+		Directory:  copyString(health.Directory),
+		WindowDays: windowDays,
+		Sessions:   summaries,
+		Totals:     totals,
+	}, nil
+}
+
+func protoSession(session sessions.Summary) (*yaruv1.SessionSummary, error) {
+	assistantMessages, err := int32Count("assistantMessages", session.AssistantMessages)
+	if err != nil {
+		return nil, err
+	}
+	unpriced, err := int32Count("unpricedMessages", session.UnpricedMessages)
+	if err != nil {
+		return nil, err
+	}
+	toolUses, err := int32Count("toolUses", session.ToolUses)
+	if err != nil {
+		return nil, err
+	}
+	toolResults, err := int32Count("toolResults", session.ToolResults)
+	if err != nil {
+		return nil, err
+	}
+	toolErrors, err := int32Count("toolErrors", session.ToolErrors)
+	if err != nil {
+		return nil, err
+	}
+	interruptions, err := int32Count("interruptions", session.Interruptions)
+	if err != nil {
+		return nil, err
+	}
+	subagents, err := int32Count("subagents", session.Subagents)
+	if err != nil {
+		return nil, err
+	}
+	return &yaruv1.SessionSummary{
+		Id:                  session.ID,
+		Worktree:            copyString(session.Worktree),
+		Title:               copyString(session.Title),
+		StartedAt:           copyString(session.StartedAt),
+		LastActivityAt:      copyString(session.LastActivityAt),
+		Models:              copyStrings(session.Models),
+		AssistantMessages:   assistantMessages,
+		InputTokens:         tokenFloat(session.InputTokens),
+		CacheCreationTokens: tokenFloat(session.CacheCreationTokens),
+		CacheReadTokens:     tokenFloat(session.CacheReadTokens),
+		OutputTokens:        tokenFloat(session.OutputTokens),
+		CostUsd:             session.CostUsd,
+		UnpricedMessages:    unpriced,
+		ToolUses:            toolUses,
+		ToolResults:         toolResults,
+		ToolErrors:          toolErrors,
+		Interruptions:       interruptions,
+		Subagents:           subagents,
+	}, nil
+}
+
+func protoTotals(totals sessions.Totals) (*yaruv1.SessionTotals, error) {
+	sessionCount, err := int32Count("sessions", totals.Sessions)
+	if err != nil {
+		return nil, err
+	}
+	unpriced, err := int32Count("unpricedMessages", totals.UnpricedMessages)
+	if err != nil {
+		return nil, err
+	}
+	assistantMessages, err := int32Count("assistantMessages", totals.AssistantMessages)
+	if err != nil {
+		return nil, err
+	}
+	toolResults, err := int32Count("toolResults", totals.ToolResults)
+	if err != nil {
+		return nil, err
+	}
+	toolErrors, err := int32Count("toolErrors", totals.ToolErrors)
+	if err != nil {
+		return nil, err
+	}
+	interruptions, err := int32Count("interruptions", totals.Interruptions)
+	if err != nil {
+		return nil, err
+	}
+	return &yaruv1.SessionTotals{
+		Sessions:          sessionCount,
+		CostUsd:           totals.CostUsd,
+		UnpricedMessages:  unpriced,
+		AssistantMessages: assistantMessages,
+		CacheReadRatio:    copyFloat(totals.CacheReadRatio),
+		ToolResults:       toolResults,
+		ToolErrors:        toolErrors,
+		ToolErrorRatio:    copyFloat(totals.ToolErrorRatio),
+		Interruptions:     interruptions,
+	}, nil
+}
+
+// protoRepository は git でなければ未設定。コミットは commitMessage と同じ形。
+// src/repository.ts:26-27 、src/web.tsx:441 。
+func protoRepository(state *repository.State) (*yaruv1.RepositoryState, error) {
+	if state == nil {
+		return nil, nil
+	}
+	ahead, err := copyInt32(state.Ahead, "ahead")
+	if err != nil {
+		return nil, err
+	}
+	behind, err := copyInt32(state.Behind, "behind")
+	if err != nil {
+		return nil, err
+	}
+	uncommitted, err := int32Count("uncommittedFiles", state.UncommittedFiles)
+	if err != nil {
+		return nil, err
+	}
+	return &yaruv1.RepositoryState{
+		Branch:           copyString(state.Branch),
+		Upstream:         copyString(state.Upstream),
+		Ahead:            ahead,
+		Behind:           behind,
+		UncommittedFiles: uncommitted,
+		Commits:          commitMessages(state.Commits),
+	}, nil
+}
+
+// tokenFloat は数のトークンを double にする。文字列として連結された数は、その文字列を数として読む。
+// docs/spec/routes.md の「数値」。src/sessions.ts:10-30 。
+func tokenFloat(count sessions.TokenCount) float64 {
+	if !count.Textual {
+		return count.Number
+	}
+	parsed, err := strconv.ParseFloat(strings.TrimSpace(count.Text), 64)
+	if err != nil || math.IsNaN(parsed) || math.IsInf(parsed, 0) {
+		return 0
+	}
+	return parsed
 }
