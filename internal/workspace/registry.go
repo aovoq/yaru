@@ -74,6 +74,17 @@ func RegisterIn(root string, stateDirectory string) (RegisteredWorkspace, error)
 	return RegisteredWorkspace{Slug: slug, Root: root}, nil
 }
 
+// Slug は root を登録して、URL の /p/<slug>/ に使う名前を返す。既にあればその名前。
+// Register は error しか返さないので、CLI の知らせと板の URL はこちらを使う。
+// src/workspaces.ts:24-39
+func Slug(root string) (string, error) {
+	registered, err := RegisterIn(root, StateDirectory())
+	if err != nil {
+		return "", err
+	}
+	return registered.Slug, nil
+}
+
 func slugTaken(taken map[string]struct{}, slug string) bool {
 	_, found := taken[slug]
 	return found

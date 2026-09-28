@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"regexp"
@@ -133,19 +134,26 @@ func positionalIdentifier(parsed parsedArguments, rest []string) (string, []stri
 	return rest[1], rest[2:]
 }
 
-// parseLimit は src/index.ts:781-786。数字以外はここで拒む。1 から 250 の範囲は store.Page が見る
-func parseLimit(raw string, present bool) (*int, error) {
+// parseLimit は src/index.ts:781-786。数字以外はここで拒む。
+// 範囲と Infinity の文言は store.PageIssues が Number と同じ値で出す。
+func parseLimit(raw string, present bool) (any, error) {
 	if !present {
 		return nil, nil
 	}
 	if !limitPattern.MatchString(raw) {
-		return nil, fmt.Errorf("invalid limit: expected an integer from 1 to %d, actual %s", store.ListLimitMaximum, raw)
+		return nil, fmt.Errorf("invalid limit: expected an integer from 1 to %d, actual %s", store.ListLimitMax, raw)
 	}
-	number, err := strconv.Atoi(raw)
-	if err != nil {
-		return nil, fmt.Errorf("invalid limit: expected an integer from 1 to %d, actual %s", store.ListLimitMaximum, raw)
+	number, err := strconv.ParseFloat(raw, 64)
+	if err != nil && !errors.Is(err, strconv.ErrRange) {
+		return nil, fmt.Errorf("invalid limit: expected an integer from 1 to %d, actual %s", store.ListLimitMax, raw)
 	}
-	return &number, nil
+	if math.IsInf(number, 0) || errors.Is(err, strconv.ErrRange) {
+		return math.Inf(1), nil
+	}
+	if number == math.Trunc(number) && number >= math.MinInt && number <= math.MaxInt {
+		return int(number), nil
+	}
+	return number, nil
 }
 
 // parseDuration は src/index.ts:721-728。0 も受け、単位は ms s m h だけ

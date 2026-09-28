@@ -205,28 +205,29 @@ func (runner runtime) issueList(parsed parsedArguments, rest []string) error {
 	}
 	filter := store.Filter{}
 	if value, present := parsed.flag("status"); present && value != "" {
-		filter.Status = stringPointer(value)
+		filter.Status = store.Present(value)
 	}
 	if value, present := parsed.flag("query"); present && value != "" {
-		filter.Query = stringPointer(value)
+		filter.Query = store.Present(value)
 	}
 	if value, present := parsed.flag("label"); present && value != "" {
-		filter.Label = stringPointer(value)
+		filter.Label = store.Present(value)
 	}
 	if value, present := parsed.flag("assignee"); present {
-		filter.Assignee = stringPointer(value)
+		filter.Assignee = store.Present(value)
 	}
 	if value, present := parsed.flag("parent"); present {
-		filter.ParentSet = true
-		if value != "none" {
-			filter.Parent = stringPointer(value)
+		if value == "none" {
+			filter.Parent = store.Null[string]()
+		} else {
+			filter.Parent = store.Present(value)
 		}
 	}
 	if value, present := parsed.flag("due"); present {
 		if value != "overdue" {
 			return &commandFailure{message: "invalid due: expected overdue, actual " + value, code: 1}
 		}
-		filter.Due = stringPointer(value)
+		filter.Due = store.Present(value)
 	}
 	issues, err := runner.services.listIssues(opened, filter)
 	if err != nil {
@@ -252,7 +253,7 @@ func (runner runtime) issueList(parsed parsedArguments, rest []string) error {
 		page.Issues = []store.Issue{}
 	}
 	if !humanRequested(parsed) {
-		return printJSON(runner.stdout, page)
+		return printJSON(runner.stdout, wireIssuePage(page))
 	}
 	_, err = io.WriteString(runner.stdout, formatIssueList(page.Issues))
 	return err
@@ -278,7 +279,7 @@ func (runner runtime) issueGet(parsed parsedArguments, rest []string) error {
 		return err
 	}
 	if !humanRequested(parsed) {
-		return printJSON(runner.stdout, found)
+		return printJSON(runner.stdout, wireIssue(found))
 	}
 	_, err = io.WriteString(runner.stdout, formatIssue(found))
 	return err
@@ -298,19 +299,21 @@ func (runner runtime) issueSave(parsed parsedArguments, rest []string) error {
 	}
 	input := store.SaveInput{}
 	if value, present := parsed.flag("id"); present && value != "" {
-		input.ID = stringPointer(value)
+		input.ID = value
 	}
 	if value, present := definedString(parsed, "title"); present {
-		input.Title = value
+		input.Title = store.Present(*value)
 	}
 	if value, present := definedString(parsed, "status"); present {
-		input.Status = value
+		input.Status = store.Present(*value)
 	}
 	body, err := readBody(parsed, runner.stdin)
 	if err != nil {
 		return err
 	}
-	input.Body = body
+	if body != nil {
+		input.Body = store.Present(*body)
+	}
 	patch, patchSet, err := readPatch(parsed, runner.stdin)
 	if err != nil {
 		return err
@@ -318,25 +321,32 @@ func (runner runtime) issueSave(parsed parsedArguments, rest []string) error {
 	input.Patch = patch
 	input.PatchSet = patchSet
 	if values, present := parsed.values["label"]; present {
-		input.LabelsSet = true
-		input.Labels = append([]string(nil), values...)
+		input.Labels = store.Present(append([]string(nil), values...))
 	}
 	if value, present := definedString(parsed, "assignee"); present {
-		input.Assignee = value
+		input.Assignee = store.Present(*value)
 	}
 	if value, present := definedString(parsed, "dueDate"); present {
-		input.DueDate = value
+		input.DueDate = store.Present(*value)
 	}
 	if value, present := definedString(parsed, "priority"); present {
-		input.Priority = value
+		input.Priority = store.Present(*value)
 	}
 	if value, present := definedString(parsed, "parent"); present {
-		input.Parent = value
+		input.Parent = store.Present(*value)
 	}
-	input.AddBlocks = copyValues(parsed.values["block"])
-	input.AddBlockedBy = copyValues(parsed.values["blockedBy"])
-	input.RemoveBlocks = copyValues(parsed.values["removeBlock"])
-	input.RemoveBlockedBy = copyValues(parsed.values["removeBlockedBy"])
+	if values := copyValues(parsed.values["block"]); values != nil {
+		input.AddBlocks = store.Present(values)
+	}
+	if values := copyValues(parsed.values["blockedBy"]); values != nil {
+		input.AddBlockedBy = store.Present(values)
+	}
+	if values := copyValues(parsed.values["removeBlock"]); values != nil {
+		input.RemoveBlocks = store.Present(values)
+	}
+	if values := copyValues(parsed.values["removeBlockedBy"]); values != nil {
+		input.RemoveBlockedBy = store.Present(values)
+	}
 	opened, err := runner.services.openWorkspace()
 	if err != nil {
 		return err
@@ -346,13 +356,17 @@ func (runner runtime) issueSave(parsed parsedArguments, rest []string) error {
 	if err != nil {
 		return err
 	}
-	origin := runner.services.readProvenance(directory, runner.environment)
-	saved, err := runner.services.saveIssue(opened, input, store.SaveOptions{Provenance: &origin})
+	origin, err := runner.services.readProvenance(directory, runner.environment)
+	if err != nil {
+		return err
+	}
+	provenance := store.Provenance{Session: origin.Session, Worktree: origin.Worktree, Branch: origin.Branch}
+	saved, err := runner.services.saveIssue(opened, input, store.SaveOptions{Provenance: &provenance})
 	if err != nil {
 		return err
 	}
 	if !humanRequested(parsed) {
-		return printJSON(runner.stdout, saved)
+		return printJSON(runner.stdout, wireIssue(saved))
 	}
 	if _, err := fmt.Fprintf(runner.stdout, "%s\n", saved.ID); err != nil {
 		return err
@@ -422,7 +436,7 @@ func (runner runtime) commentList(parsed parsedArguments, rest []string) error {
 		comments = []store.Comment{}
 	}
 	if !humanRequested(parsed) {
-		return printJSON(runner.stdout, commentListJSON{Comments: comments})
+		return printJSON(runner.stdout, wireComments(comments))
 	}
 	_, err = io.WriteString(runner.stdout, formatCommentList(comments))
 	return err
@@ -448,7 +462,7 @@ func (runner runtime) commentGet(parsed parsedArguments, rest []string) error {
 		return err
 	}
 	if !humanRequested(parsed) {
-		return printJSON(runner.stdout, found)
+		return printJSON(runner.stdout, wireComment(found))
 	}
 	_, err = io.WriteString(runner.stdout, formatComment(found))
 	return err
@@ -485,7 +499,7 @@ func (runner runtime) commentSave(parsed parsedArguments, rest []string) error {
 		return err
 	}
 	if !humanRequested(parsed) {
-		return printJSON(runner.stdout, saved)
+		return printJSON(runner.stdout, wireComment(saved))
 	}
 	_, err = fmt.Fprintf(runner.stdout, "%s\n", saved.ID)
 	return err
@@ -529,12 +543,12 @@ func (runner runtime) questionList(parsed parsedArguments, rest []string) error 
 	if err != nil {
 		return err
 	}
-	filter := questions.Filter{}
+	filter := questions.QuestionFilter{}
 	if value, present := definedString(parsed, "status"); present {
 		filter.Status = value
 	}
 	if value, present := definedString(parsed, "issue"); present {
-		filter.Issue = value
+		filter.Issue = *value
 	}
 	found, err := runner.services.listQuestions(opened, filter)
 	if err != nil {
@@ -544,7 +558,7 @@ func (runner runtime) questionList(parsed parsedArguments, rest []string) error 
 		found = []questions.Question{}
 	}
 	if !humanRequested(parsed) {
-		return printJSON(runner.stdout, questionListJSON{Questions: found})
+		return printJSON(runner.stdout, wireQuestions(found))
 	}
 	_, err = io.WriteString(runner.stdout, formatQuestionList(found))
 	return err
@@ -570,7 +584,7 @@ func (runner runtime) questionGet(parsed parsedArguments, rest []string) error {
 		return err
 	}
 	if !humanRequested(parsed) {
-		return printJSON(runner.stdout, found)
+		return printJSON(runner.stdout, wireQuestion(found))
 	}
 	_, err = io.WriteString(runner.stdout, formatQuestion(found))
 	return err
@@ -613,12 +627,11 @@ func (runner runtime) questionSave(parsed parsedArguments, rest []string) error 
 		input.Status = value
 	}
 	if values, present := parsed.values["option"]; present {
-		input.OptionsSet = true
-		if len(values) == 1 && values[0] == "none" {
-			input.Options = nil
-		} else {
-			input.Options = append([]string(nil), values...)
+		options := []string{}
+		if len(values) != 1 || values[0] != "none" {
+			options = append([]string(nil), values...)
 		}
+		input.Options = &options
 	}
 	body, err := readBody(parsed, runner.stdin)
 	if err != nil {
@@ -630,8 +643,12 @@ func (runner runtime) questionSave(parsed parsedArguments, rest []string) error 
 		if err != nil {
 			return err
 		}
-		origin := runner.services.readProvenance(directory, runner.environment)
-		input.Provenance = &origin
+		origin, err := runner.services.readProvenance(directory, runner.environment)
+		if err != nil {
+			return err
+		}
+		provenance := questions.Provenance{Session: origin.Session, Worktree: origin.Worktree, Branch: origin.Branch}
+		input.Provenance = &provenance
 	}
 	if value, present := parsed.flag("force"); present && value == "true" {
 		input.Force = true
@@ -646,7 +663,7 @@ func (runner runtime) questionSave(parsed parsedArguments, rest []string) error 
 		}
 	}
 	if !humanRequested(parsed) {
-		return printJSON(runner.stdout, saved)
+		return printJSON(runner.stdout, wireQuestion(saved))
 	}
 	_, err = fmt.Fprintf(runner.stdout, "%s\n", saved.ID)
 	return err
@@ -709,7 +726,7 @@ func (runner runtime) questionAnswer(parsed parsedArguments, rest []string) erro
 		return err
 	}
 	if !humanRequested(parsed) {
-		return printJSON(runner.stdout, saved)
+		return printJSON(runner.stdout, wireQuestion(saved))
 	}
 	_, err = fmt.Fprintf(runner.stdout, "%s\n", saved.ID)
 	return err
@@ -774,7 +791,7 @@ func (runner runtime) questionWait(parsed parsedArguments, rest []string) error 
 		if _, err := io.WriteString(runner.stdout, formatWaitResult(current)); err != nil {
 			return err
 		}
-	} else if err := printJSON(runner.stdout, current); err != nil {
+	} else if err := printJSON(runner.stdout, wireQuestion(current)); err != nil {
 		return err
 	}
 	if current.Status == "open" {

@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aovoq/yaru/internal/provenance"
 	"github.com/aovoq/yaru/internal/questions"
 	"github.com/aovoq/yaru/internal/store"
 	"github.com/aovoq/yaru/internal/workspace"
@@ -136,7 +135,7 @@ func TestHumanFormats(t *testing.T) {
 		listIssues: func(workspace.Workspace, store.Filter) ([]store.Issue, error) {
 			return []store.Issue{{ID: "1", Title: "Fix the gate", Status: "todo", Priority: stringPointer("high")}}, nil
 		},
-		pageIssues: func(issues []store.Issue, limit *int, cursor *string) (store.IssuePage, error) {
+		pageIssues: func(issues []store.Issue, limit any, cursor *string) (store.IssuePage, error) {
 			return store.IssuePage{Issues: issues, HasNextPage: false}, nil
 		},
 	})
@@ -153,8 +152,10 @@ func TestQuestionWarningPrecedesJSON(t *testing.T) {
 	var notifiedURL string
 	stdout, stderr, code := runCLI(t, []string{"question", "save", "--title", "No default"}, "", &services{
 		now: fixedNow, workingDirectory: fixedDirectory, open: fixedOpen, register: noopRegister,
-		findSlug:       func(string) (string, error) { return "a b", nil },
-		readProvenance: func(string, []string) provenance.Provenance { return provenance.Provenance{} },
+		findSlug: func(string) (string, error) { return "a b", nil },
+		readProvenance: func(string, []string) (workspace.Provenance, error) {
+			return workspace.Provenance{}, nil
+		},
 		baseURL: func(workspace.Workspace, string) (string, error) {
 			return "http://127.0.0.1:47800/", nil
 		},
@@ -273,8 +274,10 @@ func TestHumanSavePrintsBoardURL(t *testing.T) {
 	var fetched string
 	stdout, _, code := runCLI(t, []string{"issue", "save", "--title", "T", "-f"}, "", &services{
 		now: fixedNow, workingDirectory: fixedDirectory, open: fixedOpen, register: noopRegister,
-		findSlug:       func(string) (string, error) { return "workspace", nil },
-		readProvenance: func(string, []string) provenance.Provenance { return provenance.Provenance{} },
+		findSlug: func(string) (string, error) { return "workspace", nil },
+		readProvenance: func(string, []string) (workspace.Provenance, error) {
+			return workspace.Provenance{}, nil
+		},
 		saveIssue: func(workspace.Workspace, store.SaveInput, store.SaveOptions) (store.Issue, error) {
 			return store.Issue{ID: "1", Title: "T", Status: "todo", Labels: []string{}, Blocks: []string{}, BlockedBy: []string{}, Children: []string{}}, nil
 		},

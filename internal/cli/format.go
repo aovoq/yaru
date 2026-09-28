@@ -32,12 +32,138 @@ func printJSON(stdout io.Writer, value any) error {
 	return err
 }
 
-type commentListJSON struct {
-	Comments []store.Comment `json:"comments"`
+type issueWire struct {
+	ID          string   `json:"id"`
+	Title       string   `json:"title"`
+	Status      string   `json:"status"`
+	Assignee    *string  `json:"assignee"`
+	Labels      []string `json:"labels"`
+	DueDate     *string  `json:"dueDate"`
+	Priority    *string  `json:"priority"`
+	Parent      *string  `json:"parent"`
+	Blocks      []string `json:"blocks"`
+	BlockedBy   []string `json:"blockedBy"`
+	Children    []string `json:"children"`
+	StartedAt   *string  `json:"startedAt"`
+	CompletedAt *string  `json:"completedAt"`
+	CanceledAt  *string  `json:"canceledAt"`
+	CreatedAt   string   `json:"createdAt"`
+	UpdatedAt   string   `json:"updatedAt"`
+	Session     *string  `json:"session"`
+	Worktree    *string  `json:"worktree"`
+	Branch      *string  `json:"branch"`
+	Stale       bool     `json:"stale"`
+	Body        string   `json:"body"`
 }
 
-type questionListJSON struct {
-	Questions []questions.Question `json:"questions"`
+type issuePageWire struct {
+	Issues      []issueWire `json:"issues"`
+	HasNextPage bool        `json:"hasNextPage"`
+	Cursor      *string     `json:"cursor,omitempty"`
+}
+
+type commentWire struct {
+	ID        string  `json:"id"`
+	Issue     string  `json:"issue"`
+	Parent    *string `json:"parent"`
+	Author    string  `json:"author"`
+	CreatedAt string  `json:"createdAt"`
+	UpdatedAt string  `json:"updatedAt"`
+	Body      string  `json:"body"`
+}
+
+type commentListWire struct {
+	Comments []commentWire `json:"comments"`
+}
+
+// questionWire の status は最後。src/questions.ts の withStatus が後ろから足す並び
+type questionWire struct {
+	ID                 string   `json:"id"`
+	Title              string   `json:"title"`
+	Issue              *string  `json:"issue"`
+	Priority           *string  `json:"priority"`
+	DefaultAction      *string  `json:"defaultAction"`
+	AnswerBy           *string  `json:"answerBy"`
+	Options            []string `json:"options"`
+	Author             string   `json:"author"`
+	Session            *string  `json:"session"`
+	Worktree           *string  `json:"worktree"`
+	Branch             *string  `json:"branch"`
+	Answer             *string  `json:"answer"`
+	AnsweredBy         *string  `json:"answeredBy"`
+	AnsweredAt         *string  `json:"answeredAt"`
+	AcknowledgedAt     *string  `json:"acknowledgedAt"`
+	NotifiedExpiringAt *string  `json:"notifiedExpiringAt"`
+	CanceledAt         *string  `json:"canceledAt"`
+	CreatedAt          string   `json:"createdAt"`
+	UpdatedAt          string   `json:"updatedAt"`
+	Body               string   `json:"body"`
+	Status             string   `json:"status"`
+}
+
+type questionListWire struct {
+	Questions []questionWire `json:"questions"`
+}
+
+func wireIssue(issue store.Issue) issueWire {
+	return issueWire{
+		ID: issue.ID, Title: issue.Title, Status: issue.Status, Assignee: issue.Assignee,
+		Labels: nonNilStrings(issue.Labels), DueDate: issue.DueDate, Priority: issue.Priority, Parent: issue.Parent,
+		Blocks: nonNilStrings(issue.Blocks), BlockedBy: nonNilStrings(issue.BlockedBy), Children: nonNilStrings(issue.Children),
+		StartedAt: issue.StartedAt, CompletedAt: issue.CompletedAt, CanceledAt: issue.CanceledAt,
+		CreatedAt: issue.CreatedAt, UpdatedAt: issue.UpdatedAt, Session: issue.Session, Worktree: issue.Worktree,
+		Branch: issue.Branch, Stale: issue.Stale, Body: issue.Body,
+	}
+}
+
+func wireIssuePage(page store.IssuePage) issuePageWire {
+	issues := make([]issueWire, 0, len(page.Issues))
+	for _, issue := range page.Issues {
+		issues = append(issues, wireIssue(issue))
+	}
+	return issuePageWire{Issues: issues, HasNextPage: page.HasNextPage, Cursor: page.Cursor}
+}
+
+func wireComment(comment store.Comment) commentWire {
+	return commentWire{
+		ID: comment.ID, Issue: comment.Issue, Parent: comment.Parent, Author: comment.Author,
+		CreatedAt: comment.CreatedAt, UpdatedAt: comment.UpdatedAt, Body: comment.Body,
+	}
+}
+
+func wireComments(comments []store.Comment) commentListWire {
+	values := make([]commentWire, 0, len(comments))
+	for _, comment := range comments {
+		values = append(values, wireComment(comment))
+	}
+	return commentListWire{Comments: values}
+}
+
+func wireQuestion(question questions.Question) questionWire {
+	return questionWire{
+		ID: question.ID, Title: question.Title, Issue: question.Issue, Priority: question.Priority,
+		DefaultAction: question.DefaultAction, AnswerBy: question.AnswerBy, Options: nonNilStrings(question.Options),
+		Author: question.Author, Session: question.Session, Worktree: question.Worktree, Branch: question.Branch,
+		Answer: question.Answer, AnsweredBy: question.AnsweredBy, AnsweredAt: question.AnsweredAt,
+		AcknowledgedAt: question.AcknowledgedAt, NotifiedExpiringAt: question.NotifiedExpiringAt,
+		CanceledAt: question.CanceledAt, CreatedAt: question.CreatedAt, UpdatedAt: question.UpdatedAt,
+		Body: question.Body, Status: question.Status,
+	}
+}
+
+func wireQuestions(questionList []questions.Question) questionListWire {
+	values := make([]questionWire, 0, len(questionList))
+	for _, question := range questionList {
+		values = append(values, wireQuestion(question))
+	}
+	return questionListWire{Questions: values}
+}
+
+func nonNilStrings(values []string) []string {
+	if values == nil {
+		return []string{}
+	}
+	return values
 }
 
 // formatIssueList は src/index.ts:439-451
