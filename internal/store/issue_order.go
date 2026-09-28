@@ -44,23 +44,23 @@ var DefaultIssueDisplay = IssueDisplay{Sort: SortPriority, Group: GroupStatus, C
 
 var issueSorts = []string{SortPriority, SortUpdated, SortCreated, SortDue}
 var issueGroups = []string{GroupStatus, GroupPriority, GroupLabel, GroupNone}
-var completedVisibilities = []string{CompletedHide, CompletedRecent, CompletedAll}
+var issueCompletedVisibilities = []string{CompletedHide, CompletedRecent, CompletedAll}
 
-const noPriorityRank = 4
+const issueNoPriorityRank = 4
 
 // ParseIssueSort は未知の値を拒み、空は既定の priority にする。src/issue-order.ts:37-39
 func ParseIssueSort(value *string) (string, error) {
-	return parseChoice("sort", issueSorts, DefaultIssueDisplay.Sort, value)
+	return issueParseChoice("sort", issueSorts, DefaultIssueDisplay.Sort, value)
 }
 
 // ParseIssueGroup は未知の値を拒み、空は既定の status にする。src/issue-order.ts:41-43
 func ParseIssueGroup(value *string) (string, error) {
-	return parseChoice("group", issueGroups, DefaultIssueDisplay.Group, value)
+	return issueParseChoice("group", issueGroups, DefaultIssueDisplay.Group, value)
 }
 
 // ParseCompletedVisibility は未知の値を拒み、空は既定の recent にする。src/issue-order.ts:45-47
 func ParseCompletedVisibility(value *string) (string, error) {
-	return parseChoice("completed", completedVisibilities, DefaultIssueDisplay.Completed, value)
+	return issueParseChoice("completed", issueCompletedVisibilities, DefaultIssueDisplay.Completed, value)
 }
 
 // SortIssues は入力の並びを変えずに、指定した順の新しいスライスを返す。src/issue-order.ts:49-51
@@ -93,7 +93,7 @@ func MatchesCompletedVisibility(issue Issue, visibility string, now time.Time) b
 	if finished != nil {
 		finishedText = *finished
 	}
-	parsed, ok := javascriptTime(finishedText)
+	parsed, ok := issueJavascriptTime(finishedText)
 	if !ok {
 		return true
 	}
@@ -106,31 +106,31 @@ func compareIssues(left Issue, right Issue, sortName string) int {
 		if comparison := strings.Compare(right.UpdatedAt, left.UpdatedAt); comparison != 0 {
 			return comparison
 		}
-		return compareIDDescending(left, right)
+		return issueCompareIDDescending(left, right)
 	case SortCreated:
 		if comparison := strings.Compare(right.CreatedAt, left.CreatedAt); comparison != 0 {
 			return comparison
 		}
-		return compareIDDescending(left, right)
+		return issueCompareIDDescending(left, right)
 	case SortDue:
-		if comparison := compareDueDate(left, right); comparison != 0 {
+		if comparison := issueCompareDueDate(left, right); comparison != 0 {
 			return comparison
 		}
-		return comparePriority(left, right)
+		return issueComparePriority(left, right)
 	default:
-		return comparePriority(left, right)
+		return issueComparePriority(left, right)
 	}
 }
 
-func comparePriority(left Issue, right Issue) int {
-	if comparison := priorityRank(left) - priorityRank(right); comparison != 0 {
+func issueComparePriority(left Issue, right Issue) int {
+	if comparison := issuePriorityRank(left) - issuePriorityRank(right); comparison != 0 {
 		return comparison
 	}
-	return compareIDDescending(left, right)
+	return issueCompareIDDescending(left, right)
 }
 
-func compareDueDate(left Issue, right Issue) int {
-	if sameOptionalString(left.DueDate, right.DueDate) {
+func issueCompareDueDate(left Issue, right Issue) int {
+	if issueSameOptionalString(left.DueDate, right.DueDate) {
 		return 0
 	}
 	if left.DueDate == nil {
@@ -142,9 +142,9 @@ func compareDueDate(left Issue, right Issue) int {
 	return strings.Compare(*left.DueDate, *right.DueDate)
 }
 
-func priorityRank(issue Issue) int {
+func issuePriorityRank(issue Issue) int {
 	if issue.Priority == nil {
-		return noPriorityRank
+		return issueNoPriorityRank
 	}
 	switch *issue.Priority {
 	case "urgent":
@@ -156,15 +156,15 @@ func priorityRank(issue Issue) int {
 	case "low":
 		return 3
 	default:
-		return noPriorityRank
+		return issueNoPriorityRank
 	}
 }
 
 // compareIDDescending は数として大きい id を前に置く。数でない名前は文字の降順。
 // src/issue-order.ts:101-104
-func compareIDDescending(left Issue, right Issue) int {
-	rightNumber, rightOK := javascriptNumber(right.ID)
-	leftNumber, leftOK := javascriptNumber(left.ID)
+func issueCompareIDDescending(left Issue, right Issue) int {
+	rightNumber, rightOK := issueJavascriptNumber(right.ID)
+	leftNumber, leftOK := issueJavascriptNumber(left.ID)
 	if !rightOK || !leftOK {
 		return strings.Compare(right.ID, left.ID)
 	}
@@ -181,7 +181,7 @@ func compareIDDescending(left Issue, right Issue) int {
 	return 0
 }
 
-func parseChoice(name string, choices []string, fallback string, value *string) (string, error) {
+func issueParseChoice(name string, choices []string, fallback string, value *string) (string, error) {
 	if value == nil || *value == "" {
 		return fallback, nil
 	}
@@ -190,15 +190,15 @@ func parseChoice(name string, choices []string, fallback string, value *string) 
 			return choice, nil
 		}
 	}
-	quoted, err := quoteJavaScript(*value)
+	quoted, err := issueQuoteJavaScript(*value)
 	if err != nil {
 		return "", err
 	}
-	return "", errString("invalid " + name + ": expected " + JoinOr(choices) + ", actual " + quoted)
+	return "", issueErrString("invalid " + name + ": expected " + JoinOr(choices) + ", actual " + quoted)
 }
 
-func javascriptNumber(value string) (float64, bool) {
-	trimmed := javascriptTrim(value)
+func issueJavascriptNumber(value string) (float64, bool) {
+	trimmed := issueJavascriptTrim(value)
 	if trimmed == "" {
 		return 0, true
 	}

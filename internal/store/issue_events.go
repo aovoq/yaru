@@ -56,23 +56,23 @@ func DiffIssue(before Issue, after Issue) []IssueChange {
 	if before.Status != after.Status {
 		changes = append(changes, IssueChange{Field: "status", From: before.Status, To: after.Status})
 	}
-	if !sameOptionalString(before.Assignee, after.Assignee) {
-		changes = append(changes, IssueChange{Field: "assignee", From: stringOrNil(before.Assignee), To: stringOrNil(after.Assignee)})
+	if !issueSameOptionalString(before.Assignee, after.Assignee) {
+		changes = append(changes, IssueChange{Field: "assignee", From: issueStringOrNil(before.Assignee), To: issueStringOrNil(after.Assignee)})
 	}
-	if !sameStrings(before.Labels, after.Labels) {
-		changes = append(changes, IssueChange{Field: "labels", From: copyStrings(before.Labels), To: copyStrings(after.Labels)})
+	if !issueSameStrings(before.Labels, after.Labels) {
+		changes = append(changes, IssueChange{Field: "labels", From: issueCopyStrings(before.Labels), To: issueCopyStrings(after.Labels)})
 	}
-	if !sameOptionalString(before.DueDate, after.DueDate) {
-		changes = append(changes, IssueChange{Field: "dueDate", From: stringOrNil(before.DueDate), To: stringOrNil(after.DueDate)})
+	if !issueSameOptionalString(before.DueDate, after.DueDate) {
+		changes = append(changes, IssueChange{Field: "dueDate", From: issueStringOrNil(before.DueDate), To: issueStringOrNil(after.DueDate)})
 	}
-	if !sameOptionalString(before.Priority, after.Priority) {
-		changes = append(changes, IssueChange{Field: "priority", From: stringOrNil(before.Priority), To: stringOrNil(after.Priority)})
+	if !issueSameOptionalString(before.Priority, after.Priority) {
+		changes = append(changes, IssueChange{Field: "priority", From: issueStringOrNil(before.Priority), To: issueStringOrNil(after.Priority)})
 	}
-	if !sameOptionalString(before.Parent, after.Parent) {
-		changes = append(changes, IssueChange{Field: "parent", From: stringOrNil(before.Parent), To: stringOrNil(after.Parent)})
+	if !issueSameOptionalString(before.Parent, after.Parent) {
+		changes = append(changes, IssueChange{Field: "parent", From: issueStringOrNil(before.Parent), To: issueStringOrNil(after.Parent)})
 	}
-	if !sameStrings(before.Blocks, after.Blocks) {
-		changes = append(changes, IssueChange{Field: "blocks", From: copyStrings(before.Blocks), To: copyStrings(after.Blocks)})
+	if !issueSameStrings(before.Blocks, after.Blocks) {
+		changes = append(changes, IssueChange{Field: "blocks", From: issueCopyStrings(before.Blocks), To: issueCopyStrings(after.Blocks)})
 	}
 	return changes
 }
@@ -121,7 +121,7 @@ func IssueEvents(space workspace.Workspace, issueID string) ([]IssueEvent, error
 	issuePath := filepath.Join(space.Directory, "issues", issueID+".md")
 	if _, err := os.Stat(issuePath); err != nil {
 		if os.IsNotExist(err) {
-			return nil, errString("issue not found: " + issueID)
+			return nil, issueErrString("issue not found: " + issueID)
 		}
 		return nil, err
 	}
@@ -134,10 +134,10 @@ func IssueEvents(space workspace.Workspace, issueID string) ([]IssueEvent, error
 	}
 	events := []IssueEvent{}
 	for _, line := range strings.Split(string(content), "\n") {
-		if javascriptTrim(line) == "" {
+		if issueJavascriptTrim(line) == "" {
 			continue
 		}
-		event, ok := parseEventLine(line)
+		event, ok := issueParseEventLine(line)
 		if !ok {
 			continue
 		}
@@ -146,7 +146,7 @@ func IssueEvents(space workspace.Workspace, issueID string) ([]IssueEvent, error
 	return events, nil
 }
 
-func parseEventLine(line string) (IssueEvent, bool) {
+func issueParseEventLine(line string) (IssueEvent, bool) {
 	var raw map[string]json.RawMessage
 	decoder := json.NewDecoder(bytes.NewReader([]byte(line)))
 	decoder.UseNumber()
@@ -156,34 +156,34 @@ func parseEventLine(line string) (IssueEvent, bool) {
 	if decoder.More() {
 		return IssueEvent{}, false
 	}
-	field, ok := rawString(raw["field"])
-	if !ok || !isTrackedField(field) {
+	field, ok := issueRawString(raw["field"])
+	if !ok || !issueIsTrackedField(field) {
 		return IssueEvent{}, false
 	}
-	from, ok := rawEventValue(raw["from"])
+	from, ok := issueRawEventValue(raw["from"])
 	if !ok {
 		return IssueEvent{}, false
 	}
-	to, ok := rawEventValue(raw["to"])
+	to, ok := issueRawEventValue(raw["to"])
 	if !ok {
 		return IssueEvent{}, false
 	}
-	by, ok := rawString(raw["by"])
+	by, ok := issueRawString(raw["by"])
 	if !ok {
 		return IssueEvent{}, false
 	}
-	at, ok := rawString(raw["at"])
+	at, ok := issueRawString(raw["at"])
 	if !ok {
 		return IssueEvent{}, false
 	}
-	session, ok := rawSession(raw["session"])
+	session, ok := issueRawSession(raw["session"])
 	if !ok {
 		return IssueEvent{}, false
 	}
 	return IssueEvent{Field: field, From: from, To: to, By: by, Session: session, At: at}, true
 }
 
-func isTrackedField(field string) bool {
+func issueIsTrackedField(field string) bool {
 	for _, tracked := range TrackedIssueFields {
 		if tracked == field {
 			return true
@@ -192,7 +192,7 @@ func isTrackedField(field string) bool {
 	return false
 }
 
-func rawString(raw json.RawMessage) (string, bool) {
+func issueRawString(raw json.RawMessage) (string, bool) {
 	if len(bytes.TrimSpace(raw)) == 0 || raw[0] != '"' {
 		return "", false
 	}
@@ -203,7 +203,7 @@ func rawString(raw json.RawMessage) (string, bool) {
 	return value, true
 }
 
-func rawSession(raw json.RawMessage) (*string, bool) {
+func issueRawSession(raw json.RawMessage) (*string, bool) {
 	trimmed := bytes.TrimSpace(raw)
 	if len(trimmed) == 0 {
 		return nil, false
@@ -211,14 +211,14 @@ func rawSession(raw json.RawMessage) (*string, bool) {
 	if string(trimmed) == "null" {
 		return nil, true
 	}
-	value, ok := rawString(trimmed)
+	value, ok := issueRawString(trimmed)
 	if !ok {
 		return nil, false
 	}
-	return stringPointer(value), true
+	return issueStringPointer(value), true
 }
 
-func rawEventValue(raw json.RawMessage) (any, bool) {
+func issueRawEventValue(raw json.RawMessage) (any, bool) {
 	trimmed := bytes.TrimSpace(raw)
 	if len(trimmed) == 0 {
 		return nil, false
@@ -230,7 +230,7 @@ func rawEventValue(raw json.RawMessage) (any, bool) {
 		}
 		return nil, false
 	case '"':
-		value, ok := rawString(trimmed)
+		value, ok := issueRawString(trimmed)
 		if !ok {
 			return nil, false
 		}
@@ -249,7 +249,7 @@ func rawEventValue(raw json.RawMessage) (any, bool) {
 	}
 }
 
-func stringOrNil(value *string) any {
+func issueStringOrNil(value *string) any {
 	if value == nil {
 		return nil
 	}

@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package yaru.v1;
+
+import "yaru/v1/common.proto";
+
+// プロジェクト一覧。GET / の HTML が読んでいるもの (src/web.tsx:593-609)。
+// 30 秒ごとに取り直すか、ライブ更新にするかは未決 (ユーザー)。
+service ProjectService {
+  rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
+}
+
+message ListProjectsRequest {}
+
+// now は awaiting の expired を決めた時刻。
+message ListProjectsResponse {
+  // 登録順。config.yml が無いワークスペースは除く (src/workspaces.ts:43-46)。
+  repeated Project projects = 1;
+  string now = 2;
+}
+
+message Project {
+  string slug = 1;
+  // フォルダの絶対 path。画面に出してよいかは未決 (ユーザー) (src/projects/project-card.tsx:35-36)。
+  string root = 2;
+  // open と expired (src/web.tsx:600-602)。
+  repeated Question awaiting = 3;
+  // status が in_progress の件数 (src/web.tsx:603)。
+  int32 in_progress = 4;
+}

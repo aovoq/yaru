@@ -117,7 +117,7 @@ type Filter struct {
 	Parent   Optional[string]
 }
 
-type resolvedFilter struct {
+type issueResolvedFilter struct {
 	status      string
 	statusSet   bool
 	assignee    *string
@@ -144,7 +144,7 @@ type PageOptions struct {
 	Cursor *string
 }
 
-var numericMarkdownPattern = regexp.MustCompile(`^(\d+)\.md$`)
+var issueNumericMarkdownPattern = regexp.MustCompile(`^(\d+)\.md$`)
 
 // BlankToNull は空と文字列 none を null にする。undefined はそのまま。src/store.ts:400-406
 func BlankToNull(value Optional[string]) Optional[string] {
@@ -154,7 +154,7 @@ func BlankToNull(value Optional[string]) Optional[string] {
 	if value.Value == nil {
 		return Null[string]()
 	}
-	trimmed := javascriptTrim(*value.Value)
+	trimmed := issueJavascriptTrim(*value.Value)
 	if trimmed == "" || trimmed == "none" {
 		return Null[string]()
 	}
@@ -172,7 +172,7 @@ func ResolvePriority(value Optional[string]) (Optional[string], error) {
 			return resolved, nil
 		}
 	}
-	return Optional[string]{}, errString("invalid priority: expected " + JoinOr(Priorities) + ", actual " + originalString(value))
+	return Optional[string]{}, issueErrString("invalid priority: expected " + JoinOr(Priorities) + ", actual " + issueOriginalString(value))
 }
 
 // JoinOr は 3 つ以上のとき最後の前だけ ", or " にする。src/store.ts:450-453
@@ -188,9 +188,9 @@ func ResolveLimit(value any) (int, error) {
 	if value == nil {
 		return ListLimitDefault, nil
 	}
-	number, ok := asFloat(value)
+	number, ok := issueAsFloat(value)
 	if !ok || math.IsNaN(number) || math.IsInf(number, 0) || number != math.Trunc(number) || number < 1 || number > ListLimitMax {
-		return 0, fmt.Errorf("invalid limit: expected an integer from 1 to %d, actual %s", ListLimitMax, formatLimitActual(value))
+		return 0, fmt.Errorf("invalid limit: expected an integer from 1 to %d, actual %s", ListLimitMax, issueFormatLimitActual(value))
 	}
 	return int(number), nil
 }
@@ -198,11 +198,11 @@ func ResolveLimit(value any) (int, error) {
 // ListIssues は issues 直下の .md を読み、壊れたファイルは省く。
 // 並びは updatedAt の降順、同じなら id の文字の降順。src/store.ts:177-211
 func ListIssues(space workspace.Workspace, filter Filter, now *time.Time) ([]Issue, error) {
-	moment, err := currentMoment(now)
+	moment, err := issueCurrentMoment(now)
 	if err != nil {
 		return nil, err
 	}
-	resolved, err := resolveListFilter(filter)
+	resolved, err := issueResolveListFilter(filter)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +214,7 @@ func ListIssues(space workspace.Workspace, filter Filter, now *time.Time) ([]Iss
 	if err != nil {
 		return nil, err
 	}
-	derived := withDerived(issues, moment, staleAfter)
+	derived := issueWithDerived(issues, moment, staleAfter)
 	sortIssuesForList(derived)
 	matched := []Issue{}
 	for _, issue := range derived {
@@ -241,7 +241,7 @@ func PageIssues(issues []Issue, options PageOptions) (IssuePage, error) {
 			}
 		}
 		if index < 0 {
-			return IssuePage{}, errString("cursor not found: expected an issue id from a previous list page, actual " + *options.Cursor)
+			return IssuePage{}, issueErrString("cursor not found: expected an issue id from a previous list page, actual " + *options.Cursor)
 		}
 		start = index + 1
 	}
@@ -255,14 +255,14 @@ func PageIssues(issues []Issue, options PageOptions) (IssuePage, error) {
 	}
 	result := IssuePage{Issues: page, HasNextPage: start+limit < len(issues)}
 	if result.HasNextPage && len(page) > 0 {
-		result.Cursor = stringPointer(page[len(page)-1].ID)
+		result.Cursor = issueStringPointer(page[len(page)-1].ID)
 	}
 	return result, nil
 }
 
 // GetIssue は 1 件を読む。壊れていればエラーにし、一覧のように省かない。src/store.ts:236-246
 func GetIssue(space workspace.Workspace, issueID string, now *time.Time) (Issue, error) {
-	moment, err := currentMoment(now)
+	moment, err := issueCurrentMoment(now)
 	if err != nil {
 		return Issue{}, err
 	}
@@ -277,7 +277,7 @@ func readDerivedIssue(space workspace.Workspace, issueID string, now time.Time, 
 	path := issuePath(space, issueID)
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
-			return Issue{}, errString("issue not found: " + issueID)
+			return Issue{}, issueErrString("issue not found: " + issueID)
 		}
 		return Issue{}, err
 	}
@@ -296,21 +296,21 @@ func readDerivedIssue(space workspace.Workspace, issueID string, now time.Time, 
 		}
 	}
 	rows = append(rows, issue)
-	for _, row := range withDerived(rows, now, staleAfter) {
+	for _, row := range issueWithDerived(rows, now, staleAfter) {
 		if row.ID == issueID {
 			return row, nil
 		}
 	}
-	return Issue{}, errString("issue not found: " + issueID)
+	return Issue{}, issueErrString("issue not found: " + issueID)
 }
 
-func withDerived(issues []Issue, now time.Time, staleAfter int64) []Issue {
+func issueWithDerived(issues []Issue, now time.Time, staleAfter int64) []Issue {
 	derived := make([]Issue, len(issues))
 	for index, issue := range issues {
 		blockedBy := []string{}
 		children := []string{}
 		for _, other := range issues {
-			if containsString(other.Blocks, issue.ID) {
+			if issueContainsString(other.Blocks, issue.ID) {
 				blockedBy = append(blockedBy, other.ID)
 			}
 			if other.Parent != nil && *other.Parent == issue.ID {
@@ -327,7 +327,7 @@ func withDerived(issues []Issue, now time.Time, staleAfter int64) []Issue {
 
 func loadRawIssues(space workspace.Workspace) ([]Issue, error) {
 	directory := filepath.Join(space.Directory, "issues")
-	names, err := readDirectoryNames(directory)
+	names, err := issueReadDirectoryNames(directory)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []Issue{}, nil
@@ -367,46 +367,46 @@ func parseIssue(text string) (Issue, error) {
 		return Issue{}, err
 	}
 	meta := parsed.Meta
-	statusText := metaString(meta, "status")
+	statusText := issueMetaString(meta, "status")
 	if statusText == "" {
 		statusText = "todo"
 	}
-	status, err := resolveStatus(statusText)
+	status, err := issueResolveStatus(statusText)
 	if err != nil {
 		return Issue{}, err
 	}
-	assignee, err := resolveAssigneeString(metaString(meta, "assignee"))
+	assignee, err := issueResolveAssigneeString(issueMetaString(meta, "assignee"))
 	if err != nil {
 		return Issue{}, err
 	}
-	dueDate, err := resolveDueDate(Present(metaString(meta, "dueDate")))
+	dueDate, err := issueResolveDueDate(Present(issueMetaString(meta, "dueDate")))
 	if err != nil {
 		return Issue{}, err
 	}
-	priority, err := ResolvePriority(Present(metaString(meta, "priority")))
+	priority, err := ResolvePriority(Present(issueMetaString(meta, "priority")))
 	if err != nil {
 		return Issue{}, err
 	}
 	issue := Issue{
-		ID:          metaString(meta, "id"),
-		Title:       metaString(meta, "title"),
+		ID:          issueMetaString(meta, "id"),
+		Title:       issueMetaString(meta, "title"),
 		Status:      status,
 		Assignee:    assignee,
-		Labels:      parseLabels(metaString(meta, "labels")),
+		Labels:      issueParseLabels(issueMetaString(meta, "labels")),
 		DueDate:     dueDate.Value,
 		Priority:    priority.Value,
-		Parent:      blankString(metaString(meta, "parent")),
-		Blocks:      parseIDList(metaString(meta, "blocks")),
+		Parent:      issueBlankString(issueMetaString(meta, "parent")),
+		Blocks:      issueParseIDList(issueMetaString(meta, "blocks")),
 		BlockedBy:   []string{},
 		Children:    []string{},
-		StartedAt:   blankString(metaString(meta, "startedAt")),
-		CompletedAt: blankString(metaString(meta, "completedAt")),
-		CanceledAt:  blankString(metaString(meta, "canceledAt")),
-		CreatedAt:   metaString(meta, "createdAt"),
-		UpdatedAt:   metaString(meta, "updatedAt"),
-		Session:     blankString(metaString(meta, "session")),
-		Worktree:    blankString(metaString(meta, "worktree")),
-		Branch:      blankString(metaString(meta, "branch")),
+		StartedAt:   issueBlankString(issueMetaString(meta, "startedAt")),
+		CompletedAt: issueBlankString(issueMetaString(meta, "completedAt")),
+		CanceledAt:  issueBlankString(issueMetaString(meta, "canceledAt")),
+		CreatedAt:   issueMetaString(meta, "createdAt"),
+		UpdatedAt:   issueMetaString(meta, "updatedAt"),
+		Session:     issueBlankString(issueMetaString(meta, "session")),
+		Worktree:    issueBlankString(issueMetaString(meta, "worktree")),
+		Branch:      issueBlankString(issueMetaString(meta, "branch")),
 		Body:        parsed.Body,
 	}
 	return issue, nil
@@ -417,41 +417,41 @@ func formatIssue(issue Issue) string {
 		{Key: "id", Value: issue.ID},
 		{Key: "title", Value: strings.ReplaceAll(issue.Title, "\n", " ")},
 		{Key: "status", Value: issue.Status},
-		{Key: "assignee", Value: valueOrEmpty(issue.Assignee)},
+		{Key: "assignee", Value: issueValueOrEmpty(issue.Assignee)},
 		{Key: "labels", Value: strings.Join(issue.Labels, ", ")},
-		{Key: "dueDate", Value: valueOrEmpty(issue.DueDate)},
-		{Key: "priority", Value: valueOrEmpty(issue.Priority)},
-		{Key: "parent", Value: valueOrEmpty(issue.Parent)},
+		{Key: "dueDate", Value: issueValueOrEmpty(issue.DueDate)},
+		{Key: "priority", Value: issueValueOrEmpty(issue.Priority)},
+		{Key: "parent", Value: issueValueOrEmpty(issue.Parent)},
 		{Key: "blocks", Value: strings.Join(issue.Blocks, ", ")},
-		{Key: "startedAt", Value: valueOrEmpty(issue.StartedAt)},
-		{Key: "completedAt", Value: valueOrEmpty(issue.CompletedAt)},
-		{Key: "canceledAt", Value: valueOrEmpty(issue.CanceledAt)},
+		{Key: "startedAt", Value: issueValueOrEmpty(issue.StartedAt)},
+		{Key: "completedAt", Value: issueValueOrEmpty(issue.CompletedAt)},
+		{Key: "canceledAt", Value: issueValueOrEmpty(issue.CanceledAt)},
 		{Key: "createdAt", Value: issue.CreatedAt},
 		{Key: "updatedAt", Value: issue.UpdatedAt},
-		{Key: "session", Value: valueOrEmpty(issue.Session)},
-		{Key: "worktree", Value: valueOrEmpty(issue.Worktree)},
-		{Key: "branch", Value: valueOrEmpty(issue.Branch)},
+		{Key: "session", Value: issueValueOrEmpty(issue.Session)},
+		{Key: "worktree", Value: issueValueOrEmpty(issue.Worktree)},
+		{Key: "branch", Value: issueValueOrEmpty(issue.Branch)},
 	}, issue.Body)
 }
 
-func resolveListFilter(filter Filter) (resolvedFilter, error) {
-	resolved := resolvedFilter{}
+func issueResolveListFilter(filter Filter) (issueResolvedFilter, error) {
+	resolved := issueResolvedFilter{}
 	if filter.Status.Set {
 		text := ""
 		if filter.Status.Value != nil {
 			text = *filter.Status.Value
 		}
-		status, err := resolveStatus(text)
+		status, err := issueResolveStatus(text)
 		if err != nil {
-			return resolvedFilter{}, err
+			return issueResolvedFilter{}, err
 		}
 		resolved.status = status
 		resolved.statusSet = true
 	}
 	if filter.Assignee.Set {
-		assignee, err := resolveAssignee(filter.Assignee)
+		assignee, err := issueResolveAssignee(filter.Assignee)
 		if err != nil {
-			return resolvedFilter{}, err
+			return issueResolvedFilter{}, err
 		}
 		resolved.assignee = assignee.Value
 		resolved.assigneeSet = true
@@ -469,21 +469,21 @@ func resolveListFilter(filter Filter) (resolvedFilter, error) {
 	}
 	if filter.Parent.Set {
 		if filter.Parent.Value != nil && *filter.Parent.Value != "none" {
-			resolved.parent = stringPointer(*filter.Parent.Value)
+			resolved.parent = issueStringPointer(*filter.Parent.Value)
 		}
 		resolved.parentSet = true
 	}
 	return resolved, nil
 }
 
-func issueMatches(issue Issue, filter resolvedFilter, now time.Time) bool {
+func issueMatches(issue Issue, filter issueResolvedFilter, now time.Time) bool {
 	if filter.statusSet && issue.Status != filter.status {
 		return false
 	}
-	if filter.assigneeSet && !sameOptionalString(issue.Assignee, filter.assignee) {
+	if filter.assigneeSet && !issueSameOptionalString(issue.Assignee, filter.assignee) {
 		return false
 	}
-	if filter.labelSet && !containsString(issue.Labels, filter.label) {
+	if filter.labelSet && !issueContainsString(issue.Labels, filter.label) {
 		return false
 	}
 	if filter.querySet {
@@ -495,37 +495,37 @@ func issueMatches(issue Issue, filter resolvedFilter, now time.Time) bool {
 	if filter.dueOverdue && !IsIssueOverdue(issue.DueDate, issue.Status, now) {
 		return false
 	}
-	if filter.parentSet && !sameOptionalString(issue.Parent, filter.parent) {
+	if filter.parentSet && !issueSameOptionalString(issue.Parent, filter.parent) {
 		return false
 	}
 	return true
 }
 
-func resolveStatus(value string) (string, error) {
-	trimmed := javascriptTrim(value)
+func issueResolveStatus(value string) (string, error) {
+	trimmed := issueJavascriptTrim(value)
 	for _, status := range Statuses {
 		if status == trimmed {
 			return trimmed, nil
 		}
 	}
-	return "", errString("invalid status: expected " + JoinOr(Statuses) + ", actual " + value)
+	return "", issueErrString("invalid status: expected " + JoinOr(Statuses) + ", actual " + value)
 }
 
-func resolveDueDate(value Optional[string]) (Optional[string], error) {
+func issueResolveDueDate(value Optional[string]) (Optional[string], error) {
 	resolved := BlankToNull(value)
 	if !resolved.Set || resolved.Value == nil {
 		return resolved, nil
 	}
-	if !isCalendarDate(*resolved.Value) {
-		return Optional[string]{}, errString("invalid dueDate: expected YYYY-MM-DD, actual " + originalString(value))
+	if !issueIsCalendarDate(*resolved.Value) {
+		return Optional[string]{}, issueErrString("invalid dueDate: expected YYYY-MM-DD, actual " + issueOriginalString(value))
 	}
 	return resolved, nil
 }
 
-func resolveAssignee(value Optional[string]) (Optional[string], error) {
+func issueResolveAssignee(value Optional[string]) (Optional[string], error) {
 	resolved := BlankToNull(value)
 	if resolved.Set && resolved.Value != nil && *resolved.Value == "me" {
-		name, err := currentGitName()
+		name, err := issueCurrentGitName()
 		if err != nil {
 			return Optional[string]{}, err
 		}
@@ -534,8 +534,8 @@ func resolveAssignee(value Optional[string]) (Optional[string], error) {
 	return resolved, nil
 }
 
-func resolveAssigneeString(value string) (*string, error) {
-	resolved, err := resolveAssignee(Present(value))
+func issueResolveAssigneeString(value string) (*string, error) {
+	resolved, err := issueResolveAssignee(Present(value))
 	if err != nil {
 		return nil, err
 	}
@@ -543,7 +543,7 @@ func resolveAssigneeString(value string) (*string, error) {
 }
 
 func nextIssueID(space workspace.Workspace) (string, error) {
-	names, err := readDirectoryNames(filepath.Join(space.Directory, "issues"))
+	names, err := issueReadDirectoryNames(filepath.Join(space.Directory, "issues"))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "1", nil
@@ -552,20 +552,20 @@ func nextIssueID(space workspace.Workspace) (string, error) {
 	}
 	maximum := 0.0
 	for _, name := range names {
-		matches := numericMarkdownPattern.FindStringSubmatch(name)
+		matches := issueNumericMarkdownPattern.FindStringSubmatch(name)
 		if matches == nil {
 			continue
 		}
-		number, ok := javascriptNumber(matches[1])
+		number, ok := issueJavascriptNumber(matches[1])
 		if !ok || number <= maximum {
 			continue
 		}
 		maximum = number
 	}
-	return javascriptIntegerString(maximum + 1), nil
+	return issueJavascriptIntegerString(maximum + 1), nil
 }
 
-func writeCreate(path string, text string) error {
+func issueWriteCreate(path string, text string) error {
 	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o666)
 	if err != nil {
 		return err
@@ -578,7 +578,7 @@ func writeCreate(path string, text string) error {
 	return closeErr
 }
 
-func writeReplace(path string, text string) error {
+func issueWriteReplace(path string, text string) error {
 	temporary := path + ".tmp"
 	if err := os.WriteFile(temporary, []byte(text), 0o666); err != nil {
 		return err
@@ -590,7 +590,7 @@ func issuePath(space workspace.Workspace, issueID string) string {
 	return filepath.Join(space.Directory, "issues", issueID+".md")
 }
 
-func readDirectoryNames(directory string) ([]string, error) {
+func issueReadDirectoryNames(directory string) ([]string, error) {
 	file, err := os.Open(directory)
 	if err != nil {
 		return nil, err
@@ -610,13 +610,13 @@ func readDirectoryNames(directory string) ([]string, error) {
 	return names, nil
 }
 
-func parseLabels(raw string) []string {
+func issueParseLabels(raw string) []string {
 	labels := []string{}
 	if raw == "" {
 		return labels
 	}
 	for _, part := range strings.Split(raw, ",") {
-		part = javascriptTrim(part)
+		part = issueJavascriptTrim(part)
 		if part == "" {
 			continue
 		}
@@ -625,33 +625,33 @@ func parseLabels(raw string) []string {
 	return labels
 }
 
-func parseIDList(raw string) []string {
-	return uniqueStrings(parseLabels(raw))
+func issueParseIDList(raw string) []string {
+	return issueUniqueStrings(issueParseLabels(raw))
 }
 
-func blankString(value string) *string {
+func issueBlankString(value string) *string {
 	return BlankToNull(Present(value)).Value
 }
 
-func originalString(value Optional[string]) string {
+func issueOriginalString(value Optional[string]) string {
 	if value.Value == nil {
 		return "null"
 	}
 	return *value.Value
 }
 
-func currentMoment(override *time.Time) (time.Time, error) {
+func issueCurrentMoment(override *time.Time) (time.Time, error) {
 	if override != nil {
 		return *override, nil
 	}
 	return clock.Now()
 }
 
-func isoTimestamp(moment time.Time) string {
+func issueIsoTimestamp(moment time.Time) string {
 	return clock.ISOString(moment)
 }
 
-func currentGitName() (string, error) {
+func issueCurrentGitName() (string, error) {
 	workingDirectory, err := workspace.WorkingDirectory()
 	if err != nil {
 		return "", err
@@ -659,7 +659,7 @@ func currentGitName() (string, error) {
 	return workspace.GitName(workingDirectory), nil
 }
 
-func quoteJavaScript(value string) (string, error) {
+func issueQuoteJavaScript(value string) (string, error) {
 	encoded, err := document.MarshalJavaScript(value)
 	if err != nil {
 		return "", err
@@ -667,11 +667,11 @@ func quoteJavaScript(value string) (string, error) {
 	return string(encoded), nil
 }
 
-func javascriptTrim(value string) string {
-	return strings.TrimFunc(value, isJavaScriptWhitespace)
+func issueJavascriptTrim(value string) string {
+	return strings.TrimFunc(value, issueIsJavaScriptWhitespace)
 }
 
-func isJavaScriptWhitespace(char rune) bool {
+func issueIsJavaScriptWhitespace(char rune) bool {
 	switch char {
 	case '\t', '\n', '\v', '\f', '\r', '\ufeff', '\u2028', '\u2029':
 		return true
@@ -680,7 +680,7 @@ func isJavaScriptWhitespace(char rune) bool {
 	}
 }
 
-func javascriptTime(value string) (time.Time, bool) {
+func issueJavascriptTime(value string) (time.Time, bool) {
 	if value == "" {
 		return time.Time{}, false
 	}
@@ -694,17 +694,17 @@ func javascriptTime(value string) (time.Time, bool) {
 	return parsed, true
 }
 
-func javascriptIntegerString(value float64) string {
+func issueJavascriptIntegerString(value float64) string {
 	if math.IsNaN(value) || math.IsInf(value, 0) {
-		return formatJavaScriptNumber(value)
+		return issueFormatJavaScriptNumber(value)
 	}
 	if value == math.Trunc(value) && math.Abs(value) < 1e21 {
 		return strconv.FormatFloat(value, 'f', 0, 64)
 	}
-	return formatJavaScriptNumber(value)
+	return issueFormatJavaScriptNumber(value)
 }
 
-func formatJavaScriptNumber(value float64) string {
+func issueFormatJavaScriptNumber(value float64) string {
 	if math.IsNaN(value) {
 		return "NaN"
 	}
@@ -723,15 +723,15 @@ func formatJavaScriptNumber(value float64) string {
 	return strconv.FormatFloat(value, 'f', -1, 64)
 }
 
-func formatLimitActual(value any) string {
-	number, ok := asFloat(value)
+func issueFormatLimitActual(value any) string {
+	number, ok := issueAsFloat(value)
 	if !ok {
 		return fmt.Sprint(value)
 	}
-	return formatJavaScriptNumber(number)
+	return issueFormatJavaScriptNumber(number)
 }
 
-func asFloat(value any) (float64, bool) {
+func issueAsFloat(value any) (float64, bool) {
 	switch typed := value.(type) {
 	case int:
 		return float64(typed), true
@@ -762,26 +762,26 @@ func asFloat(value any) (float64, bool) {
 	}
 }
 
-func stringPointer(value string) *string {
+func issueStringPointer(value string) *string {
 	copied := value
 	return &copied
 }
 
-func valueOrEmpty(value *string) string {
+func issueValueOrEmpty(value *string) string {
 	if value == nil {
 		return ""
 	}
 	return *value
 }
 
-func copyStrings(values []string) []string {
+func issueCopyStrings(values []string) []string {
 	if len(values) == 0 {
 		return []string{}
 	}
 	return append([]string{}, values...)
 }
 
-func sameStrings(left []string, right []string) bool {
+func issueSameStrings(left []string, right []string) bool {
 	if len(left) != len(right) {
 		return false
 	}
@@ -793,14 +793,14 @@ func sameStrings(left []string, right []string) bool {
 	return true
 }
 
-func sameOptionalString(left *string, right *string) bool {
+func issueSameOptionalString(left *string, right *string) bool {
 	if left == nil || right == nil {
 		return left == nil && right == nil
 	}
 	return *left == *right
 }
 
-func containsString(values []string, needle string) bool {
+func issueContainsString(values []string, needle string) bool {
 	for _, value := range values {
 		if value == needle {
 			return true
@@ -809,7 +809,7 @@ func containsString(values []string, needle string) bool {
 	return false
 }
 
-func uniqueStrings(values []string) []string {
+func issueUniqueStrings(values []string) []string {
 	seen := map[string]struct{}{}
 	result := []string{}
 	for _, value := range values {
@@ -822,21 +822,21 @@ func uniqueStrings(values []string) []string {
 	return result
 }
 
-func metaString(meta map[string]string, key string) string {
+func issueMetaString(meta map[string]string, key string) string {
 	if meta == nil {
 		return ""
 	}
 	return meta[key]
 }
 
-func splitLines(text string) []string {
+func issueSplitLines(text string) []string {
 	return strings.Split(text, "\n")
 }
 
-func errString(message string) error {
+func issueErrString(message string) error {
 	return errors.New(message)
 }
 
-func isExist(err error) bool {
+func issueIsExist(err error) bool {
 	return err != nil && os.IsExist(err)
 }

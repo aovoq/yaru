@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package yaru.v1;
+
+import "yaru/v1/common.proto";
+
+// dashboard の HTML が埋め込むデータ (src/web.tsx:424-446、src/dashboard.tsx:35-52)。
+// 同じ JSON を返す入口は今無い。
+service DashboardService {
+  rpc GetDashboard(GetDashboardRequest) returns (GetDashboardResponse);
+}
+
+message GetDashboardRequest {
+  string workspace = 1;
+}
+
+// now は質問の expired と issue の遅れを決めた時刻。画面の相対時刻はこれを使う。
+message GetDashboardResponse {
+  repeated Question questions = 1;
+  repeated Issue issues = 2;
+  SessionHealth session_health = 3;
+  // git でなければ未設定。JSON では null (src/repository.ts:26-27)。
+  optional RepositoryState repository = 4;
+  string now = 5;
+}
+
+// Claude Code のセッションの数。本文は読まない (src/sessions.ts:9-48)。
+// 件数は int32。2^31-1 を超える値は表さない。トークン数は double である。
+message SessionHealth {
+  // ログのディレクトリ。画面に出してよいかは未決 (ユーザー)。
+  optional string directory = 1;
+  int32 window_days = 2;
+  repeated SessionSummary sessions = 3;
+  SessionTotals totals = 4;
+}
+
+message SessionSummary {
+  string id = 1;
+  optional string worktree = 2;
+  optional string title = 3;
+  optional string started_at = 4;
+  optional string last_activity_at = 5;
+  repeated string models = 6;
+  int32 assistant_messages = 7;
+  // 1 セッションの合計。cache read は int32 を超えうるので、double にする。
+  double input_tokens = 8;
+  double cache_creation_tokens = 9;
+  double cache_read_tokens = 10;
+  double output_tokens = 11;
+  double cost_usd = 12;
+  int32 unpriced_messages = 13;
+  int32 tool_uses = 14;
+  int32 tool_results = 15;
+  int32 tool_errors = 16;
+  int32 interruptions = 17;
+  int32 subagents = 18;
+}
+
+message SessionTotals {
+  int32 sessions = 1;
+  double cost_usd = 2;
+  int32 unpriced_messages = 3;
+  int32 assistant_messages = 4;
+  optional double cache_read_ratio = 5;
+  int32 tool_results = 6;
+  int32 tool_errors = 7;
+  optional double tool_error_ratio = 8;
+  int32 interruptions = 9;
+}
+
+// dashboard の git (src/repository.ts:13-20)。最近のコミットは 10 件 (src/repository.ts:22)。
+message RepositoryState {
+  optional string branch = 1;
+  optional string upstream = 2;
+  optional int32 ahead = 3;
+  optional int32 behind = 4;
+  int32 uncommitted_files = 5;
+  repeated RepositoryCommit commits = 6;
+}
