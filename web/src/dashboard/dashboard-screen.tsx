@@ -118,6 +118,10 @@ export function DashboardScreen({
   const clockRef = useRef<ServerClock | null>(null)
   const questionsRef = useRef<Question[]>([])
   const pullRef = useRef<(force: boolean) => Promise<void>>(async () => {})
+  // 自分の回答で起きた Watch の知らせは、もう画面に反映済みなので「N new — Show」にしない
+  // 今の TS 版は POST のあと読み直すので、その変更の SSE ではボタンが出ない (src/ui/live-page.ts:148-157)
+  const suppressOwnChangeRef = useRef(false)
+  const suppressTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   questionsRef.current = model?.questions ?? []
 
   const rememberNow = useCallback(
@@ -150,6 +154,9 @@ export function DashboardScreen({
           .map(questionFromProto)
           .filter(isAwaitingAnswer)
           .map((question) => `q-${question.id}`)
+        if (!force && suppressOwnChangeRef.current) {
+          return
+        }
         if (!force && isEditingAnswer(document)) {
           setRefreshLabel(describeAwaitingChange(renderedAwaitingAnchors(document), nextAnchors))
           setRefreshHidden(false)
@@ -255,9 +262,15 @@ export function DashboardScreen({
         return next
       })
       const currentQuestion = questionsRef.current.find((question) => question.id === action.id)
+      suppressOwnChangeRef.current = true
+      if (suppressTimerRef.current !== undefined) clearTimeout(suppressTimerRef.current)
+      suppressTimerRef.current = setTimeout(() => {
+        suppressOwnChangeRef.current = false
+      }, 1500)
       void performQuestionAction(questionsClient, action, currentQuestion).then(
         (result) => {
           if (!result.ok) {
+            suppressOwnChangeRef.current = false
             const conflict = result.question
             if (conflict !== undefined) {
               setModel((current) =>
