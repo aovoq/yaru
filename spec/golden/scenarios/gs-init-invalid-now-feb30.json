@@ -1,0 +1,10 @@
+{
+  "name": "gs-init-invalid-now-feb30",
+  "description": "存在しない 2 月 30 日の YARU_NOW は受けない。init は失敗し、ファイルは作らない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-02-30T00:00:00.000Z"
+    }
+  ]
+}

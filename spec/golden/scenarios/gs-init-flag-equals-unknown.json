@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-flag-equals-unknown",
+  "description": "--title=hello に次の語を付けると、フラグ名 --title=hello の unknown flag になる",
+  "steps": [
+    {
+      "arguments": ["init", "--title=hello", "x"]
+    }
+  ]
+}

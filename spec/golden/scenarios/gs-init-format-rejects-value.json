@@ -1,0 +1,20 @@
+{
+  "name": "gs-init-format-rejects-value",
+  "description": "-f と --format は値を取らない。続く human は余分な引数になり、ワークスペースは開かない",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "keep\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "list", "--format", "human"]
+    },
+    {
+      "arguments": ["issue", "list", "-f", "human"]
+    }
+  ]
+}

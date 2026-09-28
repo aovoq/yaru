@@ -1,0 +1,17 @@
+{
+  "name": "gs-init-marker-is-config",
+  "description": "印は config.yml だけである。issues のファイルだけがあるディレクトリは init でき、そのファイルは残る",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/issues/9.md",
+        "content": "keep\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["init"]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-unknown-flag-short",
+  "description": "init の未知の短いフラグは unknown flag: -x で、初期化しない",
+  "steps": [
+    {
+      "arguments": ["init", "-x", "bar"]
+    }
+  ]
+}

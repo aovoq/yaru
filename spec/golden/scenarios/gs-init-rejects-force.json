@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-rejects-force",
+  "description": "init は --force を受け付けず unknown flag: --force になる。初期化しない",
+  "steps": [
+    {
+      "arguments": ["init", "--force"]
+    }
+  ]
+}

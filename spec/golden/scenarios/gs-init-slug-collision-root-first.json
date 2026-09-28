@@ -1,0 +1,21 @@
+{
+  "name": "gs-init-slug-collision-root-first",
+  "description": "先に根が slug workspace を取ると、記号だけのフォルダは workspace-2 になる",
+  "setup": {
+    "files": [
+      {
+        "path": "---/keep",
+        "content": "x\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["init"]
+    },
+    {
+      "arguments": ["init"],
+      "workingDirectory": "---"
+    }
+  ]
+}

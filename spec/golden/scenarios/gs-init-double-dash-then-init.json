@@ -1,0 +1,9 @@
+{
+  "name": "gs-init-double-dash-then-init",
+  "description": "先頭の -- のうしろに init があると、フラグの終わりとして初期化する",
+  "steps": [
+    {
+      "arguments": ["--", "init"]
+    }
+  ]
+}

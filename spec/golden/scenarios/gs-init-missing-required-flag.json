@@ -1,0 +1,17 @@
+{
+  "name": "gs-init-missing-required-flag",
+  "description": "必須の --issue が無い comment list は usage を出して終わる。ワークスペースは開かず登録しない",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "keep\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["comment", "list"]
+    }
+  ]
+}

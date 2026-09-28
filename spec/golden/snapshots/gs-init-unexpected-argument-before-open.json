@@ -1,0 +1,24 @@
+{
+  "name": "gs-init-unexpected-argument-before-open",
+  "steps": [
+    {
+      "arguments": ["issue", "list", "extra"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: extra\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [
+    {
+      "path": "config.yml",
+      "content": "keep\n"
+    }
+  ],
+  "state": []
+}
