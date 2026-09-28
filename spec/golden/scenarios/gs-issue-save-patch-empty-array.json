@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-patch-empty-array",
+  "description": "操作が 0 個の patch を、1 から 50 個ではないとして拒むことを確かめる。issue の有無より先である",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "9", "--patch", "[]"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

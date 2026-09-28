@@ -1,0 +1,26 @@
+{
+  "name": "gs-issue-save-stale-config-zero",
+  "description": "staleAfter の 0h を、正の期間ではないとして save が拒み、ファイルを作らないことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--title", "task"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ],
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "staleAfter: 0h\n"
+      },
+      {
+        "path": ".yaru/issues/.keep",
+        "content": ""
+      }
+    ]
+  }
+}

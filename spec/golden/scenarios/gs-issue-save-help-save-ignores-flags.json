@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-help-save-ignores-flags",
+  "description": "yaru issue save は、値の付いた未知フラグがあっても --help なら保存せず契約だけを出すことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--title", "x", "--not-a-flag", "nope", "--help"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

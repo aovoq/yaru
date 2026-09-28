@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-create-priority-none",
+  "description": "作成時の --priority none が優先度なしになることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--priority", "none"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

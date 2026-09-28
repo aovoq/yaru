@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-save-create-missing-title",
+  "description": "題名の無い作成を拒み、issue ファイルを作らないことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

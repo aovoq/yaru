@@ -1,0 +1,29 @@
+{
+  "name": "gs-issue-save-patch-replace-match-two",
+  "description": "replace の old_string が 2 回あると拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--body", "foo bar foo"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--id",
+        "1",
+        "--patch",
+        "[{\"op\":\"replace\",\"old_string\":\"foo\",\"new_string\":\"baz\"}]"
+      ],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

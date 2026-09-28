@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-patch-item-bool",
+  "description": "patch の要素が真偽値だと、操作オブジェクトではないとして拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "9", "--patch", "[true]"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

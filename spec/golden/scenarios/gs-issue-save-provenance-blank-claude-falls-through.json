@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-save-provenance-blank-claude-falls-through",
+  "description": "空白だけの CLAUDE_CODE_SESSION_ID は飛ばし、CODEX_SESSION_ID を session にすることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "topic"],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "   ",
+        "CODEX_SESSION_ID": "codex-9"
+      },
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "name": "gs-issue-save-get-invalid-file",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "invalid issue file\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues/1.md",
+      "content": "not an issue\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

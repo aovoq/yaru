@@ -1,0 +1,29 @@
+{
+  "name": "gs-issue-save-patch-insert-before-match-zero",
+  "description": "insert_before の anchor が 0 回だと拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--body", "middle"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--id",
+        "1",
+        "--patch",
+        "[{\"op\":\"insert_before\",\"anchor\":\"missing\",\"text\":\"x\"}]"
+      ],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

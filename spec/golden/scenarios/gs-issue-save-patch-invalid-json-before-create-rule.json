@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-patch-invalid-json-before-create-rule",
+  "description": "作成時でも、壊れた patch の JSON は、更新専用という検査より先に拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--title", "x", "--patch", "not-json"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

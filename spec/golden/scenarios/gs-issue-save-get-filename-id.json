@@ -1,0 +1,26 @@
+{
+  "name": "gs-issue-save-get-filename-id",
+  "description": "get の id は frontmatter ではなくファイル名であることを確かめる。中の id が 1 でも get 5 の id は 5 で、get 1 は見つからない",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "5"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ],
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/5.md",
+        "content": "---\nid: 1\ntitle: filename wins\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      }
+    ]
+  }
+}

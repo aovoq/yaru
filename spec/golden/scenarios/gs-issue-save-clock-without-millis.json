@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-clock-without-millis",
+  "description": "小数のない YARU_NOW を、ミリ秒 000 の UTC として保存することを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "frozen"],
+      "now": "2026-09-28T12:00:00Z"
+    }
+  ]
+}

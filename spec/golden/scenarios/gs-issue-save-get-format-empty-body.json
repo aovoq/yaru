@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-save-get-format-empty-body",
+  "description": "本文が空の issue を yaru issue get -f したとき、題名のあとに空行があり、本文の行を足さないことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "empty"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1", "-f"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

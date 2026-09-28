@@ -1,0 +1,54 @@
+{
+  "name": "gs-issue-save-event-all-fields",
+  "description": "1 回の更新で変えた追跡項目が、title、status、assignee、labels、dueDate、priority、parent、blocks の順でイベントになることを確かめる。本文は入らない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "parent"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "child", "--body", "old"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--id",
+        "2",
+        "--title",
+        "renamed",
+        "--status",
+        "in_progress",
+        "--assignee",
+        "ada",
+        "--label",
+        "ui",
+        "--label",
+        "web",
+        "--dueDate",
+        "2026-10-01",
+        "--priority",
+        "high",
+        "--parent",
+        "1",
+        "--block",
+        "1",
+        "--body",
+        "new"
+      ],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "session-1"
+      },
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "2"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

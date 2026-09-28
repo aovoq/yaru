@@ -1,0 +1,21 @@
+{
+  "name": "gs-issue-save-patch-unknown-op",
+  "description": "未知の patch op を、使える op の列挙と実際の値で拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--id",
+        "9",
+        "--patch",
+        "[{\"op\":\"splice\",\"text\":\"x\"}]"
+      ],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

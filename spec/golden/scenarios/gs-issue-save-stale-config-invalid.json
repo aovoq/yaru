@@ -1,0 +1,30 @@
+{
+  "name": "gs-issue-save-stale-config-invalid",
+  "description": "壊れた staleAfter は get も save もファイルを書く前に拒み、issue を残すことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--title", "changed"],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ],
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "staleAfter: nope\n"
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: keep\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      }
+    ]
+  }
+}

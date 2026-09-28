@@ -1,0 +1,33 @@
+{
+  "name": "gs-issue-save-save-self-block-in-file",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--id", "1", "--title", "fixed"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "invalid block: an issue cannot block itself, actual 1\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues/1.md",
+      "content": "---\nid: 1\ntitle: seed\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks: 1\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

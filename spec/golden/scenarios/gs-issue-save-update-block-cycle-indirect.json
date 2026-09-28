@@ -1,0 +1,34 @@
+{
+  "name": "gs-issue-save-update-block-cycle-indirect",
+  "description": "間に 1 枚挟んだ循環の --block も、直接塞がれているという文で拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "a"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "b"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "c"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--block", "2"],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "2", "--block", "3"],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "3", "--block", "1"],
+      "now": "2026-09-28T14:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "name": "gs-issue-save-create-priorities",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "initialized <WORKSPACE>/.yaru\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "save", "--title", "u", "--priority", "urgent"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"u\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": \"urgent\",\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "save", "--title", "h", "--priority", "high"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"2\",\n  \"title\": \"h\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": \"high\",\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "save", "--title", "m", "--priority", "medium"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"3\",\n  \"title\": \"m\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": \"medium\",\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "save", "--title", "l", "--priority", "low"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"4\",\n  \"title\": \"l\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": null,\n  \"priority\": \"low\",\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:00:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": "comments",
+      "content": "",
+      "directory": true
+    },
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues/1.md",
+      "content": "---\nid: 1\ntitle: u\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority: urgent\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "issues/2.md",
+      "content": "---\nid: 2\ntitle: h\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority: high\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "issues/3.md",
+      "content": "---\nid: 3\ntitle: m\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority: medium\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "issues/4.md",
+      "content": "---\nid: 4\ntitle: l\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority: low\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "questions/.gitignore",
+      "content": "*\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

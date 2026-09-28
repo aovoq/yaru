@@ -1,0 +1,22 @@
+{
+  "name": "gs-issue-save-update-label-spaces",
+  "description": "前後に空白のあるラベルは、イベントの to では空白付き、ファイルは空白を残し、get は削った値になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--label", " a "],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

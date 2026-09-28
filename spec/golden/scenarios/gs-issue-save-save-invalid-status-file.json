@@ -1,0 +1,22 @@
+{
+  "name": "gs-issue-save-save-invalid-status-file",
+  "description": "ファイルの status が壊れていると、正しい更新でも読めずに落ち、actual はファイルの値になることを確かめる。ファイルは残る",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--id", "1", "--title", "fixed"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ],
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: broken\nstatus: nope\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      }
+    ]
+  }
+}

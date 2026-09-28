@@ -1,0 +1,43 @@
+{
+  "name": "gs-issue-save-update-omit-keeps-fields",
+  "description": "更新で省いた担当、ラベル、期日、優先度、親、本文は変わらないことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "parent"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "child",
+        "--assignee",
+        "ada",
+        "--label",
+        "ui",
+        "--dueDate",
+        "2026-10-01",
+        "--priority",
+        "high",
+        "--parent",
+        "1",
+        "--body",
+        "keep"
+      ],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "2", "--status", "done"],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "2"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

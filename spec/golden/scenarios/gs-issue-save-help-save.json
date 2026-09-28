@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-help-save",
+  "description": "yaru issue save の --help が、作成と更新のフラグ、none、patch の形を、終了コード 0 で出すことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--help"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

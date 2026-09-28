@@ -1,0 +1,26 @@
+{
+  "name": "gs-issue-save-create-blocked-by",
+  "description": "作成時の --blockedBy は相手の blocks と updatedAt を書き換え、イベントは相手の issue に付くことを確かめる。新しい issue にはイベントが無い",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "owner"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "blocked", "--blockedBy", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "2"],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

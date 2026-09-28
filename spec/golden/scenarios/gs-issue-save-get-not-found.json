@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-get-not-found",
+  "description": "居ない id の yaru issue get が issue not found で終了コード 1 になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "9"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "name": "gs-issue-save-get-parent-cycle-in-files",
+  "description": "ファイル上で親子が循環していても get は検査せず、保存した parent をそのまま返すことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "2"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ],
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: one\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent: 2\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/2.md",
+        "content": "---\nid: 2\ntitle: two\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent: 1\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      }
+    ]
+  }
+}

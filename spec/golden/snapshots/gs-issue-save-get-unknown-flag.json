@@ -1,0 +1,19 @@
+{
+  "name": "gs-issue-save-get-unknown-flag",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "1", "--nope", "x"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --nope\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

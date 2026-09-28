@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-save-create-parent-none",
+  "description": "作成時の --parent none が親なしになることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "parent"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "child", "--parent", "none"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

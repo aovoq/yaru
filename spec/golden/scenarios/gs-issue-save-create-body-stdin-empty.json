@@ -1,0 +1,15 @@
+{
+  "name": "gs-issue-save-create-body-stdin-empty",
+  "description": "作成時の --body - で標準入力が空だと、本文が空になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--body", "-"],
+      "stdin": "",
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

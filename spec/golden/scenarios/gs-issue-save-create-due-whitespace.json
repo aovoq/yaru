@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-create-due-whitespace",
+  "description": "作成時の dueDate は前後の空白を削ってから暦日として読むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--dueDate", " 2026-10-01 "],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

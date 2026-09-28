@@ -1,0 +1,19 @@
+{
+  "name": "gs-issue-save-save-unknown-short-flag",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--title", "x", "-x", "y"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: -x\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

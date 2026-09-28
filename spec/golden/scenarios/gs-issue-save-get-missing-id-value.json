@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-get-missing-id-value",
+  "description": "yaru issue get の --id に値が無いとき、値の不足で落ちることを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "--id"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

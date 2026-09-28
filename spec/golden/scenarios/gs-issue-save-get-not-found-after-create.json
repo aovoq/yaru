@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-save-get-not-found-after-create",
+  "description": "作成に失敗したあとの get が、その id を見つけないことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--status", "nope"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

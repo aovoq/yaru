@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-get-missing-id-format",
+  "description": "yaru issue get の -f は id の代わりにならず、id が無いと使い方で落ちることを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "-f"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

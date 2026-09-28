@@ -1,0 +1,54 @@
+{
+  "name": "gs-issue-save-provenance-from-worktree",
+  "description": "linked worktree からの保存は元のフォルダの .yaru に書き、worktree と branch と session はリンク側になることを確かめる。更新のイベント session も同じである",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "From main"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "From link"],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "link-session"
+      },
+      "now": "2026-09-28T13:00:00.000Z",
+      "workingDirectory": "worktree:feature"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "2", "--status", "in_progress"],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "link-session"
+      },
+      "now": "2026-09-28T14:00:00.000Z",
+      "workingDirectory": "worktree:feature"
+    },
+    {
+      "arguments": ["issue", "get", "2"],
+      "now": "2026-09-28T14:00:00.000Z"
+    }
+  ],
+  "setup": {
+    "files": [
+      {
+        "path": "README.md",
+        "content": "latch\n"
+      }
+    ],
+    "commits": [
+      {
+        "message": "initial",
+        "paths": ["README.md"]
+      }
+    ],
+    "worktrees": [
+      {
+        "name": "feature",
+        "branch": "feat/add-thing"
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "gs-issue-save-get-leading-zero",
+  "description": "ファイル名 08.md は get 08 で読め、get 8 では見つからないことを確かめる。次の採番は 9 である",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--title", "next"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "08"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "8"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ],
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/08.md",
+        "content": "---\nid: 08\ntitle: padded\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      }
+    ]
+  }
+}

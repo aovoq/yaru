@@ -1,0 +1,25 @@
+{
+  "name": "gs-issue-save-create-duplicate-labels",
+  "description": "作成時の重複したラベルは、落とさずにそのまま残ることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "x",
+        "--label",
+        "a",
+        "--label",
+        "a",
+        "--label",
+        "b"
+      ],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

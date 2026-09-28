@@ -1,0 +1,19 @@
+{
+  "name": "gs-issue-save-patch-invalid-json-before-create-rule",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--title", "x", "--patch", "not-json"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "invalid patch: expected a JSON array of operations, actual \"not-json\"\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

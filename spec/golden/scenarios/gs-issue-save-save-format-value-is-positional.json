@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-save-format-value-is-positional",
+  "description": "yaru issue save の --format は値を取らないフラグなので、続く json は位置引数として拒まれることを確かめる。保存はしない",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--format", "json", "--title", "x"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

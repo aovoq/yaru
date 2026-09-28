@@ -1,0 +1,19 @@
+{
+  "name": "gs-issue-save-help-get",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "yaru issue get — retrieve one issue by id\n\nUsage:\n  yaru issue get <id> [-f|--format]\n\nJSON includes labels, body, parent, children, blocks, blockedBy,\nstartedAt, completedAt, canceledAt, createdAt, and updatedAt.\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

@@ -1,0 +1,26 @@
+{
+  "name": "gs-issue-save-create-priorities",
+  "description": "作成時の priority が urgent、high、medium、low を受け取ることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "u", "--priority", "urgent"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "h", "--priority", "high"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "m", "--priority", "medium"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "l", "--priority", "low"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "gs-issue-save-help-save-invalid-now",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--help"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "yesterday",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "invalid YARU_NOW: expected an ISO 8601 datetime such as 2026-09-28T12:00:00.000Z, actual \"yesterday\"\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-patch-op-number",
+  "description": "op が文字列でない patch 要素を、op が必要だと拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "9", "--patch", "[{\"op\":1}]"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

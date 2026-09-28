@@ -1,0 +1,22 @@
+{
+  "name": "gs-issue-save-event-no-op",
+  "description": "同じ題名と status の更新はイベントを足さず、updatedAt だけが進むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "same"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--title", "same", "--status", "todo"],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

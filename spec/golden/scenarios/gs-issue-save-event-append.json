@@ -1,0 +1,22 @@
+{
+  "name": "gs-issue-save-event-append",
+  "description": "2 回目の更新が、イベントファイルの末尾へ次の行を足すことを確かめる。作成の行は無い",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "task"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--status", "in_progress"],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--status", "done"],
+      "now": "2026-09-28T14:00:00.000Z"
+    }
+  ]
+}

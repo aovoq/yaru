@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-patch-item-null",
+  "description": "patch の要素が null だと、操作オブジェクトではないとして拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "9", "--patch", "[null]"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}
