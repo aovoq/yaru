@@ -33,7 +33,9 @@ export function App({ href, knownSlugs }: { href: string; knownSlugs?: ReadonlyS
           fragment={fragment}
         />
       ) : null}
-      {route.name === "not-found" ? <NotFoundPage /> : null}
+      {route.name === "not-found" ? (
+        <NotFoundPage pathname={url.pathname} knownSlugs={knownSlugs} />
+      ) : null}
     </div>
   )
 }
