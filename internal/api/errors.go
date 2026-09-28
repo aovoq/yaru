@@ -1,3 +1,7 @@
+// エラーの文は TS 版のまま。コードは docs/spec/routes.md の「エラーコード」。
+// issue とコメントは not found を含む文だけ NotFound。質問の衝突は Aborted、
+// 取り消しの期限切れは FailedPrecondition。src/web.tsx:84-97 、src/questions.ts:274-303 。
+//
 //declscope:core
 package api
 
@@ -11,9 +15,23 @@ import (
 	"github.com/aovoq/yaru/internal/questions"
 )
 
-// connectStatus はデータのエラーを Connect のコードへ分ける。文は TS 版のまま。
-// 衝突は Aborted、取り消しの期限切れ・acknowledge 済み・コメントへ写したあとは FailedPrecondition。
-// docs/spec/routes.md の「エラーコード」。src/web.tsx:84-96 、src/questions.ts:274-303 。
+func connectError(err error) error {
+	if err == nil {
+		return nil
+	}
+	code := connect.CodeInvalidArgument
+	if strings.Contains(err.Error(), "not found") {
+		code = connect.CodeNotFound
+	}
+	return connect.NewError(code, errors.New(err.Error()))
+}
+
+func invalidArgument(message string) error {
+	return connect.NewError(connect.CodeInvalidArgument, errors.New(message))
+}
+
+// connectStatus は質問の失敗を分ける。衝突は Aborted、期限切れの取り消しは FailedPrecondition。
+// details の QuestionConflict には、そのとき保存されている質問を入れる。
 func connectStatus(err error, question *yaruv1.Question) error {
 	if err == nil {
 		return nil
@@ -52,7 +70,6 @@ func failedPrecondition(message string) bool {
 
 // questionFailure は QuestionConflict の質問を details に載せる。
 // 期限超過と、コメントへ写したあとの取り消しは、エラーに質問が付かないので読み直す。
-// docs/spec/routes.md の「エラーコード」。src/questions.ts:287-303 。
 func questionFailure(directory questions.Directory, id string, moment *time.Time, err error) error {
 	question, convertErr := conflictQuestion(err)
 	if convertErr != nil {
@@ -61,7 +78,7 @@ func questionFailure(directory questions.Directory, id string, moment *time.Time
 	if question == nil && failedPrecondition(err.Error()) {
 		loaded, loadErr := questions.GetQuestion(directory, id, moment)
 		if loadErr == nil {
-			converted, convertedErr := protoQuestion(loaded)
+			converted, convertedErr := questionMessage(loaded)
 			if convertedErr == nil {
 				question = converted
 			}
@@ -75,5 +92,5 @@ func conflictQuestion(err error) (*yaruv1.Question, error) {
 	if !errors.As(err, &conflict) {
 		return nil, nil
 	}
-	return protoQuestion(conflict.Question)
+	return questionMessage(conflict.Question)
 }

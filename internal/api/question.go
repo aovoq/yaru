@@ -43,7 +43,7 @@ func (service *questionService) ListQuestions(ctx context.Context, request *conn
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
-	converted, err := protoQuestions(listed)
+	converted, err := questionMessages(listed)
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
@@ -66,7 +66,7 @@ func (service *questionService) GetQuestion(ctx context.Context, request *connec
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
-	converted, err := protoQuestion(question)
+	converted, err := questionMessage(question)
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
@@ -107,7 +107,7 @@ func (service *questionService) AnswerQuestion(ctx context.Context, request *con
 	if err != nil {
 		return nil, questionFailure(directory, request.Msg.GetId(), &moment, err)
 	}
-	converted, err := protoQuestion(saved)
+	converted, err := questionMessage(saved)
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
@@ -136,7 +136,7 @@ func (service *questionService) UndoAnswer(ctx context.Context, request *connect
 	if err != nil {
 		return nil, questionFailure(directory, request.Msg.GetId(), &moment, err)
 	}
-	converted, err := protoQuestion(saved)
+	converted, err := questionMessage(saved)
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
@@ -160,7 +160,7 @@ func (service *questionService) CancelQuestion(ctx context.Context, request *con
 	if err != nil {
 		return nil, questionFailure(directory, request.Msg.GetId(), &moment, err)
 	}
-	converted, err := protoQuestion(saved)
+	converted, err := questionMessage(saved)
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}

@@ -27,8 +27,6 @@ import (
 // テストが本物の ~/.local/state/yaru と HOME を触らないようにする。
 // docs/spec/yaru-format.md の「状態ディレクトリ」。src/web.tsx の JSON とフォーム。
 
-const fixedNow = "2026-09-28T12:00:00.000Z"
-
 var repositoryDirectory string
 
 func TestMain(m *testing.M) {
@@ -126,7 +124,7 @@ func runGit(t *testing.T, directory string, args ...string) {
 	}
 }
 
-func initGit(t *testing.T, root string) {
+func initRepositoryGit(t *testing.T, root string) {
 	t.Helper()
 	runGit(t, root, "init", "--quiet", "--initial-branch", "main")
 	runGit(t, root, "config", "user.name", "Spec Author")
@@ -382,7 +380,7 @@ func registerWorkspace(t *testing.T, root string, stateDirectory string) string 
 func newRepository(t *testing.T, stateDirectory string) (string, string) {
 	t.Helper()
 	root := physicalTemp(t)
-	initGit(t, root)
+	initRepositoryGit(t, root)
 	runYaru(t, root, stateDirectory, "init")
 	return root, registerWorkspace(t, root, stateDirectory)
 }
@@ -962,7 +960,7 @@ func TestDashboardMatchesTypeScript(t *testing.T) {
 func TestInboxMatchesTypeScript(t *testing.T) {
 	stateDirectory := physicalTemp(t)
 	root := physicalTemp(t)
-	initGit(t, root)
+	initRepositoryGit(t, root)
 	runYaru(t, root, stateDirectory, "init")
 	registry := "{\n  \"workspaces\": [\n    {\n      \"slug\": \"A B\",\n      \"root\": " + jsonString(root) + "\n    }\n  ]\n}\n"
 	if err := os.WriteFile(filepath.Join(stateDirectory, "workspaces.json"), []byte(registry), 0o644); err != nil {
@@ -1015,7 +1013,7 @@ func TestNotificationsMatchTypeScript(t *testing.T) {
 	t.Setenv("YARU_NOW", "2026-09-25T09:00:00.000Z")
 	stateDirectory := physicalTemp(t)
 	source := namedRoot(t, "app")
-	initGit(t, source)
+	initRepositoryGit(t, source)
 	runYaru(t, source, stateDirectory, "init")
 	config := "publicUrl: https://mac.example.ts.net/\nnotify: cat >> received.jsonl; echo >> received.jsonl\n"
 	if err := os.WriteFile(filepath.Join(source, ".yaru", "config.yml"), []byte(config), 0o644); err != nil {
@@ -1071,7 +1069,7 @@ func TestNotificationsMatchTypeScript(t *testing.T) {
 	t.Setenv("YARU_NOW", "2026-09-25T09:00:00.000Z")
 	staleState := physicalTemp(t)
 	staleSource := namedRoot(t, "stale")
-	initGit(t, staleSource)
+	initRepositoryGit(t, staleSource)
 	runYaru(t, staleSource, staleState, "init")
 	staleConfig := "staleAfter: 1h\nnotify: cat >> received.jsonl; echo >> received.jsonl\n"
 	if err := os.WriteFile(filepath.Join(staleSource, ".yaru", "config.yml"), []byte(staleConfig), 0o644); err != nil {
@@ -1221,7 +1219,7 @@ func TestNotifyFailureWarningMatchesTypeScript(t *testing.T) {
 	t.Setenv("YARU_NOW", "2026-09-25T09:00:00.000Z")
 	stateDirectory := physicalTemp(t)
 	source := namedRoot(t, "broken")
-	initGit(t, source)
+	initRepositoryGit(t, source)
 	runYaru(t, source, stateDirectory, "init")
 	if err := os.WriteFile(filepath.Join(source, ".yaru", "config.yml"), []byte("notify: echo boom >&2; exit 3\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -1302,7 +1300,7 @@ func assertQuestionJSON(t *testing.T, payload map[string]any, question *yaruv1.Q
 		if question.Priority != nil {
 			t.Fatalf("priority %s", question.GetPriority())
 		}
-	} else if priorityName(question.GetPriority()) != payload["priority"] {
+	} else if priorityText(question.GetPriority()) != payload["priority"] {
 		t.Fatalf("priority go %s json %v", question.GetPriority(), payload["priority"])
 	}
 	options, _ := payload["options"].([]any)
@@ -1358,7 +1356,7 @@ func questionStatusName(status yaruv1.QuestionStatus) string {
 	}
 }
 
-func priorityName(priority yaruv1.IssuePriority) string {
+func priorityText(priority yaruv1.IssuePriority) string {
 	switch priority {
 	case yaruv1.IssuePriority_ISSUE_PRIORITY_URGENT:
 		return "urgent"

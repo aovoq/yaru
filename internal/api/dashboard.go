@@ -32,7 +32,7 @@ func (service *dashboardService) GetDashboard(ctx context.Context, request *conn
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
-	convertedQuestions, err := protoQuestions(listedQuestions)
+	convertedQuestions, err := questionMessages(listedQuestions)
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
@@ -40,7 +40,7 @@ func (service *dashboardService) GetDashboard(ctx context.Context, request *conn
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}
-	convertedIssues, err := protoIssues(listedIssues)
+	convertedIssues, err := issueMessages(listedIssues)
 	if err != nil {
 		return nil, connectStatus(err, nil)
 	}

@@ -49,7 +49,7 @@ func (service *inboxService) GetInbox(ctx context.Context, request *connect.Requ
 				awaiting = append(awaiting, question)
 			}
 		}
-		awaitingCount, countErr := fitInt32(len(awaiting), "awaiting")
+		awaitingCount, countErr := int32Count("awaiting", len(awaiting))
 		if countErr != nil {
 			return nil, connectStatus(countErr, nil)
 		}
@@ -103,7 +103,7 @@ func (service *inboxService) GetInbox(ctx context.Context, request *connect.Requ
 func protoInboxItems(entries []inboxEntry) ([]*yaruv1.InboxItem, error) {
 	items := []*yaruv1.InboxItem{}
 	for _, entry := range entries {
-		question, err := protoQuestion(entry.Question)
+		question, err := questionMessage(entry.Question)
 		if err != nil {
 			return nil, err
 		}
