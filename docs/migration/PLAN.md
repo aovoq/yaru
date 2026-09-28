@@ -32,7 +32,7 @@
 | P0-clock | 時刻を外から固定する口 `YARU_NOW` を TS 版に足す (テストから) | `src/` の変更とテスト | 取り込み済み (b03d5c7) |
 | P0-format | `.yaru/` の形式の仕様を書く | `docs/spec/yaru-format.md` | 取り込み済み |
 | P0-golden | CLI の場面を流して出力と `.yaru/` を記録・照合する仕組み (Go 版にも流せる)。データの golden はこれで兼ねる | `spec/golden/` | 取り込み済み |
-| P0-golden-scenarios | 全部のコマンドの場面を書いて記録する | `spec/golden/scenarios/` | P0-golden 待ち |
+| P0-golden-scenarios | 全部のコマンドの場面を書いて記録する | `spec/golden/scenarios/` | 取り込み済み (714 場面) |
 | P0-routes | 全部の入口の一覧と、SPA + Connect への対応 (RPC・server stream・静的) | `docs/spec/routes.md` と `docs/spec/proto-draft/` | 取り込み済み |
 | P0-ui | 全部の状態の画面のシナリオ (1280 と 390) | `spec/ui/` | grok 作業中 |
 | P0-security | 守りの約束 | `docs/spec/security.md` | 取り込み済み |
@@ -60,3 +60,4 @@ Nix と launchd の向き先を替える。古い `dist/yaru.js` は戻せるよ
 | 2026-09-28 | 試験として grok 1 体で P0-clock。拒否の決まり (push・herdr・司令塔の worktree への書き込み) が効くことを確認。Claude のレビューで要修正 2 点 (待ち時間を単調時計で測る、存在しない日を拒む) を直させて取り込み |
 | 2026-09-28 | P0-format・routes・ui・security・golden を grok 5 体で並列に開始 |
 | 2026-09-28 | P0-golden・format・security・routes を Claude の 2〜3 回のレビューのあとで取り込み。段階 0 の確認でユーザーが推奨どおりを承認し、守りは tailscale で担保する方針に決定 |
+| 2026-09-28 | 段階 1 の第 1 陣 (土台・workspace・store・questions・repository/sessions・CLI) を取り込み。Go 版の CLI で golden の 714 場面が全部通った。proto を proto/yaru/v1 に上げて生成。第 2 陣 (サーバーの芯・API 2 本・画面の土台・端末) を開始 |
