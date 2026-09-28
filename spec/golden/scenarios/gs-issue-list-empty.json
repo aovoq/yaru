@@ -1,0 +1,26 @@
+{
+  "name": "gs-issue-list-empty",
+  "description": "初期化直後の yaru issue list が、JSON では issues が空で hasNextPage が false、--format と -f では (none) になることを記録する。末尾の -- だけでは一覧のままである。",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--format"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "-f"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

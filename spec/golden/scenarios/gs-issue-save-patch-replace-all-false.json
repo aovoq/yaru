@@ -1,0 +1,29 @@
+{
+  "name": "gs-issue-save-patch-replace-all-false",
+  "description": "patch の replace_all false が、1 回だけの一致を 1 箇所だけ置き換えることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--body", "alpha beta"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--id",
+        "1",
+        "--patch",
+        "[{\"op\":\"replace\",\"old_string\":\"beta\",\"new_string\":\"BETA\",\"replace_all\":false}]"
+      ],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

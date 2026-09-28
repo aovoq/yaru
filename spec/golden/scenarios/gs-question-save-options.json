@@ -1,0 +1,48 @@
+{
+  "name": "gs-question-save-options",
+  "description": "question save の --option は並べた順の選択肢。カンマ、引用符、バックスラッシュ、U+2028 を JSON のまま保存する。更新で --option を省くと残り、次の --option で全部置き換わる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "q",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h",
+        "--option",
+        "keep me"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--priority", "low"],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--id",
+        "1",
+        "--option",
+        "残す",
+        "--option",
+        "消す, ただし \"本番\" だけ",
+        "--option",
+        "a\\b",
+        "--option",
+        "line\u2028sep",
+        "--option",
+        "  trim me  "
+      ],
+      "now": "2026-09-28T00:02:00.000Z"
+    }
+  ]
+}

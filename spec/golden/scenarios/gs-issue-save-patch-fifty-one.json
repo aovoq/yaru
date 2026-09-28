@@ -1,0 +1,29 @@
+{
+  "name": "gs-issue-save-patch-fifty-one",
+  "description": "操作が 51 個の patch を拒み、本文を変えないことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--body", "keep"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--id",
+        "1",
+        "--patch",
+        "[{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"},{\"op\":\"append\",\"text\":\"a\"}]"
+      ],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-save-help-short",
+  "description": "`yaru comment save -h` が、作成と更新の使い方を出す",
+  "steps": [
+    {
+      "arguments": ["comment", "save", "-h"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

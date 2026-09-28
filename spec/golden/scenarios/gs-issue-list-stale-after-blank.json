@@ -1,0 +1,26 @@
+{
+  "name": "gs-issue-list-stale-after-blank",
+  "description": "staleAfter の値が空のとき、yaru issue list は既定の 24 時間を使うことを記録する。ちょうど 24 時間は false で、それを超えると true である。",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "staleAfter:\n"
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: Exact\nstatus: in_progress\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-27T12:00:00.000Z\nupdatedAt: 2026-09-27T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/2.md",
+        "content": "---\nid: 2\ntitle: Older\nstatus: in_progress\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-27T11:59:59.999Z\nupdatedAt: 2026-09-27T11:59:59.999Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-save-update-blocked-by-remove-missing",
+  "description": "居ない id への --removeBlockedBy を拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "a"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--removeBlockedBy", "9"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

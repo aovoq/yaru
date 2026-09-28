@@ -1,0 +1,175 @@
+{
+  "name": "gs-issue-list-due-timezone",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T20:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "initialized <WORKSPACE>/.yaru\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Sep26", "--dueDate", "2026-09-26"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:01:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"Sep26\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": \"2026-09-26\",\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:01:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:01:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Sep27", "--dueDate", "2026-09-27"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:02:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"2\",\n  \"title\": \"Sep27\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": \"2026-09-27\",\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:02:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:02:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Sep28", "--dueDate", "2026-09-28"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:03:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"3\",\n  \"title\": \"Sep28\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": \"2026-09-28\",\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:03:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:03:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Sep29", "--dueDate", "2026-09-29"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:04:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"4\",\n  \"title\": \"Sep29\",\n  \"status\": \"todo\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": \"2026-09-29\",\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:04:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:04:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "DoneSep26",
+        "--status",
+        "done",
+        "--dueDate",
+        "2026-09-26"
+      ],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:05:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"5\",\n  \"title\": \"DoneSep26\",\n  \"status\": \"done\",\n  \"assignee\": null,\n  \"labels\": [],\n  \"dueDate\": \"2026-09-26\",\n  \"priority\": null,\n  \"parent\": null,\n  \"blocks\": [],\n  \"blockedBy\": [],\n  \"children\": [],\n  \"startedAt\": null,\n  \"completedAt\": \"2026-09-28T12:05:00.000Z\",\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T12:05:00.000Z\",\n  \"updatedAt\": \"2026-09-28T12:05:00.000Z\",\n  \"session\": null,\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"stale\": false,\n  \"body\": \"\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "list", "--due", "overdue"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T20:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"issues\": [\n    {\n      \"id\": \"3\",\n      \"title\": \"Sep28\",\n      \"status\": \"todo\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": \"2026-09-28\",\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T12:03:00.000Z\",\n      \"updatedAt\": \"2026-09-28T12:03:00.000Z\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"stale\": false,\n      \"body\": \"\"\n    },\n    {\n      \"id\": \"2\",\n      \"title\": \"Sep27\",\n      \"status\": \"todo\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": \"2026-09-27\",\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T12:02:00.000Z\",\n      \"updatedAt\": \"2026-09-28T12:02:00.000Z\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"stale\": false,\n      \"body\": \"\"\n    },\n    {\n      \"id\": \"1\",\n      \"title\": \"Sep26\",\n      \"status\": \"todo\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": \"2026-09-26\",\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T12:01:00.000Z\",\n      \"updatedAt\": \"2026-09-28T12:01:00.000Z\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"stale\": false,\n      \"body\": \"\"\n    }\n  ],\n  \"hasNextPage\": false\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "list", "--due", "overdue"],
+      "stdin": "",
+      "environment": {
+        "TZ": "America/Los_Angeles"
+      },
+      "now": "2026-09-28T20:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"issues\": [\n    {\n      \"id\": \"2\",\n      \"title\": \"Sep27\",\n      \"status\": \"todo\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": \"2026-09-27\",\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T12:02:00.000Z\",\n      \"updatedAt\": \"2026-09-28T12:02:00.000Z\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"stale\": false,\n      \"body\": \"\"\n    },\n    {\n      \"id\": \"1\",\n      \"title\": \"Sep26\",\n      \"status\": \"todo\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": \"2026-09-26\",\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T12:01:00.000Z\",\n      \"updatedAt\": \"2026-09-28T12:01:00.000Z\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"stale\": false,\n      \"body\": \"\"\n    }\n  ],\n  \"hasNextPage\": false\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "list", "--due", "overdue"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T06:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"issues\": [\n    {\n      \"id\": \"2\",\n      \"title\": \"Sep27\",\n      \"status\": \"todo\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": \"2026-09-27\",\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T12:02:00.000Z\",\n      \"updatedAt\": \"2026-09-28T12:02:00.000Z\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"stale\": false,\n      \"body\": \"\"\n    },\n    {\n      \"id\": \"1\",\n      \"title\": \"Sep26\",\n      \"status\": \"todo\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": \"2026-09-26\",\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T12:01:00.000Z\",\n      \"updatedAt\": \"2026-09-28T12:01:00.000Z\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"stale\": false,\n      \"body\": \"\"\n    }\n  ],\n  \"hasNextPage\": false\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "list", "--due", "overdue"],
+      "stdin": "",
+      "environment": {
+        "TZ": "America/Los_Angeles"
+      },
+      "now": "2026-09-28T06:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"issues\": [\n    {\n      \"id\": \"1\",\n      \"title\": \"Sep26\",\n      \"status\": \"todo\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": \"2026-09-26\",\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T12:01:00.000Z\",\n      \"updatedAt\": \"2026-09-28T12:01:00.000Z\",\n      \"session\": null,\n      \"worktree\": \"<WORKSPACE>\",\n      \"branch\": \"main\",\n      \"stale\": false,\n      \"body\": \"\"\n    }\n  ],\n  \"hasNextPage\": false\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": "comments",
+      "content": "",
+      "directory": true
+    },
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues/1.md",
+      "content": "---\nid: 1\ntitle: Sep26\nstatus: todo\nassignee:\nlabels:\ndueDate: 2026-09-26\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:01:00.000Z\nupdatedAt: 2026-09-28T12:01:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "issues/2.md",
+      "content": "---\nid: 2\ntitle: Sep27\nstatus: todo\nassignee:\nlabels:\ndueDate: 2026-09-27\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:02:00.000Z\nupdatedAt: 2026-09-28T12:02:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "issues/3.md",
+      "content": "---\nid: 3\ntitle: Sep28\nstatus: todo\nassignee:\nlabels:\ndueDate: 2026-09-28\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:03:00.000Z\nupdatedAt: 2026-09-28T12:03:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "issues/4.md",
+      "content": "---\nid: 4\ntitle: Sep29\nstatus: todo\nassignee:\nlabels:\ndueDate: 2026-09-29\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:04:00.000Z\nupdatedAt: 2026-09-28T12:04:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "issues/5.md",
+      "content": "---\nid: 5\ntitle: DoneSep26\nstatus: done\nassignee:\nlabels:\ndueDate: 2026-09-26\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt: 2026-09-28T12:05:00.000Z\ncanceledAt:\ncreatedAt: 2026-09-28T12:05:00.000Z\nupdatedAt: 2026-09-28T12:05:00.000Z\nsession:\nworktree: <WORKSPACE>\nbranch: main\n---\n\n\n"
+    },
+    {
+      "path": "questions/.gitignore",
+      "content": "*\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

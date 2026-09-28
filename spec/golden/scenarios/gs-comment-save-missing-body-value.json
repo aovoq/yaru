@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-save-missing-body-value",
+  "description": "`--body` の値を忘れると missing value for --body になる",
+  "steps": [
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

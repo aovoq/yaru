@@ -1,0 +1,19 @@
+{
+  "name": "gs-comment-list-double-dash",
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--", "--issue", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: --issue\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

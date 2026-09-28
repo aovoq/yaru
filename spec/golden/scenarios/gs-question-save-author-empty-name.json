@@ -1,0 +1,24 @@
+{
+  "name": "gs-question-save-author-empty-name",
+  "description": "git config user.name が空のとき、author と answeredBy は me になる",
+  "setup": {
+    "gitUser": {
+      "name": "",
+      "email": "empty@example.com"
+    }
+  },
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "yes"],
+      "now": "2026-09-28T00:01:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "gs-comment-list-issue-not-found",
+  "description": "無い issue の一覧は issue not found: 9 になり、コメントは作らない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "list", "--issue", "9"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "gs-issue-save-patch-replace-range",
+  "description": "patch の replace_range が from の位置から to の直前までを置き換え、to 自体は残すことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--body", "hello WORLD foo"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--id",
+        "1",
+        "--patch",
+        "[{\"op\":\"replace_range\",\"from\":\"hello \",\"to\":\" foo\",\"new_string\":\"hi\"}]"
+      ],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

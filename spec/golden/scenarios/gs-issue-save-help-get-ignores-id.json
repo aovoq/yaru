@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-help-get-ignores-id",
+  "description": "yaru issue get に id と --help を一緒に渡すと、issue を読まずに契約だけを出すことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "1", "--help"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-help-save-invalid-now",
+  "description": "壊れた YARU_NOW は --help より先に拒み、契約を出さないことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--help"],
+      "now": "yesterday"
+    }
+  ]
+}

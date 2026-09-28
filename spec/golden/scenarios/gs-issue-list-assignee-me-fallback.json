@@ -1,0 +1,36 @@
+{
+  "name": "gs-issue-list-assignee-me-fallback",
+  "description": "git の user.name が空のとき、--assignee me が me になり、yaru issue list も me で絞り込むことを記録する。",
+  "setup": {
+    "gitUser": {
+      "name": "",
+      "email": "golden@example.com"
+    }
+  },
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Mine", "--assignee", "me"],
+      "now": "2026-09-28T12:01:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Ada task", "--assignee", "Ada"],
+      "now": "2026-09-28T12:02:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", "me"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", "me", "--format"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", "none"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-create-assignee-none-whitespace",
+  "description": "前後の空白を削ったあとが none なら、担当なしになることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--assignee", " none "],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

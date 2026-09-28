@@ -1,0 +1,139 @@
+{
+  "name": "gs-issue-list-unknown-flag",
+  "steps": [
+    {
+      "arguments": ["issue", "list", "--foo", "bar"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --foo\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--priority", "high"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --priority\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--sort", "updated"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --sort\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--id", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --id\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--block", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --block\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--dueDate", "2026-09-28"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --dueDate\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "-x", "bar"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: -x\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "-F", "bar"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: -F\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "-p", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: -p\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--status=todo", "extra"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --status=todo\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["issue", "list", "--format=table", "extra"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --format=table\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

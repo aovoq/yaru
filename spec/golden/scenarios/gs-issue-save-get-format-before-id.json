@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-save-get-format-before-id",
+  "description": "yaru issue get の --format は値を取らないので、続く 1 が id になり、人向け表示になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "hello"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "--format", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

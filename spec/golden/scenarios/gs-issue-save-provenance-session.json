@@ -1,0 +1,17 @@
+{
+  "name": "gs-issue-save-provenance-session",
+  "description": "作成時の CLAUDE_CODE_SESSION_ID が session になり、worktree はワークスペース、branch は main になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "topic"],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "session-2"
+      },
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

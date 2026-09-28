@@ -1,0 +1,24 @@
+{
+  "name": "gs-comment-save-author-git-user",
+  "description": "author は作成時の git config user.name になる。空白も残る",
+  "setup": {
+    "gitUser": {
+      "name": "Spec Author",
+      "email": "spec@example.com"
+    }
+  },
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "hello"],
+      "now": "2026-09-28T12:05:00.000Z"
+    }
+  ]
+}

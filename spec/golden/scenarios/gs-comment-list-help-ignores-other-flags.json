@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-list-help-ignores-other-flags",
+  "description": "`--help` は他のフラグより先に効く。知らないフラグがあっても案内を出して終了コード 0 になる",
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--issue", "1", "--bogus", "x", "--help"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

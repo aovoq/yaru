@@ -1,0 +1,32 @@
+{
+  "name": "gs-question-wait-timeout-human",
+  "description": "時間切れの question wait を -f と --format で出すと、stdout は open の 1 行。終了コードは 2",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "50ms", "--interval", "10ms", "-f"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "wait",
+        "--id",
+        "1",
+        "--timeout",
+        "50ms",
+        "--interval",
+        "10ms",
+        "--format"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

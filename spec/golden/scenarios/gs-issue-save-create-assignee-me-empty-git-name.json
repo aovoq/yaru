@@ -1,0 +1,24 @@
+{
+  "name": "gs-issue-save-create-assignee-me-empty-git-name",
+  "description": "git の user.name が空のとき、--assignee me とイベントの by が me になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--assignee", "me"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--status", "done"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ],
+  "setup": {
+    "gitUser": {
+      "name": "",
+      "email": "empty@example.com"
+    }
+  }
+}

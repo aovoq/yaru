@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-help-get-short",
+  "description": "yaru issue get の -h が --help と同じ契約を、終了コード 0 で出すことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "-h"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "name": "gs-question-save-answer-by-invalid",
+  "description": "question save の --answerBy が相対期限でも ISO 8601 の日時でもない。日付だけ、秒、大文字、小文字の t と z",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--answerBy", "tomorrow"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--answerBy", "2026-09-30"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--answerBy", "30s"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--answerBy", "2H"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--answerBy", "1w"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--answerBy", "2026-09-30t18:00:00Z"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--answerBy", "2026-09-30T18:00:00z"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--answerBy", "2026-09-30 18:00:00Z"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

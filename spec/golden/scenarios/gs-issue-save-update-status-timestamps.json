@@ -1,0 +1,58 @@
+{
+  "name": "gs-issue-save-update-status-timestamps",
+  "description": "status の遷移で startedAt は一度付くと残る、completedAt は done のあいだだけ、canceledAt は canceled のあいだだけであることを確かめる。同じ done の再保存は completedAt を保つ",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "work"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--status", "in_progress"],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--status", "done"],
+      "now": "2026-09-28T14:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--status", "todo"],
+      "now": "2026-09-28T15:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--status", "canceled"],
+      "now": "2026-09-28T16:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--status", "todo"],
+      "now": "2026-09-28T17:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--status", "done"],
+      "now": "2026-09-28T18:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--status", "done"],
+      "now": "2026-09-28T19:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--status", "canceled"],
+      "now": "2026-09-28T20:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--status", "in_progress"],
+      "now": "2026-09-28T21:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--status", "backlog"],
+      "now": "2026-09-28T22:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T23:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-save-create-due-year-0100-feb-29",
+  "description": "作成時の dueDate 年 100 の 2 月 29 日 (0100-02-29) を YYYY-MM-DD の実在する暦日ではないとして拒み、ファイルを作らないことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--dueDate", "0100-02-29"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

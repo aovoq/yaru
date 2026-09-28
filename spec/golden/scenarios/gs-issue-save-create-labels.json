@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-create-labels",
+  "description": "作成時の --label を繰り返すと、その順でラベル全体になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--label", "ui", "--label", "本番"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

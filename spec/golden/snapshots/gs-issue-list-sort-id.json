@@ -1,0 +1,61 @@
+{
+  "name": "gs-issue-list-sort-id",
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "stdin": "",
+      "environment": {
+        "LANG": "C",
+        "LC_ALL": "C",
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"issues\": [\n    {\n      \"id\": \"9\",\n      \"title\": \"Nine\",\n      \"status\": \"todo\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": null,\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n      \"session\": null,\n      \"worktree\": null,\n      \"branch\": null,\n      \"stale\": false,\n      \"body\": \"\"\n    },\n    {\n      \"id\": \"2\",\n      \"title\": \"Two\",\n      \"status\": \"todo\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": null,\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n      \"session\": null,\n      \"worktree\": null,\n      \"branch\": null,\n      \"stale\": false,\n      \"body\": \"\"\n    },\n    {\n      \"id\": \"10\",\n      \"title\": \"Ten\",\n      \"status\": \"todo\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": null,\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n      \"session\": null,\n      \"worktree\": null,\n      \"branch\": null,\n      \"stale\": false,\n      \"body\": \"\"\n    },\n    {\n      \"id\": \"1\",\n      \"title\": \"One\",\n      \"status\": \"todo\",\n      \"assignee\": null,\n      \"labels\": [],\n      \"dueDate\": null,\n      \"priority\": null,\n      \"parent\": null,\n      \"blocks\": [],\n      \"blockedBy\": [],\n      \"children\": [],\n      \"startedAt\": null,\n      \"completedAt\": null,\n      \"canceledAt\": null,\n      \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n      \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n      \"session\": null,\n      \"worktree\": null,\n      \"branch\": null,\n      \"stale\": false,\n      \"body\": \"\"\n    }\n  ],\n  \"hasNextPage\": false\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["issue", "list", "--format"],
+      "stdin": "",
+      "environment": {
+        "LANG": "C",
+        "LC_ALL": "C",
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "9   todo          -             -           -       Nine\n2   todo          -             -           -       Two\n10  todo          -             -           -       Ten\n1   todo          -             -           -       One\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues/1.md",
+      "content": "---\nid: 1\ntitle: One\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+    },
+    {
+      "path": "issues/10.md",
+      "content": "---\nid: 10\ntitle: Ten\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+    },
+    {
+      "path": "issues/2.md",
+      "content": "---\nid: 2\ntitle: Two\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+    },
+    {
+      "path": "issues/9.md",
+      "content": "---\nid: 9\ntitle: Nine\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "gs-question-save-from-subdirectory",
+  "description": "サブディレクトリで question save しても .yaru はワークスペースの根に書く。worktree は git の最上位で、今のディレクトリではない",
+  "setup": {
+    "files": [
+      {
+        "path": "nested/keep.txt",
+        "content": "x\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "from nested",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h"
+      ],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "session-nested"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": "nested"
+    }
+  ]
+}

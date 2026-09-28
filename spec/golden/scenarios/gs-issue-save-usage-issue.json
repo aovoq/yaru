@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-usage-issue",
+  "description": "yaru issue にサブコマンドが無いとき、list|get|save の使い方を終了コード 1 で出すことを確かめる。ワークスペースは要らない",
+  "steps": [
+    {
+      "arguments": ["issue"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

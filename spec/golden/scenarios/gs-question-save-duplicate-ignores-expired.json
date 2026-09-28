@@ -1,0 +1,27 @@
+{
+  "name": "gs-question-save-duplicate-ignores-expired",
+  "description": "期限切れは open ではないので、同じ title の質問を新しく作れる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "消すか",
+        "--default",
+        "x",
+        "--answerBy",
+        "2026-09-27T00:00:00.000Z"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "消すか", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

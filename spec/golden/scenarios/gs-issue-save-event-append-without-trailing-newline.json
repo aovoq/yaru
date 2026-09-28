@@ -1,0 +1,26 @@
+{
+  "name": "gs-issue-save-event-append-without-trailing-newline",
+  "description": "イベントファイルが改行で終わっていないと、次の JSON が前の行の続きになることを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--id", "1", "--status", "done"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ],
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: task\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/events/1.jsonl",
+        "content": "{\"field\":\"title\",\"from\":\"a\",\"to\":\"task\",\"by\":\"golden\",\"session\":null,\"at\":\"2026-09-28T00:00:00.000Z\"}"
+      }
+    ]
+  }
+}

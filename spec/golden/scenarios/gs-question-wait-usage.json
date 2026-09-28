@@ -1,0 +1,24 @@
+{
+  "name": "gs-question-wait-usage",
+  "description": "question wait の id が無い、余分な引数、知らないフラグ、--timeout の値が無い。id が無いと、不正な期限より先に usage になる",
+  "steps": [
+    {
+      "arguments": ["question", "wait"]
+    },
+    {
+      "arguments": ["question", "wait", "1", "extra"]
+    },
+    {
+      "arguments": ["question", "wait", "--status", "open"]
+    },
+    {
+      "arguments": ["question", "wait", "--timeout"]
+    },
+    {
+      "arguments": ["question", "wait", "--interval"]
+    },
+    {
+      "arguments": ["question", "wait", "--timeout", "nope"]
+    }
+  ]
+}

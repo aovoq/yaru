@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-list-help",
+  "description": "`yaru comment list --help` が、一覧の使い方を終了コード 0 で出す",
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--help"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

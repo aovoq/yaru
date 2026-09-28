@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-save-create-title-special-characters",
+  "description": "題名の引用符、コロン、番号記号、日本語を、エスケープせずにファイルと JSON へ書くことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "本番: \"称号\" #1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

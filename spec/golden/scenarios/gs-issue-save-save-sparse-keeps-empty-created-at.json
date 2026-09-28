@@ -1,0 +1,26 @@
+{
+  "name": "gs-issue-save-save-sparse-keeps-empty-created-at",
+  "description": "createdAt が空の手書き issue を更新しても createdAt は空のまま、updatedAt だけが入ることを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--id", "1", "--title", "rewritten"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ],
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\ntitle: sparse\n---\n\n\n"
+      }
+    ]
+  }
+}

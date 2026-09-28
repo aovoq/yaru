@@ -1,0 +1,26 @@
+{
+  "name": "gs-question-list-empty",
+  "description": "質問が 1 件も無い question list の JSON と、人向けの (none)",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "-f"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "--format"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "--f"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

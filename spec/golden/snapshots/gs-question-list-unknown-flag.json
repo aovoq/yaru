@@ -1,0 +1,79 @@
+{
+  "name": "gs-question-list-unknown-flag",
+  "steps": [
+    {
+      "arguments": ["question", "list", "--assignee", "me"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --assignee\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "list", "-x", "nope"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: -x\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "list", "--bogus", "value"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --bogus\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "list", "-x"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for -x\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "list", "--force=true"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --force=true\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "list", "--force=true", "x"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --force=true\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

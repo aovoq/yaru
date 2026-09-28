@@ -1,0 +1,43 @@
+{
+  "name": "gs-question-save-answer-by-none",
+  "description": "更新の --answerBy none と空は期限を消す。作成時の none は期限が無いのと同じ",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--default", "x", "--answerBy", "2h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--answerBy", "none"],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--answerBy", "1h"],
+      "now": "2026-09-28T00:02:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--answerBy", ""],
+      "now": "2026-09-28T00:03:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--answerBy", "  none  "],
+      "now": "2026-09-28T00:04:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "created none",
+        "--default",
+        "x",
+        "--answerBy",
+        "none"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

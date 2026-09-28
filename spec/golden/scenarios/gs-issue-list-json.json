@@ -1,0 +1,124 @@
+{
+  "name": "gs-issue-list-json",
+  "description": "parent、children、blocks、blockedBy、状態の時刻、ラベル、担当、期日、優先度、本文を持つ issue を作ったあと、yaru issue list の JSON にその欄と stale と hasNextPage が出ることを記録する。並びは updatedAt の新しい順である。",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Parent gate",
+        "--status",
+        "backlog",
+        "--assignee",
+        "Ada",
+        "--label",
+        "cli",
+        "--label",
+        "docs",
+        "--priority",
+        "low",
+        "--dueDate",
+        "2026-09-27",
+        "--body",
+        "Parent body\nsecond line"
+      ],
+      "now": "2026-09-28T12:01:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Child hinge",
+        "--parent",
+        "1",
+        "--status",
+        "todo",
+        "--assignee",
+        "me",
+        "--label",
+        "docs",
+        "--priority",
+        "high",
+        "--dueDate",
+        "2026-09-28",
+        "--body",
+        "Child body"
+      ],
+      "now": "2026-09-28T12:02:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Progress leaf",
+        "--status",
+        "in_progress",
+        "--blockedBy",
+        "1",
+        "--priority",
+        "urgent",
+        "--dueDate",
+        "2026-09-29",
+        "--body",
+        "Leaf body"
+      ],
+      "now": "2026-09-28T12:03:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Finished gate",
+        "--status",
+        "done",
+        "--priority",
+        "medium",
+        "--body",
+        "Shipped"
+      ],
+      "now": "2026-09-28T12:04:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Dropped gate",
+        "--status",
+        "canceled",
+        "--body",
+        "Dropped"
+      ],
+      "now": "2026-09-28T12:05:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Second child",
+        "--parent",
+        "1",
+        "--body",
+        "Another child"
+      ],
+      "now": "2026-09-28T12:06:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "1", "--block", "2", "--block", "3"],
+      "now": "2026-09-28T12:07:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list"],
+      "now": "2026-09-28T12:07:00.000Z"
+    }
+  ]
+}

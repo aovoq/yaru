@@ -1,0 +1,30 @@
+{
+  "name": "gs-question-wait-answered",
+  "description": "答え済みの question wait は待たずに JSON を返し、最初の 1 回だけ acknowledgedAt を付ける。2 回目は変えない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--body", "context"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "yes\n"],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "1"],
+      "now": "2026-09-28T00:02:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "1"],
+      "now": "2026-09-28T00:03:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:04:00.000Z"
+    }
+  ]
+}

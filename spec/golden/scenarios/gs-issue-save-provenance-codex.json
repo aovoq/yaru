@@ -1,0 +1,17 @@
+{
+  "name": "gs-issue-save-provenance-codex",
+  "description": "CLAUDE_CODE_SESSION_ID が無く CODEX_SESSION_ID があるとき、Codex の値を session にすることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "topic"],
+      "environment": {
+        "CODEX_SESSION_ID": "codex-1"
+      },
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

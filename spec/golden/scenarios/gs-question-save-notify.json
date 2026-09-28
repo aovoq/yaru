@@ -1,0 +1,34 @@
+{
+  "name": "gs-question-save-notify",
+  "description": "作成時、config.yml の notify に質問の JSON を渡す。url は 127.0.0.1 と登録名。標準出力には url を出さない。更新では知らせない",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "notify: cat > .yaru/notify-stdin.json\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "消すか",
+        "--default",
+        "残す",
+        "--answerBy",
+        "1h"
+      ],
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "session-notify"
+      },
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--priority", "high"],
+      "now": "2026-09-28T00:01:00.000Z"
+    }
+  ]
+}

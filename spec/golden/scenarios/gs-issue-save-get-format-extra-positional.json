@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-save-get-format-extra-positional",
+  "description": "yaru issue get -f の後ろの余分な引数を拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1", "-f", "extra"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

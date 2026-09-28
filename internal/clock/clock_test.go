@@ -169,3 +169,93 @@ func TestISOStringMatchesToISOString(t *testing.T) {
 		})
 	}
 }
+
+func TestRelativeTimeMatchesTheTypeScriptWording(t *testing.T) {
+	// bun の relativeTime。now は 2026-09-28T12:00:00.000Z。境界は src/time.ts:49-63
+	now := time.UnixMilli(1790596800000)
+	cases := []struct {
+		offsetMilliseconds int64
+		expected           string
+	}{
+		{offsetMilliseconds: 0, expected: "now"},
+		{offsetMilliseconds: 1, expected: "now"},
+		{offsetMilliseconds: 29_999, expected: "now"},
+		{offsetMilliseconds: 30_000, expected: "in 1m"},
+		{offsetMilliseconds: 59_999, expected: "in 1m"},
+		{offsetMilliseconds: 60_000, expected: "in 1m"},
+		{offsetMilliseconds: 89_999, expected: "in 1m"},
+		{offsetMilliseconds: 90_000, expected: "in 2m"},
+		{offsetMilliseconds: 59 * 60_000, expected: "in 59m"},
+		{offsetMilliseconds: 3_599_999, expected: "in 1h"},
+		{offsetMilliseconds: 3_600_000, expected: "in 1h"},
+		{offsetMilliseconds: 3_630_000, expected: "in 1h 1m"},
+		{offsetMilliseconds: 3_660_000, expected: "in 1h 1m"},
+		{offsetMilliseconds: 5_400_000, expected: "in 1h 30m"},
+		{offsetMilliseconds: 7_140_000, expected: "in 1h 59m"},
+		{offsetMilliseconds: 7_200_000, expected: "in 2h"},
+		{offsetMilliseconds: 86_400_000, expected: "in 24h"},
+		{offsetMilliseconds: 90_000_000, expected: "in 25h"},
+		{offsetMilliseconds: 47 * 60 * 60_000, expected: "in 47h"},
+		{offsetMilliseconds: 172_740_000, expected: "in 47h 59m"},
+		{offsetMilliseconds: 172_770_000, expected: "in 2d"},
+		{offsetMilliseconds: 172_799_999, expected: "in 2d"},
+		{offsetMilliseconds: 172_800_000, expected: "in 2d"},
+		{offsetMilliseconds: 176_400_000, expected: "in 2d"},
+		{offsetMilliseconds: 259_200_000, expected: "in 3d"},
+		{offsetMilliseconds: -1, expected: "now"},
+		{offsetMilliseconds: -29_999, expected: "now"},
+		{offsetMilliseconds: -30_000, expected: "1m ago"},
+		{offsetMilliseconds: -60_000, expected: "1m ago"},
+		{offsetMilliseconds: -5_400_000, expected: "1h 30m ago"},
+		{offsetMilliseconds: -172_800_000, expected: "2d ago"},
+		{offsetMilliseconds: -259_200_000, expected: "3d ago"},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.expected, func(t *testing.T) {
+			moment := time.UnixMilli(now.UnixMilli() + testCase.offsetMilliseconds)
+			actual := clock.RelativeTime(moment, now)
+			if actual != testCase.expected {
+				t.Fatalf("offset %d: expected %s, actual %s", testCase.offsetMilliseconds, testCase.expected, actual)
+			}
+		})
+	}
+}
+
+func TestLocalDateTimeUsesTheProcessZone(t *testing.T) {
+	// bun は TZ=Asia/Tokyo で localDateTime を呼んだ。秒は分に繰り上げない (src/time.ts:67-73)
+	previous := time.Local
+	t.Cleanup(func() { time.Local = previous })
+
+	moment := time.Date(2026, 9, 28, 12, 0, 0, 0, time.UTC)
+	time.Local = time.UTC
+	if actual := clock.LocalDateTime(moment); actual != "09-28 12:00" {
+		t.Fatalf("expected 09-28 12:00, actual %s", actual)
+	}
+
+	tokyo, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.Local = tokyo
+	cases := []struct {
+		moment   time.Time
+		expected string
+	}{
+		{moment: time.Date(2026, 9, 28, 12, 0, 0, 0, time.UTC), expected: "09-28 21:00"},
+		{moment: time.Date(2026, 9, 28, 15, 30, 0, 0, time.UTC), expected: "09-29 00:30"},
+		{moment: time.Date(2026, 9, 28, 14, 59, 59, 0, time.UTC), expected: "09-28 23:59"},
+		{moment: time.Date(2026, 9, 28, 15, 0, 0, 0, time.UTC), expected: "09-29 00:00"},
+		{moment: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), expected: "01-01 09:00"},
+		{moment: time.Date(2026, 9, 5, 3, 4, 59, 999_000_000, time.UTC), expected: "09-05 12:04"},
+		{moment: time.Date(2026, 12, 31, 15, 0, 0, 0, time.UTC), expected: "01-01 00:00"},
+		{moment: time.Date(2026, 9, 28, 21, 0, 0, 0, tokyo), expected: "09-28 21:00"},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.expected, func(t *testing.T) {
+			actual := clock.LocalDateTime(testCase.moment)
+			if actual != testCase.expected {
+				t.Fatalf("expected %s, actual %s", testCase.expected, actual)
+			}
+		})
+	}
+}

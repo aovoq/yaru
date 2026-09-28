@@ -1,0 +1,22 @@
+{
+  "name": "gs-issue-save-get-invalid-file",
+  "description": "frontmatter の無いファイルを get すると invalid issue file になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ],
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "not an issue\n"
+      }
+    ]
+  }
+}

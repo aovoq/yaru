@@ -1,0 +1,22 @@
+{
+  "name": "gs-question-wait-expired-without-default",
+  "description": "期限切れで既定の行動が無い question wait の人向けの出力",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--answerBy", "2026-09-27T00:00:00.000Z"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "1", "-f"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "wait", "1"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

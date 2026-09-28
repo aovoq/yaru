@@ -1,0 +1,30 @@
+{
+  "name": "gs-comment-list-order-id",
+  "description": "createdAt が同じときは id を文字列として比べる。 `10` は `9` より先に出る",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: Topic\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/comments/9.md",
+        "content": "---\nid: 9\nissue: 1\nparent:\nauthor: golden\ncreatedAt: 2026-09-28T12:05:00.000Z\nupdatedAt: 2026-09-28T12:05:00.000Z\n---\n\nnine\n"
+      },
+      {
+        "path": ".yaru/comments/10.md",
+        "content": "---\nid: 10\nissue: 1\nparent:\nauthor: golden\ncreatedAt: 2026-09-28T12:05:00.000Z\nupdatedAt: 2026-09-28T12:05:00.000Z\n---\n\nten\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--issue", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

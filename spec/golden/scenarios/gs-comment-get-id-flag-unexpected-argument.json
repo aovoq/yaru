@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-get-id-flag-unexpected-argument",
+  "description": "`--id` のうしろの位置引数も unexpected argument になる",
+  "steps": [
+    {
+      "arguments": ["comment", "get", "--id", "1", "extra"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

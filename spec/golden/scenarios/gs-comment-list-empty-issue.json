@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-list-empty-issue",
+  "description": "`--issue` の値が空だと、無いときと同じ usage になる。空文字はエラー文に出ない",
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--issue", ""],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

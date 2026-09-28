@@ -1,0 +1,38 @@
+{
+  "name": "gs-comment-list-skips-broken",
+  "description": "壊れたコメントファイルと、 issue キーの無いファイルは一覧から黙って省く",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: Topic\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/comments/1.md",
+        "content": "---\nid: 1\nissue: 1\nparent:\nauthor: golden\ncreatedAt: 2026-09-28T12:05:00.000Z\nupdatedAt: 2026-09-28T12:05:00.000Z\n---\n\nvisible\n"
+      },
+      {
+        "path": ".yaru/comments/2.md",
+        "content": "---\nid: 2\nauthor: golden\n---\n\nhidden\n"
+      },
+      {
+        "path": ".yaru/comments/note.md",
+        "content": "nope\n"
+      },
+      {
+        "path": ".yaru/comments/3.md",
+        "content": "---\nid: 3\nissue: 1\nparent:\nauthor: golden\ncreatedAt: 2026-09-28T12:05:00.000Z\nupdatedAt: 2026-09-28T12:05:00.000Z\n---\n\nalso\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--issue", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

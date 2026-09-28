@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-get-positional-and-id",
+  "description": "`--id` と位置 id を両方渡すと、取得せず unexpected argument: 1 になる",
+  "steps": [
+    {
+      "arguments": ["comment", "get", "1", "--id", "2"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

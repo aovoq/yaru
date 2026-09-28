@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-get-unknown-flag",
+  "description": "値の付いた未知の長いフラグを、yaru issue get がワークスペースを開く前に unknown flag として拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "1", "--nope", "x"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "name": "gs-question-answer-late-comment",
+  "description": "期限切れで issue がある質問への答えは、issue のコメントになる。既定が無いときは、既定で進んだとは書かない。--force で置き換えてもコメントは増えない",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "topic"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "消すか",
+        "--issue",
+        "1",
+        "--default",
+        "残す",
+        "--answerBy",
+        "2026-09-27T00:00:00.000Z"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "どうするか",
+        "--issue",
+        "1",
+        "--answerBy",
+        "2026-09-27T00:00:00.000Z"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "消してよい\n\n理由は後で"],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "2", "--body", "こうする"],
+      "now": "2026-09-28T00:02:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "やはり残す", "--force"],
+      "now": "2026-09-28T00:03:00.000Z"
+    },
+    {
+      "arguments": ["comment", "list", "--issue", "1"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "list", "--issue", "1", "-f"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

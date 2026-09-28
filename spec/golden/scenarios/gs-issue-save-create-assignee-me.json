@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-create-assignee-me",
+  "description": "作成時の --assignee me が git の user.name になり、ファイルにも me ではなくその名前を書くことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--assignee", "me"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

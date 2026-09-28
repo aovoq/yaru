@@ -1,0 +1,62 @@
+{
+  "name": "gs-question-save-options-none",
+  "description": "--option none だけなら選択肢を消す。前後に空白があると none という選択肢になる。NONE も文字どおり。none と他を一緒に渡すと消さずに両方残す",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "q",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h",
+        "--option",
+        "残す",
+        "--option",
+        "消す"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--option", "none"],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--option", " again "],
+      "now": "2026-09-28T00:02:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--option", " none "],
+      "now": "2026-09-28T00:03:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--option", "NONE"],
+      "now": "2026-09-28T00:04:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--id", "1", "--option", "none", "--option", "keep"],
+      "now": "2026-09-28T00:05:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "create none",
+        "--default",
+        "x",
+        "--answerBy",
+        "1h",
+        "--option",
+        "none"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

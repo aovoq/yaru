@@ -1,0 +1,34 @@
+{
+  "name": "gs-question-get-acknowledge",
+  "description": "答え済みを question get した最初の 1 回だけ acknowledgedAt が付き、updatedAt は動かない。2 回目は同じ時刻のまま",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "q", "--body", "context"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:01:00.000Z"
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "yes\n"],
+      "now": "2026-09-28T00:02:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "now": "2026-09-28T00:03:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "1", "-f"],
+      "now": "2026-09-28T00:04:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "--id", "1"],
+      "now": "2026-09-28T00:05:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "gs-question-get-usage",
+  "description": "question get の id が無い、余分な引数、知らないフラグ、--id の値が無い",
+  "steps": [
+    {
+      "arguments": ["question", "get"]
+    },
+    {
+      "arguments": ["question", "get", "--format"]
+    },
+    {
+      "arguments": ["question", "get", "1", "extra"]
+    },
+    {
+      "arguments": ["question", "get", "--status", "open"]
+    },
+    {
+      "arguments": ["question", "get", "--id"]
+    }
+  ]
+}

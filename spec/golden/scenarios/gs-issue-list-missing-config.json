@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-list-missing-config",
+  "description": "issues にファイルがあっても config.yml が無いと、yaru issue list はワークスペースと認めず、その issue を出さないことを記録する。",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: Hidden\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

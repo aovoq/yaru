@@ -1,0 +1,113 @@
+{
+  "name": "gs-issue-list-query",
+  "description": "yaru issue list の --query が id、title、本文を空白でつないだ文字列を、大文字小文字を無視した部分一致で探すことを記録する。ラベル、担当、状態、優先度は探さない。空文字は絞らない。空白 1 つは連結の空白に当たるので全件に当たる。. と * は正規表現にしない。繰り返すと最初の値だけを使う。",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Latch gate",
+        "--body",
+        "The bolt\nsecond line",
+        "--label",
+        "hidden",
+        "--assignee",
+        "Ada",
+        "--status",
+        "todo",
+        "--priority",
+        "high"
+      ],
+      "now": "2026-09-28T12:01:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Other", "--body", "nothing"],
+      "now": "2026-09-28T12:02:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "門を直す", "--body", "本文"],
+      "now": "2026-09-28T12:03:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Dotted", "--body", "a.b"],
+      "now": "2026-09-28T12:04:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "latch"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "LATCH"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "bolt"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "second"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "門"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "hidden"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "Ada"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "todo"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "high"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", ""],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", " "],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "."],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "*"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "a.b"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "1 Latch"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "nope", "--query", "latch"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "latch", "--query", "nope"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "zzzz", "--format"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

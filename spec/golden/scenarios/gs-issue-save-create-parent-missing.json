@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-save-create-parent-missing",
+  "description": "作成時の --parent が居ない id だと拒み、ファイルを作らないことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--parent", "2"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

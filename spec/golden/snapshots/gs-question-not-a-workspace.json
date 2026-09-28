@@ -1,0 +1,115 @@
+{
+  "name": "gs-question-not-a-workspace",
+  "steps": [
+    {
+      "arguments": ["question", "list"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "not a yaru workspace (run yaru init)\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "list", "--status", "pending"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "not a yaru workspace (run yaru init)\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "list", "-f"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "not a yaru workspace (run yaru init)\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "not a yaru workspace (run yaru init)\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "save", "--title", "q"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "not a yaru workspace (run yaru init)\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "save", "--title", ""],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "not a yaru workspace (run yaru init)\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "save", "--priority", "now"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "not a yaru workspace (run yaru init)\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "answer", "1", "--body", "yes"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "not a yaru workspace (run yaru init)\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "wait", "1", "--timeout", "0ms"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "not a yaru workspace (run yaru init)\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

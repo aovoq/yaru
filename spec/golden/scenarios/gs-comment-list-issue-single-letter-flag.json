@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-list-issue-single-letter-flag",
+  "description": "`--issue` の次が `-f` のような 1 文字のフラグだと、 missing value for --issue になる",
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--issue", "-f"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

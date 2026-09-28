@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-save-trailing-unknown-flag",
+  "description": "値の無い未知の長いフラグは、yaru issue save では unknown flag ではなく missing value になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--title", "x", "--nope"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

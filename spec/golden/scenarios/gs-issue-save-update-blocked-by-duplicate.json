@@ -1,0 +1,30 @@
+{
+  "name": "gs-issue-save-update-blocked-by-duplicate",
+  "description": "すでにある --blockedBy をもう一度渡すと、相手の updatedAt は進むが blocks のイベントは増えないことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "owner"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "blocked"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "2", "--blockedBy", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--id", "2", "--blockedBy", "1"],
+      "now": "2026-09-28T14:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T14:00:00.000Z"
+    }
+  ]
+}

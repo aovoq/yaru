@@ -1,0 +1,22 @@
+{
+  "name": "gs-issue-save-get-id-flag-and-positional",
+  "description": "yaru issue get に位置引数と --id を両方渡すと、--id の相手ではなく位置引数を unexpected argument として拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "one"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "two"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1", "--id", "2"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

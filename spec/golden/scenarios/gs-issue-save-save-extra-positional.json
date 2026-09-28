@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-save-extra-positional",
+  "description": "yaru issue save の余分な位置引数を拒むことを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--title", "x", "extra"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

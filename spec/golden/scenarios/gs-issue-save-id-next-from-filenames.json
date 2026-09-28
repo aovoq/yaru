@@ -1,0 +1,38 @@
+{
+  "name": "gs-issue-save-id-next-from-filenames",
+  "description": "新規の id は frontmatter ではなく、数字のファイル名の最大 + 1 であることを確かめる。notes.md と 4.txt は数えない",
+  "steps": [
+    {
+      "arguments": ["issue", "save", "--title", "next"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "11"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ],
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/2.md",
+        "content": "---\nid: 2\ntitle: two\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/10.md",
+        "content": "---\nid: 10\ntitle: ten\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/issues/notes.md",
+        "content": "not an issue\n"
+      },
+      {
+        "path": ".yaru/issues/4.txt",
+        "content": "nope\n"
+      }
+    ]
+  }
+}

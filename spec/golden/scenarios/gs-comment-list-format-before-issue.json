@@ -1,0 +1,22 @@
+{
+  "name": "gs-comment-list-format-before-issue",
+  "description": "`-f` を `--issue` より前に置いても、人向けの一覧になる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Topic"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "hello"],
+      "now": "2026-09-28T12:05:00.000Z"
+    },
+    {
+      "arguments": ["comment", "list", "-f", "--issue", "1"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

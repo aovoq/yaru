@@ -1,0 +1,18 @@
+{
+  "name": "gs-question-save-notify-timeout",
+  "description": "notify が 10 秒以内に終わらないと警告し、質問は残る",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": "notify: sleep 30\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["question", "save", "--title", "q", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

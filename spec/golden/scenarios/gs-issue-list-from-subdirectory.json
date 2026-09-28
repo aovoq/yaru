@@ -1,0 +1,37 @@
+{
+  "name": "gs-issue-list-from-subdirectory",
+  "description": "ワークスペースの下のディレクトリから yaru issue list しても、上の .yaru を読み、登録する root はワークスペースの根であることを記録する。",
+  "setup": {
+    "files": [
+      {
+        "path": "nested/keep.txt",
+        "content": "x\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "From root"],
+      "now": "2026-09-28T12:01:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list"],
+      "now": "2026-09-28T12:01:00.000Z",
+      "workingDirectory": "nested"
+    },
+    {
+      "arguments": ["issue", "list", "--format"],
+      "now": "2026-09-28T12:01:00.000Z",
+      "workingDirectory": "nested"
+    },
+    {
+      "arguments": ["issue", "list", "--query", "root"],
+      "now": "2026-09-28T12:01:00.000Z",
+      "workingDirectory": "nested"
+    }
+  ]
+}

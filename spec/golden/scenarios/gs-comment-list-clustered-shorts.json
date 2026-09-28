@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-list-clustered-shorts",
+  "description": "`-fh` は `-f` と `-h` に分かれず、位置引数として unexpected argument になる",
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--issue", "1", "-fh"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

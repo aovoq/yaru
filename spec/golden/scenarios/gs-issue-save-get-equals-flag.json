@@ -1,0 +1,10 @@
+{
+  "name": "gs-issue-save-get-equals-flag",
+  "description": "yaru issue get の --id=1 は等号をフラグ名の一部にし、値があると unknown flag になることを確かめる",
+  "steps": [
+    {
+      "arguments": ["issue", "get", "--id=1", "x"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

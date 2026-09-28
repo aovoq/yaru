@@ -1,0 +1,58 @@
+{
+  "name": "gs-question-reads-broken-files",
+  "description": "壊れた質問ファイルは list から省く。get は飲みこまない。frontmatter が無いときは invalid issue file。title が無いときと options が配列でないときは invalid question file。ファイル名の数字は壊れていても次の id に数える",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/questions/2.md",
+        "content": "not frontmatter\n"
+      },
+      {
+        "path": ".yaru/questions/3.md",
+        "content": "---\nid: 3\n---\n"
+      },
+      {
+        "path": ".yaru/questions/4.md",
+        "content": "---\ntitle: bad options\noptions: not-json\n---\n"
+      },
+      {
+        "path": ".yaru/questions/10.md",
+        "content": "garbage\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["question", "list"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "-f"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "2"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "3"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "get", "4"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "valid", "--default", "x", "--answerBy", "1h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

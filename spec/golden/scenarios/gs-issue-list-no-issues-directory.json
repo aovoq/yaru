@@ -1,0 +1,22 @@
+{
+  "name": "gs-issue-list-no-issues-directory",
+  "description": "config.yml だけで issues ディレクトリが無いワークスペースの yaru issue list が、空の JSON で成功することを記録する。",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["issue", "list"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--format"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

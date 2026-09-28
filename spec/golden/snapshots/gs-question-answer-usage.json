@@ -1,0 +1,79 @@
+{
+  "name": "gs-question-answer-usage",
+  "steps": [
+    {
+      "arguments": ["question", "answer"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "usage: yaru question answer <id> --body TEXT|-\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "answer", "--body", "yes"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "usage: yaru question answer <id> --body TEXT|-\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "answer", "1", "extra", "--body", "yes"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: extra\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "answer", "--timeout", "1s"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unknown flag: --timeout\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "answer", "--body"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "missing value for --body\n",
+      "exitCode": 1
+    },
+    {
+      "arguments": ["question", "answer", "1", "--force", "true", "--body", "yes"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "unexpected argument: true\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}

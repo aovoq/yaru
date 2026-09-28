@@ -1,0 +1,10 @@
+{
+  "name": "gs-comment-list-unknown-short-flag",
+  "description": "知らない短いフラグ `-x` は unknown flag: -x になる",
+  "steps": [
+    {
+      "arguments": ["comment", "list", "--issue", "1", "-x", "y"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

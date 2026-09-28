@@ -18,7 +18,8 @@
     "fmt": "oxfmt --write .",
     "fmt:check": "oxfmt --check .",
     "test": "bun test",
-    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.client.json"
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.client.json",
+    "golden:check": "bun spec/golden/run.ts --check"
   },
   "dependencies": {
     "hono": "^4.13.5",

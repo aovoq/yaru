@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-create-due-leap-2000",
+  "description": "作成時の dueDate 2000-02-29 を受け取ることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--dueDate", "2000-02-29"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "gs-comment-save-update-keeps-author",
+  "description": "空でない author は更新しても残る。 git の user.name では上書きしない",
+  "setup": {
+    "files": [
+      {
+        "path": ".yaru/config.yml",
+        "content": ""
+      },
+      {
+        "path": ".yaru/issues/1.md",
+        "content": "---\nid: 1\ntitle: Topic\nstatus: todo\nassignee:\nlabels:\ndueDate:\npriority:\nparent:\nblocks:\nstartedAt:\ncompletedAt:\ncanceledAt:\ncreatedAt: 2026-09-28T12:00:00.000Z\nupdatedAt: 2026-09-28T12:00:00.000Z\nsession:\nworktree:\nbranch:\n---\n\n\n"
+      },
+      {
+        "path": ".yaru/comments/1.md",
+        "content": "---\nid: 1\nissue: 1\nparent:\nauthor: Spec Author\ncreatedAt: 2026-09-28T12:05:00.000Z\nupdatedAt: 2026-09-28T12:05:00.000Z\n---\n\nhello\n"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "arguments": ["comment", "save", "--id", "1", "--body", "edited"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

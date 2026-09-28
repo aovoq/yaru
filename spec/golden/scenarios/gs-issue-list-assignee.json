@@ -1,0 +1,78 @@
+{
+  "name": "gs-issue-list-assignee",
+  "description": "yaru issue list の --assignee が名前の完全一致、me（git の user.name）、none、空、空白だけの none 扱いを記録する。大文字小文字は区別する。繰り返すと最初の値だけを使う。人向けの表では担当が無いと - になる。",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Ada task", "--assignee", "Ada"],
+      "now": "2026-09-28T12:01:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Mine", "--assignee", "me"],
+      "now": "2026-09-28T12:02:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "Unassigned"],
+      "now": "2026-09-28T12:03:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", "Ada"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", " Ada "],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", "ada"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", "me"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", "golden"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", " me "],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", "none"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", ""],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", "   "],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", " none "],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", "NONE"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", "Ada", "--assignee", "golden"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", "none", "--format"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--assignee", "missing"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

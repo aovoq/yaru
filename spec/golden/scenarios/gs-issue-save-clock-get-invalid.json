@@ -1,0 +1,18 @@
+{
+  "name": "gs-issue-save-clock-get-invalid",
+  "description": "壊れた YARU_NOW は yaru issue get にも届かず、issue を読む前に落ちることを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "yesterday"
+    }
+  ]
+}

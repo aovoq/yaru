@@ -1,0 +1,149 @@
+{
+  "name": "gs-question-get-open",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "initialized <WORKSPACE>/.yaru\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "Ship it?",
+        "--priority",
+        "high",
+        "--default",
+        "Ship it",
+        "--answerBy",
+        "2h",
+        "--option",
+        "Ship it",
+        "--option",
+        "Hold it",
+        "--body",
+        "The latch sticks.\n\nMore context."
+      ],
+      "stdin": "",
+      "environment": {
+        "CLAUDE_CODE_SESSION_ID": "session-1",
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"Ship it?\",\n  \"issue\": null,\n  \"priority\": \"high\",\n  \"defaultAction\": \"Ship it\",\n  \"answerBy\": \"2026-09-28T02:00:00.000Z\",\n  \"options\": [\n    \"Ship it\",\n    \"Hold it\"\n  ],\n  \"author\": \"golden\",\n  \"session\": \"session-1\",\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"body\": \"The latch sticks.\\n\\nMore context.\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "get", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"Ship it?\",\n  \"issue\": null,\n  \"priority\": \"high\",\n  \"defaultAction\": \"Ship it\",\n  \"answerBy\": \"2026-09-28T02:00:00.000Z\",\n  \"options\": [\n    \"Ship it\",\n    \"Hold it\"\n  ],\n  \"author\": \"golden\",\n  \"session\": \"session-1\",\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"body\": \"The latch sticks.\\n\\nMore context.\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "get", "--id", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"Ship it?\",\n  \"issue\": null,\n  \"priority\": \"high\",\n  \"defaultAction\": \"Ship it\",\n  \"answerBy\": \"2026-09-28T02:00:00.000Z\",\n  \"options\": [\n    \"Ship it\",\n    \"Hold it\"\n  ],\n  \"author\": \"golden\",\n  \"session\": \"session-1\",\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"body\": \"The latch sticks.\\n\\nMore context.\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "get", "--", "1"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "{\n  \"id\": \"1\",\n  \"title\": \"Ship it?\",\n  \"issue\": null,\n  \"priority\": \"high\",\n  \"defaultAction\": \"Ship it\",\n  \"answerBy\": \"2026-09-28T02:00:00.000Z\",\n  \"options\": [\n    \"Ship it\",\n    \"Hold it\"\n  ],\n  \"author\": \"golden\",\n  \"session\": \"session-1\",\n  \"worktree\": \"<WORKSPACE>\",\n  \"branch\": \"main\",\n  \"answer\": null,\n  \"answeredBy\": null,\n  \"answeredAt\": null,\n  \"acknowledgedAt\": null,\n  \"notifiedExpiringAt\": null,\n  \"canceledAt\": null,\n  \"createdAt\": \"2026-09-28T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-28T00:00:00.000Z\",\n  \"body\": \"The latch sticks.\\n\\nMore context.\",\n  \"status\": \"open\"\n}\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "get", "1", "-f"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "1  open  high  issue -  answerBy 2026-09-28T02:00:00.000Z\nShip it?\ndefault: Ship it\noption: Ship it\noption: Hold it\nasked from: main  <WORKSPACE>  session session-1\n\nThe latch sticks.\n\nMore context.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "get", "1", "--format"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "1  open  high  issue -  answerBy 2026-09-28T02:00:00.000Z\nShip it?\ndefault: Ship it\noption: Ship it\noption: Hold it\nasked from: main  <WORKSPACE>  session session-1\n\nThe latch sticks.\n\nMore context.\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "arguments": ["question", "get", "--id", "1", "--f"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T00:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "1  open  high  issue -  answerBy 2026-09-28T02:00:00.000Z\nShip it?\ndefault: Ship it\noption: Ship it\noption: Hold it\nasked from: main  <WORKSPACE>  session session-1\n\nThe latch sticks.\n\nMore context.\n",
+      "stderr": "",
+      "exitCode": 0
+    }
+  ],
+  "yaru": [
+    {
+      "path": "comments",
+      "content": "",
+      "directory": true
+    },
+    {
+      "path": "config.yml",
+      "content": ""
+    },
+    {
+      "path": "issues",
+      "content": "",
+      "directory": true
+    },
+    {
+      "path": "questions/.gitignore",
+      "content": "*\n"
+    },
+    {
+      "path": "questions/1.md",
+      "content": "---\nid: 1\ntitle: Ship it?\nstatus: open\nissue:\npriority: high\ndefaultAction: Ship it\nanswerBy: 2026-09-28T02:00:00.000Z\noptions: [\"Ship it\",\"Hold it\"]\nauthor: golden\nsession: session-1\nworktree: <WORKSPACE>\nbranch: main\nansweredBy:\nansweredAt:\nacknowledgedAt:\nnotifiedExpiringAt:\ncanceledAt:\ncreatedAt: 2026-09-28T00:00:00.000Z\nupdatedAt: 2026-09-28T00:00:00.000Z\n---\n\nThe latch sticks.\n\nMore context.\n"
+    }
+  ],
+  "state": [
+    {
+      "path": "workspaces.json",
+      "content": "{\n  \"workspaces\": [\n    {\n      \"slug\": \"workspace\",\n      \"root\": \"<WORKSPACE>\"\n    }\n  ]\n}\n"
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "name": "gs-question-save-answer-by-duration",
+  "description": "question save の --answerBy の相対期限。30m, 2h, 1d, 0m, 0h, 0d。前後の空白は無視する",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "thirty", "--default", "x", "--answerBy", "30m"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "two hours",
+        "--default",
+        "x",
+        "--answerBy",
+        "2h"
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "one day", "--default", "x", "--answerBy", "1d"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "zero m", "--default", "x", "--answerBy", "0m"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "zero h", "--default", "x", "--answerBy", "0h"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "save", "--title", "zero d", "--default", "x", "--answerBy", "0d"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "question",
+        "save",
+        "--title",
+        "padded",
+        "--default",
+        "x",
+        "--answerBy",
+        " 2h "
+      ],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "--status", "expired"],
+      "now": "2026-09-28T00:00:00.000Z"
+    },
+    {
+      "arguments": ["question", "list", "--status", "open"],
+      "now": "2026-09-28T00:00:00.000Z"
+    }
+  ]
+}

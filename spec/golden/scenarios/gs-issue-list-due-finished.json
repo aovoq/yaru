@@ -1,0 +1,83 @@
+{
+  "name": "gs-issue-list-due-finished",
+  "description": "期日を過ぎていても done と canceled は --due overdue に出ず、backlog、todo、in_progress は出ることを記録する。",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Late todo",
+        "--status",
+        "todo",
+        "--dueDate",
+        "2026-09-27"
+      ],
+      "now": "2026-09-28T12:01:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Late backlog",
+        "--status",
+        "backlog",
+        "--dueDate",
+        "2026-09-27"
+      ],
+      "now": "2026-09-28T12:02:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Late progress",
+        "--status",
+        "in_progress",
+        "--dueDate",
+        "2026-09-27"
+      ],
+      "now": "2026-09-28T12:03:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Late done",
+        "--status",
+        "done",
+        "--dueDate",
+        "2026-09-27"
+      ],
+      "now": "2026-09-28T12:04:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--title",
+        "Late canceled",
+        "--status",
+        "canceled",
+        "--dueDate",
+        "2026-09-27"
+      ],
+      "now": "2026-09-28T12:05:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--due", "overdue"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "list", "--due", "overdue", "--format"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

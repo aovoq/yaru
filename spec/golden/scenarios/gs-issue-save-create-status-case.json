@@ -1,0 +1,14 @@
+{
+  "name": "gs-issue-save-create-status-case",
+  "description": "大文字の status は受け付けないことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--status", "Todo"],
+      "now": "2026-09-28T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "gs-issue-save-patch-atomic",
+  "description": "patch の途中の操作が失敗すると、前の操作も保存せず、本文と updatedAt を変えないことを確かめる",
+  "steps": [
+    {
+      "arguments": ["init"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "save", "--title", "x", "--body", "alpha\nbeta"],
+      "now": "2026-09-28T12:00:00.000Z"
+    },
+    {
+      "arguments": [
+        "issue",
+        "save",
+        "--id",
+        "1",
+        "--patch",
+        "[{\"op\":\"replace\",\"old_string\":\"alpha\",\"new_string\":\"ALPHA\"},{\"op\":\"replace\",\"old_string\":\"missing\",\"new_string\":\"x\"}]"
+      ],
+      "now": "2026-09-28T13:00:00.000Z"
+    },
+    {
+      "arguments": ["issue", "get", "1"],
+      "now": "2026-09-28T13:00:00.000Z"
+    }
+  ]
+}

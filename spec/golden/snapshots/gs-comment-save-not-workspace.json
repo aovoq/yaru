@@ -1,0 +1,19 @@
+{
+  "name": "gs-comment-save-not-workspace",
+  "steps": [
+    {
+      "arguments": ["comment", "save", "--issue", "1", "--body", "hi"],
+      "stdin": "",
+      "environment": {
+        "TZ": "Asia/Tokyo"
+      },
+      "now": "2026-09-28T12:00:00.000Z",
+      "workingDirectory": ".",
+      "stdout": "",
+      "stderr": "not a yaru workspace (run yaru init)\n",
+      "exitCode": 1
+    }
+  ],
+  "yaru": [],
+  "state": []
+}
