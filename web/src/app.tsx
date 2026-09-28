@@ -3,6 +3,7 @@ import { DashboardPage } from "./pages/dashboard-page"
 import { InboxPage } from "./pages/inbox-page"
 import { NotFoundPage } from "./pages/not-found-page"
 import { ProjectsPage } from "./pages/projects-page"
+import { TerminalPage } from "./terminal/terminal-page"
 import {
   cardFragment,
   matchPath,
@@ -33,6 +34,7 @@ export function App({ href, knownSlugs }: { href: string; knownSlugs?: ReadonlyS
           fragment={fragment}
         />
       ) : null}
+      {route.name === "terminal" ? <TerminalPage /> : null}
       {route.name === "not-found" ? <NotFoundPage /> : null}
     </div>
   )

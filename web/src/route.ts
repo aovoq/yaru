@@ -8,11 +8,15 @@ export type Route =
   | { name: "inbox" }
   | { name: "board"; slug: string; registration: "known" | "pending" }
   | { name: "dashboard"; slug: string; registration: "known" | "pending" }
+  | { name: "terminal" }
   | { name: "not-found" }
 
 export function matchPath(pathname: string, knownSlugs?: ReadonlySet<string>): Route {
   if (pathname === "/") return { name: "projects" }
   if (pathname === "/inbox") return { name: "inbox" }
+  // 端末だけ style-src に unsafe-inline が要る。文書の path を他の画面と分ける
+  // docs/spec/security.md の「決定 (2026-09-28)」
+  if (pathname === "/terminal") return { name: "terminal" }
 
   const dashboard = /^\/p\/([^/]+)\/dashboard$/.exec(pathname)
   if (dashboard) {
