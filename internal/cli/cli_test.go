@@ -19,7 +19,7 @@ import (
 )
 
 func TestGoldenHelpAndErrors(t *testing.T) {
-	// ワークスペースを開かずに終わる場面。正解は spec/golden の記録
+	// ワークスペースを開かずに終わる場面。正解は testdata/golden の記録
 	names := []string{
 		"gs-init-dash-help-word",
 		"gs-init-double-dash-only",
@@ -351,7 +351,7 @@ func TestHumanSavePrintsBoardURL(t *testing.T) {
 
 func replaySnapshot(t *testing.T, name string) {
 	t.Helper()
-	path := filepath.Join("..", "..", "spec", "golden", "snapshots", name+".json")
+	path := filepath.Join("..", "..", "testdata", "golden", "snapshots", name+".json")
 	body, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

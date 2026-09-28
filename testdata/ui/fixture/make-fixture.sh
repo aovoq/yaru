@@ -3,7 +3,7 @@
 # issue、コメント、質問、コミットは、この worktree の yaru (src/index.ts) で書く。
 # 質問の期限と、止まった issue、7 日より前に終わった issue は、作ったあとに frontmatter の時刻だけをずらす。
 # ずらす前の createdAt も、ずらした時刻も、同じ YARU_NOW から数える。既定は 2026-09-28T12:00:00.000Z。
-# 使い方: spec/ui/fixture/make-fixture.sh [出力先] [--state-dir 登録先] [--force]
+# 使い方: testdata/ui/fixture/make-fixture.sh [出力先] [--state-dir 登録先] [--force]
 # 登録先の既定は <出力先>/state。できた fixture.env の YARU_STATE_DIR を serve に渡す。
 # 実行中の環境変数 YARU_STATE_DIR は使わない。本物の登録を上書きしないため。
 # 本物の ~/.local/state/yaru と、リポジトリの .yaru には書かない。

@@ -1,41 +1,34 @@
 # CLI の golden
 
-今の TS 版の CLI の振る舞いを「正解」として記録し、あとから別の実装 (Go 版) に同じ場面を流して、バイト単位で同じかを確かめる。場面と記録は JSON で、ランナーの言語には依存しない。
+CLI の振る舞いの「正解」を記録し、CLI に同じ場面を流して、バイト単位で同じかを確かめる。記録は TS 版 (`ts-final` のタグ) の出力から取ったもので、Go 版はこれと同じ出力を守る。場面と記録は JSON で、ランナーの言語には依存しない。
 
 記録するものは、各手順の標準出力・標準エラー・終了コードと、最後の `.yaru` の全ファイル、`YARU_STATE_DIR` の全ファイル。
 
 ## 動かし方
 
-リポジトリの根で実行する。
+照合は `go test ./...` (`make go-check`) に入っている。golden だけを動かすときはリポジトリの根で実行する。
 
 ```sh
-bun spec/golden/run.ts --update
-bun spec/golden/run.ts --check
+go test ./internal/golden
+go test ./internal/golden -run 'TestGolden/issue-create-list-get$'
 ```
 
-`--update` は `spec/golden/snapshots/<場面の名前>.json` を書き直す。`--check` は記録と突き合わせ、差があれば場面・手順・どの出力か (標準出力、標準エラー、終了コード、`.yaru` のファイル、状態ディレクトリのファイル) を出して終了コード 1 で終わる。差が無ければ終了コード 0。
+CLI は `cmd/yaru` をテストの中でビルドして使う。`YARU_BIN` に実行ファイルのパスを 1 つ渡すと、それを使う。`YARU_BIN` は引数を含まない。
 
-場面の名前を後ろに付けると、その場面だけを対象にする。
+差があれば、場面・手順・どの出力か (標準出力、標準エラー、終了コード、`.yaru` のファイル、状態ディレクトリのファイル) を出して落ちる。場面の無い記録も落ちる。
+
+記録を書き直すときは `-update` を付け、そのあと整形する。記録は `JSON.stringify(snapshot, null, 2)` と同じバイトで書き、oxfmt が短い配列を 1 行に詰める。
 
 ```sh
-bun spec/golden/run.ts --check issue-create-list-get
+go test ./internal/golden -run 'TestGolden$' -update
+npm run fmt
 ```
-
-## Go 版
-
-`YARU_BIN` に実行ファイルのパスを 1 つ渡す。既定は `bun --jsx-import-source=preact <リポジトリ>/src/index.ts` である。Bun は JSX の設定を作業ディレクトリの tsconfig からしか読まないので、この指定が無いとリポジトリの外で `react/jsx-dev-runtime` を探して落ちる。
-
-```sh
-YARU_BIN=/path/to/yaru bun spec/golden/run.ts --check
-```
-
-`YARU_BIN` は引数を含まない。引数が要るときは、それを包んだ実行ファイルを渡す。
 
 ランナーは毎回、プロジェクトの外の一時ディレクトリをワークスペースにし、別の一時ディレクトリを `YARU_STATE_DIR` にする。本物の `.yaru` と `~/.local/state` は読み書きしない。
 
 ## 場面の書き方
 
-`spec/golden/scenarios/<名前>.json`。名前は小文字と数字をハイフンでつないだもので、ファイル名と `name` を同じにする。
+`testdata/golden/scenarios/<名前>.json`。名前は小文字と数字をハイフンでつないだもので、ファイル名と `name` を同じにする。
 
 ```json
 {
@@ -110,7 +103,7 @@ missing-dir: workingDirectory not found: expected /path/no/such, actual missing
 
 `<COMMIT:n>` の n は、その場面の commit を古い順に 1 から数えた番号。短縮形は前後が 16 進でないときだけ置き換える。
 
-子プロセスの時間帯は既定で `Asia/Tokyo`。`calendarDate` (`store.ts`) と `localDateTime` (`time.ts`) と `issue-dates.ts` は、この時間帯の暦日を使う。手順の `environment.TZ` で上書きする。`now` を省いた手順の `YARU_NOW` は `2026-09-28T00:00:00.000Z`。
+子プロセスの時間帯は既定で `Asia/Tokyo`。期日などの暦日と日時の表示は、この時間帯で決まる。手順の `environment.TZ` で上書きする。`now` を省いた手順の `YARU_NOW` は `2026-09-28T00:00:00.000Z`。
 
 ワークスペースのディレクトリ名は常に `workspace` なので、登録ファイルの slug は `workspace` になる。
 
@@ -124,5 +117,5 @@ missing-dir: workingDirectory not found: expected /path/no/such, actual missing
 2. 時刻を問題にする手順には `now` を付ける。省くと `2026-09-28T00:00:00.000Z` になる
 3. `--assignee me` やコメントの作者は、準備で入れた `git config user.name` (`golden`) になる。マシンの git の名前は使わない
 4. `issue save` と `question save` を人向けの出力 (`-f` / `--format`) にしない。人向けの保存だけ、動いている `yaru serve` に問い合わせて URL を足すことがあり、その URL はサーバの有無で変わる。JSON (既定) には URL は出ない
-5. `bun spec/golden/run.ts --update <名前>` のあと、記録に絶対パスや、自分のユーザー名や、セッション ID が残っていないかを見る
-6. `bun spec/golden/run.ts --check <名前>` を 2 回連続で通し、1 回目の記録のまま 2 回目が一致することを確かめる
+5. `go test ./internal/golden -run 'TestGolden/<名前>$' -update` と `npm run fmt` のあと、記録に絶対パスや、自分のユーザー名や、セッション ID が残っていないかを見る
+6. `go test ./internal/golden -run 'TestGolden/<名前>$' -count=2` で、1 回目の記録のまま 2 回続けて一致することを確かめる

@@ -1,11 +1,11 @@
 #!/bin/sh
-# シナリオ (spec/ui/scenarios.md) を agent-browser で開き、状態に着いてから撮る。
+# シナリオ (testdata/ui/scenarios.md) を agent-browser で開き、状態に着いてから撮る。
 # 着かなければ、状態の名前と理由を出して、最後に終了コード 1 で終わる。
 # ファイルを変える状態は、撮る前に fixture の写しを取る。元の fixture は変えない。
 # 確かめで起動する yaru serve は、写しか fixture のディレクトリをカレントにして、別ポートで起動する。
 # 既定は 47900。空の登録は 47901。使用中ならエラーにする。終わったら、ここで起動したプロセスだけを止める。
 #
-# 使い方: spec/ui/capture.sh [fixture の出力先]
+# 使い方: testdata/ui/capture.sh [fixture の出力先]
 # 高さがソースに無いので、1280×800 と 390×844 で撮る。
 
 set -eu

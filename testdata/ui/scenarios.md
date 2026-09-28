@@ -45,7 +45,7 @@
 
 ## fixture との対応
 
-`spec/ui/fixture/make-fixture.sh` がワークスペースを 3 つ作る。題名と id は `$ROOT/manifest.json`。各ワークスペースには、リポジトリの外で `bun src/index.ts` が JSX を読むための `tsconfig.json` と `node_modules` のリンクがある。これは画面のデータの一部ではなく、`.gitignore` に入れてコミットしない。
+`testdata/ui/fixture/make-fixture.sh` がワークスペースを 3 つ作る。題名と id は `$ROOT/manifest.json`。各ワークスペースには、リポジトリの外で `bun src/index.ts` が JSX を読むための `tsconfig.json` と `node_modules` のリンクがある。これは画面のデータの一部ではなく、`.gitignore` に入れてコミットしない。
 
 | キー                        | 役割                                                                                                          |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------- |
