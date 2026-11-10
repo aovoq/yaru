@@ -26,7 +26,7 @@ func openBySlug(ctx context.Context, slug string) (workspace.Workspace, error) {
 // src/workspaces.ts:18-21
 // https://specifications.freedesktop.org/basedir-spec/latest/
 //
-//declscope:package
+//declscope:shared
 func stateDirectory() string {
 	return workspace.StateDirectory(os.Getenv("YARU_STATE_DIR"), os.Getenv("XDG_STATE_HOME"), homeDirectory())
 }

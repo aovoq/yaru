@@ -23,7 +23,7 @@ import (
 // 時刻は docs/spec/yaru-format.md の「時刻」。この文字列は toISOString と同じ。
 // 質問のテストも同じ瞬間を使う。
 //
-//declscope:package
+//declscope:shared
 const fixedNow = "2026-09-28T12:00:00.000Z"
 
 func TestIssueCreateMatchesSpecBytes(t *testing.T) {
@@ -597,7 +597,7 @@ await call("POST", "/api/comments", { issue: "1", body: "note" })
 
 // page_service_test.go が未知の view を直接送るときに、同じ用意を使う
 //
-//declscope:package
+//declscope:shared
 func newAPIWorkspace(t *testing.T) (string, string) {
 	t.Helper()
 	home := t.TempDir()
@@ -684,7 +684,7 @@ func projectClient(t *testing.T) yaruv1connect.ProjectServiceClient {
 
 // page_service_test.go が Connect のコードと文を照合する
 //
-//declscope:package
+//declscope:shared
 func expectConnect(t *testing.T, err error, code connect.Code, message string) {
 	t.Helper()
 	if err == nil {

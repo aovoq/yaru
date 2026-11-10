@@ -1,5 +1,5 @@
 # Go 側の手順。TS 側 (移行前の版) は package.json の scripts を使う
-DECLSCOPE_VERSION := v0.9.0
+DECLSCOPE_VERSION := v0.25.0
 # 常駐の yaru serve (~/dotfiles/home/modules/yaru.nix) と CLI が使う実行ファイル
 INSTALL_PATH := $(HOME)/.local/bin/yaru
 
